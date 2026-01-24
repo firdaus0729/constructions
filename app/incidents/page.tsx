@@ -75,7 +75,7 @@ export default function IncidentsPage() {
               {t("list.countOf", {
                 filtered: filtered.length,
                 total: incidents.length,
-                type: incidents.length !== 1 ? t("list.incidents") : t("list.incident")
+                type: incidents.length !== 1 ? "Incidents" : "Incident"
               })}
             </p>
           </div>

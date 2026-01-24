@@ -25,34 +25,34 @@ const translations = {
     "dashboard.noDrafts": "No drafts yet",
     "dashboard.noSubmissions": "No submissions yet",
 
-    // Status
-    "status.online": "Online",
-    "status.offline": "Offline",
-    "status.syncing": "Syncing...",
-    "status.savedLocally": "Saved locally",
-    "status.syncedSuccessfully": "Synced successfully",
-    "status.draft": "Draft",
-    "status.submitted": "Submitted",
-    "status.open": "Open",
-    "status.closed": "Closed",
-    "status.inProgress": "In Progress",
-    "status.archived": "Archived",
-
-    // Form common
-    "form.save": "Save",
-    "form.saving": "Saving...",
-    "form.saveDraft": "Save Draft",
-    "form.submit": "Submit",
-    "form.cancel": "Cancel",
-    "form.delete": "Delete",
-    "form.edit": "Edit",
-    "form.required": "Required",
-    "form.attachments": "Attachments",
-    "form.addAttachment": "Add Attachment",
-    "form.comments": "Comments",
-    "form.description": "Description",
-    "form.title": "Title",
-    "form.project": "Project",
+    en: {
+      // Navigation
+      "nav.dashboard": "Dashboard",
+      "nav.siteForms": "Site Forms",
+      "nav.inspections": "Inspections",
+      "nav.observations": "Observations",
+      "nav.incidents": "Incidents",
+      "nav.settings": "Settings",
+      // ...existing code...
+      "status.inProgress": "In Progress",
+      // ...existing code...
+      "field.date": "Date",
+      // ...existing code...
+    },
+    fr: {
+      // Navigation
+      "nav.dashboard": "Tableau de bord",
+      "nav.siteForms": "Formulaires de chantier",
+      "nav.inspections": "Inspections",
+      "nav.observations": "Observations",
+      "nav.incidents": "Incidents",
+      "nav.settings": "Paramètres",
+      // ...existing code...
+      "status.inProgress": "En Progression",
+      // ...existing code...
+      "field.date": "Date",
+      // ...existing code...
+    },
     "form.createdBy": "Created By",
     "form.distribution": "Distribution",
     "form.closedBy": "Closed By",
@@ -80,8 +80,6 @@ const translations = {
     "settings.language": "Language",
     "settings.language.desc": "Choose your preferred language for the application",
     "settings.applicationLanguage": "Application Language",
-    "settings.language.english": "English",
-    "settings.language.french": "Français",
     "settings.notifications": "Notifications",
     "settings.notifications.desc": "Configure how you receive updates",
     "settings.pushNotifications": "Push Notifications",
@@ -284,7 +282,6 @@ const translations = {
     "action.search": "Search",
     "action.filter": "Filter",
     "action.new": "New",
-    "action.menu": "Toggle menu",
 
     // Fields
     "field.type": "Type",
@@ -292,6 +289,7 @@ const translations = {
     "field.photos": "Photos",
     "field.eventDate": "Event Date",
     "field.injuries": "Injuries",
+    "field.date": "Date",
 
     // Empty states
     "empty.noObservations": "No observations yet",
@@ -502,7 +500,6 @@ const translations = {
     "dashboard.noSubmissions": "Aucune soumission",
 
     // Status
-    "sync.allChangesSynced": "Tous les changements sont synchronisés",
     "status.online": "En ligne",
     "status.offline": "Hors ligne",
     "status.syncing": "Synchronisation...",
@@ -515,33 +512,66 @@ const translations = {
     "status.inProgress": "En Progression",
     "status.archived": "Archivé",
 
+    // Form common
+    "form.save": "Enregistrer",
+    "form.saving": "Enregistrement...",
+    "form.saveDraft": "Enregistrer le brouillon",
+    "form.submit": "Soumettre",
+    "form.cancel": "Annuler",
+    "form.delete": "Supprimer",
+    "form.edit": "Modifier",
+    "form.required": "Obligatoire",
+    "form.attachments": "Pièces jointes",
+    "form.addAttachment": "Ajouter une pièce jointe",
+    "form.comments": "Commentaires",
+    "form.description": "Description",
+    "form.title": "Titre",
+    "form.project": "Projet",
+    "form.createdBy": "Créé par",
+    "form.distribution": "Distribution",
+    "form.closedBy": "Fermé par",
+    "form.status": "Statut",
+    "form.priority": "Priorité",
+    "form.exportPdf": "Exporter PDF",
+    "form.formStatus": "Statut du formulaire",
+    "form.formStatusDescription": "Ce formulaire sera enregistré localement dans IndexedDB. Lorsque vous le soumettez, il sera marqué comme étant en attente de synchronisation. Une fois la connectivité en ligne restaurée, il se synchronisera automatiquement avec le serveur.",
+    "section.details": "Détails",
+
+    // Generic
+    "common.updated": "Mis à jour {distance}",
+    "units.days": "{count} jours",
+
+    // Not found
+    "empty.notFound.observation": "Observation introuvable",
+    "empty.notFound.inspection": "Inspection introuvable",
+    "empty.notFound.incident": "Incident introuvable",
+
     // Settings
     "settings.syncStatus": "Statut de synchronisation",
-    "settings.syncStatus.desc": "Surveillez le statut de synchronisation de vos données",
-    "settings.totalForms": "Formulaires totaux",
+    "settings.syncStatus.desc": "Surveillez l'état de synchronisation des données",
+    "settings.totalForms": "Formulaires au total",
     "settings.pendingSync": "Synchronisation en attente",
     "settings.language": "Langue",
     "settings.language.desc": "Choisissez votre langue préférée pour l'application",
     "settings.applicationLanguage": "Langue de l'application",
-    "settings.language.english": "English",
-    "settings.language.french": "Français",
     "settings.notifications": "Notifications",
-    "settings.notifications.desc": "Configurez la façon dont vous recevez les mises à jour",
+    "settings.notifications.desc": "Configurer la réception des mises à jour",
     "settings.pushNotifications": "Notifications push",
-    "settings.pushNotifications.desc": "Recevez des alertes pour les nouvelles affectations",
+    "settings.pushNotifications.desc": "Recevoir des alertes pour les nouvelles tâches",
     "settings.syncAlerts": "Alertes de synchronisation",
-    "settings.syncAlerts.desc": "Soyez notifié lorsque la synchronisation est terminée",
+    "settings.syncAlerts.desc": "Être notifié lorsque la synchronisation est terminée",
     "settings.appearance": "Apparence",
-    "settings.appearance.desc": "Personnalisez l'apparence visuelle",
+    "settings.appearance.desc": "Personnaliser l'apparence visuelle",
     "settings.theme": "Thème",
-    "settings.theme.desc": "Choisissez le mode clair ou sombre",
+    "settings.theme.desc": "Choisir le mode clair ou sombre",
     "settings.theme.light": "Clair",
     "settings.theme.dark": "Sombre",
     "settings.theme.system": "Système",
-    "sync.pendingChanges": "{count} modifications en attente",
+    "sync.allChangesSynced": "Tous les changements sont synchronisés",
+    "sync.pendingChanges": "{count} changements en attente",
     "sync.lastSynced": "Dernière synchronisation {time}",
     "sync.syncNow": "Synchroniser maintenant",
-    "sync.syncing": "Synchronisation...",
+    "sync.syncing": "Synchronisation en cours...",
 
     // Priority levels
     "priority.low": "Faible",
@@ -556,31 +586,6 @@ const translations = {
     "observation.projectNumber": "Numéro de projet",
     "observation.type": "Type d'observation",
     "observation.assignedPerson": "Personne assignée",
-
-    // Form common
-    "form.save": "Enregistrer",
-    "form.saving": "Enregistrement...",
-    "form.saveDraft": "Enregistrer le brouillon",
-    "form.submit": "Soumettre",
-    "form.cancel": "Annuler",
-    "form.delete": "Supprimer",
-    "form.edit": "Modifier",
-    "form.required": "Requis",
-    "form.attachments": "Pièces jointes",
-    "form.addAttachment": "Ajouter une pièce jointe",
-    "form.comments": "Commentaires",
-    "form.description": "Description",
-    "form.title": "Titre",
-    "form.project": "Projet",
-    "form.createdBy": "Créé par",
-    "form.distribution": "Distribution",
-    "form.closedBy": "Fermé par",
-    "form.status": "Statut",
-    "form.priority": "Priorité",
-    "form.exportPdf": "Exporter en PDF",
-    "form.formStatus": "Statut du formulaire",
-    "form.formStatusDescription": "Ce formulaire sera enregistré localement dans IndexedDB. Lorsque vous soumettez, il sera marqué comme en attente de synchronisation. Une fois la connectivité en ligne rétablie, il sera automatiquement synchronisé avec le serveur.",
-    "section.details": "Détails",
     "observation.dueDate": "Date d'échéance de l'action corrective",
     "observation.completionDate": "Date de complétion de la correction",
     "observation.concernedCompany": "Entreprise concernée",
@@ -751,7 +756,6 @@ const translations = {
     "action.search": "Rechercher",
     "action.filter": "Filtrer",
     "action.new": "Nouveau",
-    "action.menu": "Basculer le menu",
 
     // Fields
     "field.type": "Type",
@@ -759,6 +763,7 @@ const translations = {
     "field.photos": "Photos",
     "field.eventDate": "Date de l'événement",
     "field.injuries": "Blessures",
+    "field.date": "Date",
 
     // Empty states
     "empty.noObservations": "Aucune observation",

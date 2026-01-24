@@ -300,7 +300,7 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
               />
             </FormField>
 
-            <FormField label={t("field.time")}>
+            <FormField label={t("field.time")}> 
               <Input
                 type="time"
                 value={formData.eventTime}

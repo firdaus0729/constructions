@@ -18,9 +18,9 @@ import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
 const statusVariants: Record<string, string> = {
-  draft: "bg-blue-100 text-blue-800 dark:bg-blue-900",
-  "in-progress": "bg-yellow-100 text-yellow-800 dark:bg-yellow-900",
-  closed: "bg-green-100 text-green-800 dark:bg-green-900",
+  draft: "bg-blue-100 text-white dark:bg-blue-900",
+  "in-progress": "bg-yellow-100 text-white dark:bg-yellow-900",
+  closed: "bg-green-100 text-white dark:bg-green-900",
 }
 
 // Helper function to convert status key to translation key
@@ -161,7 +161,7 @@ export default function InspectionsPage() {
                     <CardContent className="p-6">
                       <div className="flex items-start gap-4 mb-4">
                         <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900 shrink-0">
-                          <ClipboardCheck className="h-6 w-6 text-purple-600 dark:text-purple-300" />
+                          <ClipboardCheck className="h-6 w-6 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -190,16 +190,16 @@ export default function InspectionsPage() {
                       {/* Response Summary */}
                       <div className="grid grid-cols-3 gap-2 mb-4 text-xs">
                         <div className="text-center">
-                          <div className="font-bold text-green-600">{conforming}</div>
-                          <div className="text-muted-foreground">{t("inspection.conforming")}</div>
+                          <div className="font-bold text-white bg-green-600 rounded p-1">{conforming}</div>
+                          <div className="text-white">{t("inspection.conforming")}</div>
                         </div>
                         <div className="text-center">
-                          <div className="font-bold text-red-600">{nonConforming}</div>
-                          <div className="text-muted-foreground">{t("inspection.nonConforming")}</div>
+                          <div className="font-bold text-white bg-red-600 rounded p-1">{nonConforming}</div>
+                          <div className="text-white">{t("inspection.nonConforming")}</div>
                         </div>
                         <div className="text-center">
-                          <div className="font-bold text-gray-600">{notApplicable}</div>
-                          <div className="text-muted-foreground">{t("inspection.notApplicable")}</div>
+                          <div className="font-bold text-white bg-gray-600 rounded p-1">{notApplicable}</div>
+                          <div className="text-white">{t("inspection.notApplicable")}</div>
                         </div>
                       </div>
 

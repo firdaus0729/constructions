@@ -193,8 +193,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setLocale("en")}>{t("settings.language.english")}</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setLocale("fr")}>{t("settings.language.french")}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLocale("en")}>English</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLocale("fr")}>Français</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -207,7 +207,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="h-12 w-12">
               <Menu className="h-6 w-6" />
-              <span className="sr-only">{t("action.menu")}</span>
+              <span className="sr-only">Toggle menu</span>
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-72 bg-sidebar p-0">

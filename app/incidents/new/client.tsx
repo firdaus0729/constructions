@@ -361,7 +361,7 @@ export default function NewIncidentPage() {
               </FormField>
 
               {/* Date (new field) */}
-              <FormField label={t("form.date")} required>
+              <FormField label={t("field.date")} required>
                 <Input
                   type="date"
                   value={formData.date}

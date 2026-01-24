@@ -2,47 +2,6 @@
 
 An offline-first web application for managing construction site inspections, observations, and incident reports. Works seamlessly online and offline with automatic data persistence and sync.
 
-## Getting Started
-
-### Prerequisites
-
-- Node.js (v18 or higher recommended)
-- npm, yarn, or pnpm package manager
-
-### Installation
-
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
-   or
-   ```bash
-   pnpm install
-   ```
-
-### Running the Project
-
-**Development Mode:**
-```bash
-npm run dev
-```
-or
-```bash
-pnpm dev
-```
-
-The application will be available at `http://localhost:3000`
-
-**Production Build:**
-```bash
-npm run build
-npm start
-```
-
-**Other Commands:**
-- `npm run lint` - Run ESLint to check code quality
-- `npm run load-test` - Run load tests (requires Artillery)
-
 ## Features
 
 - **Offline-First**: 100% functional without internet connection

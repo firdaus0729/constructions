@@ -44,8 +44,9 @@ export default function NewInspection() {
 
   // Calculate completion percentage
   const completionPercentage = useMemo(() => {
-    const allItems = (inspectionSections || []).flatMap((s) => s?.items || [])
-    const answered = Object.values(formData.responses).filter((r) => r.response !== null).length
+    // Only count the first 98 items for completion
+    const allItems = (inspectionSections || []).flatMap((s) => s?.items || []).slice(0, 98)
+    const answered = Object.values(formData.responses).filter((r) => r.response !== null && allItems.find(i => i.id === r.itemId)).length
     return allItems.length > 0 ? Math.round((answered / allItems.length) * 100) : 0
   }, [formData.responses])
   const validateForm = useCallback(() => {
@@ -168,14 +169,14 @@ export default function NewInspection() {
   }
 
   const getResponseStats = () => {
-    const allResponses = Object.values(formData.responses)
+    // Only count the first 98 items for stats
+    const allItems = (inspectionSections || []).flatMap((s) => s?.items || []).slice(0, 98)
+    const allResponses = Object.values(formData.responses).filter(r => allItems.find(i => i.id === r.itemId))
     return {
       conforming: allResponses.filter((r) => r.response === "conforming").length,
       nonConforming: allResponses.filter((r) => r.response === "non-conforming").length,
       notApplicable: allResponses.filter((r) => r.response === "not-applicable").length,
-      unanswered:
-        ((inspectionSections || []).flatMap((s) => s?.items || []).length) -
-        allResponses.filter((r) => r.response !== null).length,
+      unanswered: allItems.length - allResponses.filter((r) => r.response !== null).length,
     }
   }
 
