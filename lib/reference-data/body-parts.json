@@ -1,0 +1,184 @@
+{
+  "bodyParts": [
+    {
+      "id": "head",
+      "label": "Head",
+      "category": "upper"
+    },
+    {
+      "id": "face",
+      "label": "Face",
+      "category": "upper"
+    },
+    {
+      "id": "eyes",
+      "label": "Eyes",
+      "category": "upper"
+    },
+    {
+      "id": "ears",
+      "label": "Ears",
+      "category": "upper"
+    },
+    {
+      "id": "nose",
+      "label": "Nose",
+      "category": "upper"
+    },
+    {
+      "id": "mouth-teeth",
+      "label": "Mouth/Teeth",
+      "category": "upper"
+    },
+    {
+      "id": "neck",
+      "label": "Neck",
+      "category": "upper"
+    },
+    {
+      "id": "shoulder",
+      "label": "Shoulder",
+      "category": "upper"
+    },
+    {
+      "id": "arm",
+      "label": "Arm",
+      "category": "upper"
+    },
+    {
+      "id": "elbow",
+      "label": "Elbow",
+      "category": "upper"
+    },
+    {
+      "id": "forearm",
+      "label": "Forearm",
+      "category": "upper"
+    },
+    {
+      "id": "wrist",
+      "label": "Wrist",
+      "category": "upper"
+    },
+    {
+      "id": "hand",
+      "label": "Hand",
+      "category": "upper"
+    },
+    {
+      "id": "fingers",
+      "label": "Fingers",
+      "category": "upper"
+    },
+    {
+      "id": "thumb",
+      "label": "Thumb",
+      "category": "upper"
+    },
+    {
+      "id": "chest",
+      "label": "Chest",
+      "category": "torso"
+    },
+    {
+      "id": "back",
+      "label": "Back",
+      "category": "torso"
+    },
+    {
+      "id": "spine",
+      "label": "Spine",
+      "category": "torso"
+    },
+    {
+      "id": "abdomen",
+      "label": "Abdomen",
+      "category": "torso"
+    },
+    {
+      "id": "side",
+      "label": "Side",
+      "category": "torso"
+    },
+    {
+      "id": "pelvis",
+      "label": "Pelvis",
+      "category": "lower"
+    },
+    {
+      "id": "hip",
+      "label": "Hip",
+      "category": "lower"
+    },
+    {
+      "id": "groin",
+      "label": "Groin",
+      "category": "lower"
+    },
+    {
+      "id": "buttocks",
+      "label": "Buttocks",
+      "category": "lower"
+    },
+    {
+      "id": "leg",
+      "label": "Leg",
+      "category": "lower"
+    },
+    {
+      "id": "thigh",
+      "label": "Thigh",
+      "category": "lower"
+    },
+    {
+      "id": "knee",
+      "label": "Knee",
+      "category": "lower"
+    },
+    {
+      "id": "shin",
+      "label": "Shin",
+      "category": "lower"
+    },
+    {
+      "id": "calf",
+      "label": "Calf",
+      "category": "lower"
+    },
+    {
+      "id": "ankle",
+      "label": "Ankle",
+      "category": "lower"
+    },
+    {
+      "id": "foot",
+      "label": "Foot",
+      "category": "lower"
+    },
+    {
+      "id": "toes",
+      "label": "Toes",
+      "category": "lower"
+    },
+    {
+      "id": "heel",
+      "label": "Heel",
+      "category": "lower"
+    },
+    {
+      "id": "multiple",
+      "label": "Multiple",
+      "category": "other"
+    },
+    {
+      "id": "internal",
+      "label": "Internal Injuries",
+      "category": "other"
+    },
+    {
+      "id": "whole-body",
+      "label": "Whole Body",
+      "category": "other"
+    }
+  ]
+}

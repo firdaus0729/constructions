@@ -1,0 +1,52 @@
+{
+  "observationTypes": [
+    {
+      "id": "unsafe-condition",
+      "label": "Unsafe Condition",
+      "description": "Unsafe physical condition or environment",
+      "category": "condition"
+    },
+    {
+      "id": "unsafe-behavior",
+      "label": "Unsafe Behavior",
+      "description": "Unsafe worker behavior or practice",
+      "category": "behavior"
+    },
+    {
+      "id": "near-miss",
+      "label": "Near Miss",
+      "description": "Incident that could have resulted in injury",
+      "category": "incident"
+    },
+    {
+      "id": "good-practice",
+      "label": "Good Practice",
+      "description": "Commendable safe behavior or condition",
+      "category": "positive"
+    },
+    {
+      "id": "hazard-awareness",
+      "label": "Hazard Awareness",
+      "description": "General hazard observation",
+      "category": "hazard"
+    },
+    {
+      "id": "ppe-non-compliance",
+      "label": "PPE Non-Compliance",
+      "description": "Failure to use or misuse PPE",
+      "category": "ppe"
+    },
+    {
+      "id": "housekeeping",
+      "label": "Housekeeping Issue",
+      "description": "Untidy work area or poor organization",
+      "category": "condition"
+    },
+    {
+      "id": "tool-equipment",
+      "label": "Tool/Equipment Issue",
+      "description": "Defective or improper use of tools/equipment",
+      "category": "equipment"
+    }
+  ]
+}

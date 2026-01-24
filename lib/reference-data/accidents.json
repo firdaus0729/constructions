@@ -1,0 +1,70 @@
+{
+  "accidents": [
+    {
+      "id": "slip-trip-fall",
+      "label": "Slip/Trip/Fall",
+      "description": "Slips, trips, or falls from height or on level surface",
+      "riskLevel": "high"
+    },
+    {
+      "id": "struck-by",
+      "label": "Struck By",
+      "description": "Struck by falling or thrown object",
+      "riskLevel": "high"
+    },
+    {
+      "id": "caught-in-between",
+      "label": "Caught In/Between",
+      "description": "Caught in or between machinery or objects",
+      "riskLevel": "critical"
+    },
+    {
+      "id": "electrical",
+      "label": "Electrical",
+      "description": "Electrical shock or electrocution",
+      "riskLevel": "critical"
+    },
+    {
+      "id": "fire-explosion",
+      "label": "Fire/Explosion",
+      "description": "Fire or explosion incident",
+      "riskLevel": "critical"
+    },
+    {
+      "id": "chemical-exposure",
+      "label": "Chemical Exposure",
+      "description": "Exposure to hazardous chemicals or substances",
+      "riskLevel": "high"
+    },
+    {
+      "id": "vehicle-equipment",
+      "label": "Vehicle/Equipment",
+      "description": "Vehicle or equipment accident",
+      "riskLevel": "high"
+    },
+    {
+      "id": "manual-handling",
+      "label": "Manual Handling",
+      "description": "Manual handling injury (lifting, carrying, etc.)",
+      "riskLevel": "medium"
+    },
+    {
+      "id": "repetitive-strain",
+      "label": "Repetitive Strain",
+      "description": "Repetitive strain or overuse injury",
+      "riskLevel": "medium"
+    },
+    {
+      "id": "heat-cold-stress",
+      "label": "Heat/Cold Stress",
+      "description": "Heat or cold related illness",
+      "riskLevel": "medium"
+    },
+    {
+      "id": "other",
+      "label": "Other",
+      "description": "Other type of incident",
+      "riskLevel": "medium"
+    }
+  ]
+}

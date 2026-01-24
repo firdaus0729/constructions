@@ -1,0 +1,82 @@
+{
+  "injuries": [
+    {
+      "id": "laceration",
+      "label": "Laceration",
+      "description": "Cut or wound",
+      "severity": "low"
+    },
+    {
+      "id": "fracture",
+      "label": "Fracture",
+      "description": "Broken bone",
+      "severity": "high"
+    },
+    {
+      "id": "sprain-strain",
+      "label": "Sprain/Strain",
+      "description": "Ligament or muscle injury",
+      "severity": "medium"
+    },
+    {
+      "id": "burns",
+      "label": "Burns",
+      "description": "Thermal or chemical burn",
+      "severity": "high"
+    },
+    {
+      "id": "contusion",
+      "label": "Contusion",
+      "description": "Bruising or blunt force injury",
+      "severity": "low"
+    },
+    {
+      "id": "chemical-burn",
+      "label": "Chemical Burn",
+      "description": "Chemical exposure injury",
+      "severity": "high"
+    },
+    {
+      "id": "electric-shock",
+      "label": "Electric Shock",
+      "description": "Electrical injury",
+      "severity": "critical"
+    },
+    {
+      "id": "amputation",
+      "label": "Amputation",
+      "description": "Loss of limb or appendage",
+      "severity": "critical"
+    },
+    {
+      "id": "concussion",
+      "label": "Concussion",
+      "description": "Head trauma or concussion",
+      "severity": "high"
+    },
+    {
+      "id": "asphyxiation",
+      "label": "Asphyxiation",
+      "description": "Loss of consciousness due to lack of oxygen",
+      "severity": "critical"
+    },
+    {
+      "id": "poisoning",
+      "label": "Poisoning",
+      "description": "Chemical or substance poisoning",
+      "severity": "critical"
+    },
+    {
+      "id": "fatal",
+      "label": "Fatal",
+      "description": "Fatality",
+      "severity": "critical"
+    },
+    {
+      "id": "other",
+      "label": "Other",
+      "description": "Other type of injury",
+      "severity": "medium"
+    }
+  ]
+}

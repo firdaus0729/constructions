@@ -1,0 +1,321 @@
+{
+  "inspectionSections": [
+    {
+      "id": "ast",
+      "key": "ast",
+      "titleKey": "inspection.section.ast",
+      "title": "Activity Safety Training",
+      "instruction": "Verify that Activity Specific Training (AST) has been completed and workers are briefed on hazards",
+      "items": [
+        {
+          "id": "ast-1",
+          "number": "1.1",
+          "label": "AST completed before work begins",
+          "sectionId": "ast",
+          "reference": "Section 1.1"
+        },
+        {
+          "id": "ast-2",
+          "number": "1.2",
+          "label": "Workers briefed on hazards identified",
+          "sectionId": "ast",
+          "reference": "Section 1.2"
+        },
+        {
+          "id": "ast-3",
+          "number": "1.3",
+          "label": "Control measures implemented",
+          "sectionId": "ast",
+          "reference": "Section 1.3"
+        },
+        {
+          "id": "ast-4",
+          "number": "1.4",
+          "label": "AST reviewed when conditions change",
+          "sectionId": "ast",
+          "reference": "Section 1.4"
+        }
+      ]
+    },
+    {
+      "id": "ppe",
+      "key": "ppe",
+      "titleKey": "inspection.section.ppe",
+      "title": "Personal Protective Equipment",
+      "instruction": "Ensure all required PPE is being worn correctly and is in good condition",
+      "items": [
+        {
+          "id": "ppe-1",
+          "number": "2.1",
+          "label": "Hard hats worn in designated areas",
+          "sectionId": "ppe",
+          "reference": "Section 2.1"
+        },
+        {
+          "id": "ppe-2",
+          "number": "2.2",
+          "label": "Safety glasses/goggles worn when required",
+          "sectionId": "ppe",
+          "reference": "Section 2.2"
+        },
+        {
+          "id": "ppe-3",
+          "number": "2.3",
+          "label": "High visibility vests worn",
+          "sectionId": "ppe",
+          "reference": "Section 2.3"
+        },
+        {
+          "id": "ppe-4",
+          "number": "2.4",
+          "label": "Safety footwear worn",
+          "sectionId": "ppe",
+          "reference": "Section 2.4"
+        },
+        {
+          "id": "ppe-5",
+          "number": "2.5",
+          "label": "Hearing protection used when required",
+          "sectionId": "ppe",
+          "reference": "Section 2.5"
+        },
+        {
+          "id": "ppe-6",
+          "number": "2.6",
+          "label": "Gloves appropriate for task worn",
+          "sectionId": "ppe",
+          "reference": "Section 2.6"
+        }
+      ]
+    },
+    {
+      "id": "housekeeping",
+      "key": "housekeeping",
+      "titleKey": "inspection.section.housekeeping",
+      "title": "Housekeeping & Workplace Organization",
+      "instruction": "Check that work areas are clean, organized, and free of hazards",
+      "items": [
+        {
+          "id": "hk-1",
+          "number": "3.1",
+          "label": "Work areas clean and organized",
+          "sectionId": "housekeeping",
+          "reference": "Section 3.1"
+        },
+        {
+          "id": "hk-2",
+          "number": "3.2",
+          "label": "Walkways and exits clear",
+          "sectionId": "housekeeping",
+          "reference": "Section 3.2"
+        },
+        {
+          "id": "hk-3",
+          "number": "3.3",
+          "label": "Materials properly stored",
+          "sectionId": "housekeeping",
+          "reference": "Section 3.3"
+        },
+        {
+          "id": "hk-4",
+          "number": "3.4",
+          "label": "Waste disposed of properly",
+          "sectionId": "housekeeping",
+          "reference": "Section 3.4"
+        },
+        {
+          "id": "hk-5",
+          "number": "3.5",
+          "label": "Spills cleaned up immediately",
+          "sectionId": "housekeeping",
+          "reference": "Section 3.5"
+        }
+      ]
+    },
+    {
+      "id": "fire",
+      "key": "fire",
+      "titleKey": "inspection.section.fire",
+      "title": "Fire Safety",
+      "instruction": "Verify fire prevention measures and emergency equipment are in place",
+      "items": [
+        {
+          "id": "fire-1",
+          "number": "4.1",
+          "label": "Fire extinguishers accessible and inspected",
+          "sectionId": "fire",
+          "reference": "Section 4.1"
+        },
+        {
+          "id": "fire-2",
+          "number": "4.2",
+          "label": "Hot work permits in place",
+          "sectionId": "fire",
+          "reference": "Section 4.2"
+        },
+        {
+          "id": "fire-3",
+          "number": "4.3",
+          "label": "Flammable materials stored properly",
+          "sectionId": "fire",
+          "reference": "Section 4.3"
+        },
+        {
+          "id": "fire-4",
+          "number": "4.4",
+          "label": "Fire watch posted when required",
+          "sectionId": "fire",
+          "reference": "Section 4.4"
+        }
+      ]
+    },
+    {
+      "id": "scaffolding",
+      "key": "scaffolding",
+      "titleKey": "inspection.section.scaffolding",
+      "title": "Scaffolding & Elevated Work",
+      "instruction": "Ensure scaffolding is properly constructed, inspected, and maintained",
+      "items": [
+        {
+          "id": "sc-1",
+          "number": "5.1",
+          "label": "Scaffolding inspected before use",
+          "sectionId": "scaffolding",
+          "reference": "Section 5.1"
+        },
+        {
+          "id": "sc-2",
+          "number": "5.2",
+          "label": "Guard rails in place",
+          "sectionId": "scaffolding",
+          "reference": "Section 5.2"
+        },
+        {
+          "id": "sc-3",
+          "number": "5.3",
+          "label": "Ladders secured and in good condition",
+          "sectionId": "scaffolding",
+          "reference": "Section 5.3"
+        },
+        {
+          "id": "sc-4",
+          "number": "5.4",
+          "label": "Proper access provided",
+          "sectionId": "scaffolding",
+          "reference": "Section 5.4"
+        },
+        {
+          "id": "sc-5",
+          "number": "5.5",
+          "label": "Tag system in use",
+          "sectionId": "scaffolding",
+          "reference": "Section 5.5"
+        }
+      ]
+    },
+    {
+      "id": "heights",
+      "key": "heights",
+      "titleKey": "inspection.section.heights",
+      "title": "Work at Heights",
+      "instruction": "Verify fall protection systems are in place for all work above 1.8m (6ft)",
+      "items": [
+        {
+          "id": "ht-1",
+          "number": "6.1",
+          "label": "Fall protection used above 1.8m/6ft",
+          "sectionId": "heights",
+          "reference": "Section 6.1"
+        },
+        {
+          "id": "ht-2",
+          "number": "6.2",
+          "label": "Anchor points adequate",
+          "sectionId": "heights",
+          "reference": "Section 6.2"
+        },
+        {
+          "id": "ht-3",
+          "number": "6.3",
+          "label": "Harnesses inspected",
+          "sectionId": "heights",
+          "reference": "Section 6.3"
+        },
+        {
+          "id": "ht-4",
+          "number": "6.4",
+          "label": "Openings protected",
+          "sectionId": "heights",
+          "reference": "Section 6.4"
+        }
+      ]
+    },
+    {
+      "id": "water",
+      "key": "water",
+      "titleKey": "inspection.section.water",
+      "title": "Water Safety",
+      "instruction": "Ensure water safety measures are in place for work near water",
+      "items": [
+        {
+          "id": "wt-1",
+          "number": "7.1",
+          "label": "Life jackets available when required",
+          "sectionId": "water",
+          "reference": "Section 7.1"
+        },
+        {
+          "id": "wt-2",
+          "number": "7.2",
+          "label": "Rescue equipment in place",
+          "sectionId": "water",
+          "reference": "Section 7.2"
+        },
+        {
+          "id": "wt-3",
+          "number": "7.3",
+          "label": "Barriers in place near water",
+          "sectionId": "water",
+          "reference": "Section 7.3"
+        }
+      ]
+    },
+    {
+      "id": "electrical",
+      "key": "electrical",
+      "titleKey": "inspection.section.electrical",
+      "title": "Electrical Safety",
+      "instruction": "Verify electrical equipment is properly installed, grounded, and maintained",
+      "items": [
+        {
+          "id": "elec-1",
+          "number": "8.1",
+          "label": "Electrical equipment properly grounded",
+          "sectionId": "electrical",
+          "reference": "Section 8.1"
+        },
+        {
+          "id": "elec-2",
+          "number": "8.2",
+          "label": "GFI protection in use",
+          "sectionId": "electrical",
+          "reference": "Section 8.2"
+        },
+        {
+          "id": "elec-3",
+          "number": "8.3",
+          "label": "Electrical cords in good condition",
+          "sectionId": "electrical",
+          "reference": "Section 8.3"
+        },
+        {
+          "id": "elec-4",
+          "number": "8.4",
+          "label": "Lockout/tagout procedures followed",
+          "sectionId": "electrical",
+          "reference": "Section 8.4"
+        }
+      ]
+    }
+  ]
+}
