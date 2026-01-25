@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { AttachmentUpload } from "@/components/forms/attachment-upload"
 import { useAppStore, inspectionSections } from "@/lib/store"
 import { Check, X, AlertCircle, Mail } from "lucide-react"
 import type { Inspection, InspectionItemResponse } from "@/lib/types"
@@ -44,8 +45,8 @@ export default function NewInspection() {
 
   // Calculate completion percentage
   const completionPercentage = useMemo(() => {
-    // Only count the first 98 items for completion
-    const allItems = (inspectionSections || []).flatMap((s) => s?.items || []).slice(0, 98)
+    // Only count the first 127 items for completion
+    const allItems = (inspectionSections || []).flatMap((s) => s?.items || []).slice(0, 127)
     const answered = Object.values(formData.responses).filter((r) => r.response !== null && allItems.find(i => i.id === r.itemId)).length
     return allItems.length > 0 ? Math.round((answered / allItems.length) * 100) : 0
   }, [formData.responses])
@@ -169,8 +170,8 @@ export default function NewInspection() {
   }
 
   const getResponseStats = () => {
-    // Only count the first 98 items for stats
-    const allItems = (inspectionSections || []).flatMap((s) => s?.items || []).slice(0, 98)
+    // Only count the first 127 items for stats
+    const allItems = (inspectionSections || []).flatMap((s) => s?.items || []).slice(0, 127)
     const allResponses = Object.values(formData.responses).filter(r => allItems.find(i => i.id === r.itemId))
     return {
       conforming: allResponses.filter((r) => r.response === "conforming").length,
@@ -362,8 +363,7 @@ export default function NewInspection() {
           return (
             <FormSection
               key={section.id}
-              title={section.title}
-              description={t("inspection.itemsChecked", { checked: sectionComplete, total: sectionItems.length })}
+              title={section.title || section.titleKey}
               defaultOpen={false}
             >
               {section.instruction && (
@@ -381,7 +381,7 @@ export default function NewInspection() {
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <p className="font-medium">
-                              <span className="text-muted-foreground text-sm">{item.number}</span> {t(`inspection.item.${item.id}` as any)}
+                              <span className="text-muted-foreground text-sm">{item.number}</span> {item.label || t(`inspection.item.${item.id}` as any)}
                             </p>
                           </div>
 
@@ -428,16 +428,42 @@ export default function NewInspection() {
                           </div>
                         </div>
 
-                        {/* Comment field for non-conforming items */}
-                        {formData.responses[item.id]?.response === "non-conforming" && (
+                        {/* Comment field for all items */}
+                        <div className="space-y-2">
                           <textarea
                             placeholder={t("inspection.commentPlaceholder")}
                             value={formData.responses[item.id]?.comment || ""}
                             onChange={(e) => handleItemComment(item.id, e.target.value)}
-                            className="w-full text-sm p-2 border rounded bg-red-50 dark:bg-red-950 border-red-200"
+                            className={`w-full text-sm p-2 border rounded ${
+                              formData.responses[item.id]?.response === "non-conforming"
+                                ? "bg-red-50 dark:bg-red-950 border-red-200"
+                                : formData.responses[item.id]?.response === "conforming"
+                                ? "bg-green-50 dark:bg-green-950 border-green-200"
+                                : "bg-gray-50 dark:bg-gray-950 border-gray-200"
+                            }`}
                             rows={2}
                           />
-                        )}
+                          {/* Attachment upload for each item */}
+                          <AttachmentUpload
+                            attachments={formData.responses[item.id]?.attachments || []}
+                            onChange={(attachments) => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                responses: {
+                                  ...prev.responses,
+                                  [item.id]: {
+                                    ...prev.responses[item.id],
+                                    itemId: item.id,
+                                    response: prev.responses[item.id]?.response || null,
+                                    comment: prev.responses[item.id]?.comment || "",
+                                    attachments,
+                                  },
+                                },
+                              }))
+                            }}
+                            maxFiles={5}
+                          />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

@@ -55,11 +55,9 @@ export function OfflineIndicator({ variant = "minimal", className }: OfflineIndi
           {isOnline ? (isSyncing ? t("status.syncing") : t("status.online")) : t("status.offline")}
         </p>
         <p className="text-xs text-muted-foreground mt-0.5">
-          {pendingChanges > 0
-            ? t("sync.pendingChanges", { count: pendingChanges })
-            : lastSyncTime
-              ? t("sync.lastSynced", { time: formatDistanceToNow(lastSyncTime, { addSuffix: true }) })
-              : t("sync.allChangesSynced")}
+          {lastSyncTime
+            ? `Dernière synchronisation: ${formatDistanceToNow(lastSyncTime, { addSuffix: true })}`
+            : "En attente de synchronisation"}
         </p>
       </div>
       {isOnline && pendingChanges > 0 && (

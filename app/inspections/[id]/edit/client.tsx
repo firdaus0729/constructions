@@ -12,6 +12,7 @@ import { FormField } from "@/components/forms/form-field"
 import { AttachmentUpload } from "@/components/forms/attachment-upload"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -372,8 +373,7 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
           return (
             <FormSection
               key={section.id}
-              title={section.title}
-              description={t("inspection.itemsChecked", { checked: sectionComplete, total: sectionItems.length })}
+              title={section.title || section.titleKey}
               defaultOpen={false}
             >
               {section.instruction && (
@@ -391,7 +391,7 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <p className="font-medium">
-                              <span className="text-muted-foreground text-sm">{item.number}</span> {t(`inspection.item.${item.id}` as any)}
+                              <span className="text-muted-foreground text-sm">{item.number}</span> {item.label || t(`inspection.item.${item.id}` as any)}
                             </p>
                           </div>
 
@@ -438,14 +438,42 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
                           </div>
                         </div>
 
-                        {/* Comment field */}
-                        <Input
-                          type="text"
-                          placeholder={t("inspection.addComment")}
-                          value={formData.responses[item.id]?.comment || ""}
-                          onChange={(e) => handleItemComment(item.id, e.target.value)}
-                          className="text-sm"
-                        />
+                        {/* Comment field for all items */}
+                        <div className="space-y-2">
+                          <Textarea
+                            placeholder={t("inspection.commentPlaceholder")}
+                            value={formData.responses[item.id]?.comment || ""}
+                            onChange={(e) => handleItemComment(item.id, e.target.value)}
+                            className={`text-sm ${
+                              formData.responses[item.id]?.response === "non-conforming"
+                                ? "bg-red-50 dark:bg-red-950 border-red-200"
+                                : formData.responses[item.id]?.response === "conforming"
+                                ? "bg-green-50 dark:bg-green-950 border-green-200"
+                                : "bg-gray-50 dark:bg-gray-950 border-gray-200"
+                            }`}
+                            rows={2}
+                          />
+                          {/* Attachment upload for each item */}
+                          <AttachmentUpload
+                            attachments={formData.responses[item.id]?.attachments || []}
+                            onChange={(attachments) => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                responses: {
+                                  ...prev.responses,
+                                  [item.id]: {
+                                    ...prev.responses[item.id],
+                                    itemId: item.id,
+                                    response: prev.responses[item.id]?.response || null,
+                                    comment: prev.responses[item.id]?.comment || "",
+                                    attachments,
+                                  },
+                                },
+                              }))
+                            }}
+                            maxFiles={5}
+                          />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

@@ -290,6 +290,7 @@ const translations = {
     "field.eventDate": "Event Date",
     "field.injuries": "Injuries",
     "field.date": "Date",
+    "field.completion": "Level of achievement",
 
     // Empty states
     "empty.noObservations": "No observations yet",
@@ -764,6 +765,7 @@ const translations = {
     "field.eventDate": "Date de l'événement",
     "field.injuries": "Blessures",
     "field.date": "Date",
+    "field.completion": "Niveau d'accomplissement",
 
     // Empty states
     "empty.noObservations": "Aucune observation",

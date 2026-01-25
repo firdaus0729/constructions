@@ -71,7 +71,7 @@ export function FormList({ items, emptyMessage }: FormListProps) {
               <div className="flex items-center gap-2 mb-1">
                 <span className="font-medium text-sm truncate">{item.title || item.number}</span>
                 <Badge variant="secondary" className={cn("text-xs shrink-0", statusVariants[item.status])}>
-                  {t(`status.${item.status}` as any)}
+                  {item.status === "in-progress" ? t("status.inProgress") : t(`status.${item.status}` as any)}
                 </Badge>
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">

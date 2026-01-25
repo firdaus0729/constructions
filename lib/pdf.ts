@@ -293,17 +293,58 @@ export async function exportElementAsPdf(options?: {
   pdf.save(filename)
 }
 
-// Export observation with proper formatting and embedded images
+// Export observation with proper formatting and embedded images - Pixel perfect match to reference images
 export async function exportObservationAsPdf(observation: any, filename: string) {
   if (typeof window === "undefined") return
 
+  const jsPDF = (await import("jspdf")).default
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
   const margin = 12
   const contentWidth = pageWidth - margin * 2
 
+  const checkPageBreak = (needed: number) => {
+    if (y + needed > pageHeight - margin - 15) {
+      doc.addPage()
+      y = margin
+      // Redraw header on new page
+      try {
+        doc.addImage("/logo.png", "PNG", margin, y, 26, 26)
+      } catch {}
+      doc.setFontSize(10)
+      doc.setFont("helvetica", "bold")
+      doc.text("Construction Interlag", margin + 30, y + 5)
+      doc.setFontSize(8)
+      doc.setFont("helvetica", "normal")
+      doc.text("926 av Simard, #201", margin + 30, y + 10)
+      doc.text("Chambly, Quebec J3L 4X2", margin + 30, y + 14)
+      doc.text("Téléphone : 514-323-6710", margin + 30, y + 18)
+      doc.text("Télécopieur : 514-323-3682", margin + 30, y + 22)
+    }
+  }
+
   let y = margin
+
+  // Helper function to format date as "DD mmm. YYYY"
+  const formatDate = (date: Date | string | null | undefined): string => {
+    if (!date) return ""
+    const d = new Date(date)
+    const months = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."]
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
+  }
+
+  // Helper function to format date/time as "DD/MM/YYYY à HH h MM EDT"
+  const formatDateTime = (date: Date | string | null | undefined): string => {
+    if (!date) return ""
+    const d = new Date(date)
+    const day = String(d.getDate()).padStart(2, "0")
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const year = d.getFullYear()
+    const hours = String(d.getHours()).padStart(2, "0")
+    const minutes = String(d.getMinutes()).padStart(2, "0")
+    return `${day}/${month}/${year} à ${hours} h ${minutes} EDT`
+  }
 
   // Header: logo left + company info, project info right
   try {
@@ -313,40 +354,62 @@ export async function exportObservationAsPdf(observation: any, filename: string)
   }
 
   doc.setFontSize(10)
-  doc.setFont(undefined, "bold")
+  doc.setFont("helvetica", "bold")
   doc.text("Construction Interlag", margin + 30, y + 5)
   doc.setFontSize(8)
-  doc.setFont(undefined, "normal")
+  doc.setFont("helvetica", "normal")
   doc.text("926 av Simard, #201", margin + 30, y + 10)
   doc.text("Chambly, Quebec J3L 4X2", margin + 30, y + 14)
   doc.text("Téléphone : 514-323-6710", margin + 30, y + 18)
   doc.text("Télécopieur : 514-323-3682", margin + 30, y + 22)
 
-  // Project info right
+  // Get project info from store
+  let projectName = observation.projectName || ""
+  let projectLocation = observation.projectLocation || ""
+  if (typeof window !== "undefined" && observation.projectId) {
+    try {
+      const storeData = localStorage.getItem("app-store")
+      if (storeData) {
+        const parsed = JSON.parse(storeData)
+        const state = parsed.state
+        if (state?.projects) {
+          const project = state.projects.find((p: any) => p.id === observation.projectId)
+          if (project) {
+            projectName = project.name || projectName
+            projectLocation = project.location || projectLocation
+          }
+        }
+      }
+    } catch {}
+  }
+
+  // Project info right - format: "Projet : [number]" then project name and location
   const projectParts: string[] = []
-  if (observation.projectNumber) projectParts.push(`${observation.projectNumber}`)
-  if (observation.projectName) projectParts.push(observation.projectName)
-  if (observation.projectLocation) projectParts.push(observation.projectLocation)
+  if (observation.projectNumber) projectParts.push(`Projet : ${observation.projectNumber}`)
+  if (projectName) projectParts.push(projectName)
+  if (projectLocation) projectParts.push(projectLocation)
   if (projectParts.length) {
     doc.setFontSize(8)
     const rightX = pageWidth - margin
-    const pText = projectParts.join(" - ")
-    const lines = doc.splitTextToSize(pText, 80)
     let ry = y + 5
-    lines.forEach((ln: string) => {
-      doc.text(ln, rightX, ry, { align: "right" })
-      ry += 4
+    projectParts.forEach((part) => {
+      const lines = doc.splitTextToSize(part, 80)
+      lines.forEach((ln: string) => {
+        doc.text(ln, rightX, ry, { align: "right" })
+        ry += 4
+      })
     })
   }
 
   y += 30
   doc.setDrawColor(150, 150, 150)
+  doc.setLineWidth(0.2)
   doc.line(margin, y, pageWidth - margin, y)
   y += 6
 
-  // Title centered
+  // Title - centered below header line
   doc.setFontSize(13)
-  doc.setFont(undefined, "bold")
+  doc.setFont("helvetica", "bold")
   const title = `Observation Risque de sécurité N°${observation.number || ""} : ${observation.type || "MES-COR"}: ${observation.title || ""}`
   const titleLines = doc.splitTextToSize(title, contentWidth)
   titleLines.forEach((ln: string, idx: number) => {
@@ -354,182 +417,337 @@ export async function exportObservationAsPdf(observation: any, filename: string)
   })
   y += titleLines.length * 6 + 4
 
-  // Details two-column (use the sample order)
-  doc.setFontSize(9)
-  doc.setFont(undefined, "bold")
-  doc.text("", margin, y)
-  y += 2
+  // Details two-column layout - exact order from image
   doc.setFontSize(8)
-  doc.setFont(undefined, "normal")
+  doc.setFont("helvetica", "normal")
 
-  const detailsOrder: Array<[string, string]> = [
-    ["Origine", observation.origin || ""],
-    ["Statut", observation.status || ""],
-    ["Créé par", observation.creatorName || observation.creatorId || ""],
-    ["Date de création", observation.createdAt ? new Date(observation.createdAt).toLocaleDateString("fr-FR") : ""],
-    ["Personne assignée", observation.assignedPersonName || observation.assignedPersonId || ""],
-    ["Distribution", Array.isArray(observation.distribution) ? observation.distribution.join(", ") : observation.distribution || ""],
-    ["Date de notification", observation.notificationDate ? new Date(observation.notificationDate).toLocaleDateString("fr-FR") : (observation.createdAt ? new Date(observation.createdAt).toLocaleDateString("fr-FR") : "")],
-    ["Priorité", observation.priority || ""],
-    ["Lieu", observation.projectLocation || observation.location || ""],
-    ["Métier", observation.trade || "Charge de projet"],
-    ["Date d'échéance", observation.dueDate ? new Date(observation.dueDate).toLocaleDateString("fr-FR") : ""],
-    ["Privé(e)", observation.private ? "Oui" : "Non"],
-    ["Condition contributive", observation.safetyAnalysis?.contributingCondition || ""],
-    ["Comportement contributif", observation.safetyAnalysis?.contributingBehavior || ""],
-    ["Danger", observation.safetyAnalysis?.danger || ""],
-    ["Section du devis", observation.cnsstSection || "SSE : SANTÉ SÉCURITÉ ENVIRONNEMENT"],
-  ]
+  // Get user names from store if available
+  const getCreatorName = () => {
+    if (observation.creatorName) return observation.creatorName
+    if (observation.creatorId && typeof window !== "undefined") {
+      try {
+        // Access Zustand store from localStorage
+        const storeData = localStorage.getItem("app-store")
+        if (storeData) {
+          const parsed = JSON.parse(storeData)
+          const state = parsed.state
+          if (state?.authUsers) {
+            const user = state.authUsers.find((u: any) => u.id === observation.creatorId)
+            if (user) return user.name
+          }
+          if (state?.users) {
+            const user = state.users.find((u: any) => u.id === observation.creatorId)
+            if (user) return user.name
+          }
+        }
+      } catch {}
+    }
+    return observation.creatorId || "-"
+  }
+
+  const getAssignedPersonName = () => {
+    if (observation.assignedPersonName) return observation.assignedPersonName
+    if (observation.assignedPersonId && typeof window !== "undefined") {
+      try {
+        const storeData = localStorage.getItem("app-store")
+        if (storeData) {
+          const parsed = JSON.parse(storeData)
+          const state = parsed.state
+          if (state?.authUsers) {
+            const user = state.authUsers.find((u: any) => u.id === observation.assignedPersonId)
+            if (user) return user.name
+          }
+          if (state?.users) {
+            const user = state.users.find((u: any) => u.id === observation.assignedPersonId)
+            if (user) return user.name
+          }
+        }
+      } catch {}
+    }
+    return observation.assignedPersonId || "-"
+  }
+
+  // Format distribution - each name with "(Construction Interlag)"
+  const formatDistribution = (): string => {
+    if (!observation.distribution || observation.distribution.length === 0) return "-"
+    if (typeof window !== "undefined") {
+      try {
+        const storeData = localStorage.getItem("app-store")
+        if (storeData) {
+          const parsed = JSON.parse(storeData)
+          const state = parsed.state
+          const users = state?.authUsers || state?.users || []
+          if (Array.isArray(observation.distribution) && users.length > 0) {
+            return observation.distribution.map((userId: string) => {
+              const user = users.find((u: any) => u.id === userId)
+              return user ? `${user.name} (Construction Interlag)` : userId
+            }).join("\n")
+          }
+        }
+      } catch {}
+    }
+    return Array.isArray(observation.distribution) ? observation.distribution.join(", ") : String(observation.distribution || "-")
+  }
+
+  // Status translation
+  const statusMap: Record<string, string> = {
+    "draft": "Brouillon",
+    "in-progress": "En Progression",
+    "submitted": "Soumis",
+    "open": "Ouvert",
+    "closed": "Fermé"
+  }
+  const statusText = statusMap[observation.status] || observation.status || "-"
+
+  // Priority translation
+  const priorityMap: Record<string, string> = {
+    "low": "Faible",
+    "medium": "Moyen",
+    "high": "Élevé",
+    "urgent": "Urgent"
+  }
+  const priorityText = priorityMap[observation.priority] || observation.priority || "-"
 
   const leftX = margin
   const rightX = pageWidth / 2 + 5
+  const labelWidth = 45
   let leftY = y
   let rightY = y
-  const mid = Math.ceil(detailsOrder.length / 2)
-  detailsOrder.forEach(([label, value], idx) => {
-    if (idx < mid) {
-      doc.setFont(undefined, "bold")
-      doc.text(label, leftX, leftY)
-      doc.setFont(undefined, "normal")
-      const vLines = doc.splitTextToSize(String(value || "-"), pageWidth / 2 - 50)
-      doc.text(vLines, leftX + 45, leftY)
-      leftY += Math.max(4, vLines.length * 4)
-    } else {
-      doc.setFont(undefined, "bold")
-      doc.text(label, rightX, rightY)
-      doc.setFont(undefined, "normal")
-      const vLines = doc.splitTextToSize(String(value || "-"), pageWidth / 2 - 50)
-      doc.text(vLines, rightX + 45, rightY)
-      rightY += Math.max(4, vLines.length * 4)
-    }
+
+  // Left column fields (exact order from image)
+  const leftFields: Array<[string, string]> = [
+    ["Origine", observation.origin || "-"],
+    ["Créé par", `${getCreatorName()} (Construction Interlag)`],
+    ["Personne assignée", `${getAssignedPersonName()} (Construction Interlag)`],
+    ["Date de notification", observation.notificationDate ? formatDate(observation.notificationDate) : (observation.createdAt ? formatDate(observation.createdAt) : "-")],
+    ["Lieu", observation.location || observation.projectLocation || "-"],
+    ["Date d'échéance", observation.dueDate ? formatDate(observation.dueDate) : "-"],
+    ["Condition contributive", observation.safetyAnalysis?.contributingCondition || "-"],
+    ["Danger", observation.safetyAnalysis?.danger || "-"],
+    ["Section du devis", observation.cnsstSection || "SSE - SANTÉ SÉCURITÉ ENVIRONNEMENT"],
+  ]
+
+  // Right column fields
+  const rightFields: Array<[string, string]> = [
+    ["Statut", statusText],
+    ["Date de création", observation.createdAt ? formatDate(observation.createdAt) : "-"],
+    ["Distribution", formatDistribution()],
+    ["Priorité", priorityText],
+    ["Métier", observation.trade || "Charge de projet"],
+    ["Privé(e)", observation.private ? "Oui" : "Non"],
+    ["Comportement contributif", observation.safetyAnalysis?.contributingBehavior || "-"],
+    ["Plans liés", observation.plansLies || "-"],
+  ]
+
+  // Draw left column
+  leftFields.forEach(([label, value]) => {
+    doc.setFont("helvetica", "bold")
+    doc.text(label, leftX, leftY)
+    doc.setFont("helvetica", "normal")
+    const vLines = doc.splitTextToSize(String(value || "-"), pageWidth / 2 - labelWidth - 5)
+    vLines.forEach((line: string, idx: number) => {
+      doc.text(line, leftX + labelWidth, leftY + (idx * 4))
+    })
+    leftY += Math.max(5, vLines.length * 4)
+  })
+
+  // Draw right column
+  rightFields.forEach(([label, value]) => {
+    doc.setFont("helvetica", "bold")
+    doc.text(label, rightX, rightY)
+    doc.setFont("helvetica", "normal")
+    const vLines = doc.splitTextToSize(String(value || "-"), pageWidth / 2 - labelWidth - 5)
+    vLines.forEach((line: string, idx: number) => {
+      doc.text(line, rightX + labelWidth, rightY + (idx * 4))
+    })
+    rightY += Math.max(5, vLines.length * 4)
   })
 
   y = Math.max(leftY, rightY) + 6
 
-  // Divider before content sections
-  doc.setDrawColor(220, 220, 220)
-  doc.line(margin, y, pageWidth - margin, y)
-  y += 6
-
-  // Description section (with date heading lines)
+  // Description section with date headings
   if (observation.description) {
-    doc.setFont(undefined, "bold")
+    checkPageBreak(30)
+    doc.setFont("helvetica", "bold")
     doc.setFontSize(9)
     doc.text("Description", margin, y)
     y += 6
-    doc.setFont(undefined, "normal")
+    doc.setFont("helvetica", "normal")
     doc.setFontSize(8)
-    const descDate = observation.createdAt ? new Date(observation.createdAt).toLocaleDateString("fr-FR") : ""
-    const descText = `${descDate} : ${observation.description}`
-    const descLines = doc.splitTextToSize(descText, contentWidth)
-    descLines.forEach((ln: string) => {
-      if (y > pageHeight - margin - 40) { doc.addPage(); y = margin }
+    
+    // Parse description for date headings (format: "YYYY-MM-DD : text" or "YYYY-MM-DD à HHhMM : text")
+    const descLines = observation.description.split("\n")
+    descLines.forEach((line: string) => {
+      checkPageBreak(5)
+      // Check if line starts with date pattern
+      const dateMatch = line.match(/^(\d{4}-\d{2}-\d{2})(\s+à\s+(\d{1,2})h(\d{2}))?\s*:/)
+      if (dateMatch) {
+        // Format date heading
+        const datePart = dateMatch[1]
+        const [year, month, day] = datePart.split("-")
+        const months = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."]
+        const monthName = months[parseInt(month) - 1] || month
+        let dateHeading = `${day} ${monthName} ${year}`
+        if (dateMatch[2]) {
+          dateHeading += ` à ${dateMatch[3]}h${dateMatch[4]}`
+        }
+        dateHeading += " :"
+        doc.setFont("helvetica", "bold")
+        doc.text(dateHeading, margin, y)
+        y += 4
+        doc.setFont("helvetica", "normal")
+        // Rest of the line after the date
+        const restOfLine = line.substring(dateMatch[0].length).trim()
+        if (restOfLine) {
+          const restLines = doc.splitTextToSize(restOfLine, contentWidth)
+          restLines.forEach((ln: string) => {
+            checkPageBreak(4)
+            doc.text(ln, margin, y)
+            y += 4
+          })
+        }
+      } else {
+        // Regular line
+        const textLines = doc.splitTextToSize(line, contentWidth)
+        textLines.forEach((ln: string) => {
+          checkPageBreak(4)
+          doc.text(ln, margin, y)
+          y += 4
+        })
+      }
+    })
+    y += 4
+  }
+
+  // Reference article (Article de référence (CRTC))
+  if (observation.referenceArticle) {
+    checkPageBreak(15)
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(9)
+    doc.text("Article de référence (CRTC)", margin, y)
+    y += 6
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(8)
+    const artLines = doc.splitTextToSize(observation.referenceArticle, contentWidth)
+    artLines.forEach((ln: string) => {
+      checkPageBreak(4)
       doc.text(ln, margin, y)
       y += 4
     })
     y += 4
   }
 
-  // Reference article
-  if (observation.referenceArticle) {
-    doc.setFont(undefined, "bold")
-    doc.setFontSize(9)
-    doc.text("Article de référence (CRTC)", margin, y)
-    y += 6
-    doc.setFont(undefined, "normal")
-    doc.setFontSize(8)
-    const artLines = doc.splitTextToSize(observation.referenceArticle, contentWidth)
-    artLines.forEach((ln: string) => { if (y > pageHeight - margin - 40) { doc.addPage(); y = margin } ; doc.text(ln, margin, y); y += 4 })
-    y += 4
-  }
-
-  // Corrective measures
+  // Corrective measures (Mesures correctives)
   if (observation.correctiveMeasures) {
-    doc.setFont(undefined, "bold")
+    checkPageBreak(15)
+    doc.setFont("helvetica", "bold")
     doc.setFontSize(9)
     doc.text("Mesures correctives", margin, y)
     y += 6
-    doc.setFont(undefined, "normal")
+    doc.setFont("helvetica", "normal")
     doc.setFontSize(8)
     const mLines = doc.splitTextToSize(observation.correctiveMeasures, contentWidth)
-    mLines.forEach((ln: string) => { if (y > pageHeight - margin - 40) { doc.addPage(); y = margin } ; doc.text(ln, margin, y); y += 4 })
+    mLines.forEach((ln: string) => {
+      checkPageBreak(4)
+      doc.text(ln, margin, y)
+      y += 4
+    })
     y += 4
   }
 
-  // Attachments grid - two columns with image and link caption
+  // Attachments section (Pièces jointes) - 2x2 grid
   const images = observation.attachments?.filter((a: any) => a.type?.startsWith("image/")) || []
   if (images.length > 0) {
-    doc.setFont(undefined, "bold")
+    checkPageBreak(60)
+    doc.setFont("helvetica", "bold")
     doc.setFontSize(9)
     doc.text("Pièces jointes", margin, y)
     y += 6
+    
     const imgGap = 6
     const imgW = (contentWidth - imgGap) / 2
-    const imgH = 50
-    let ix = 0
+    const imgH = 45
+    
     for (let i = 0; i < images.length; i++) {
       const img = images[i]
-      const col = ix % 2
+      const col = i % 2
+      const row = Math.floor(i / 2)
       const x = margin + col * (imgW + imgGap)
-      if (y + imgH > pageHeight - margin - 40) { doc.addPage(); y = margin }
+      const imgY = y + row * (imgH + 12)
+      
+      checkPageBreak(imgH + 15)
+      
       try {
-        doc.addImage(img.url, 'JPEG', x, y, imgW, imgH)
+        doc.addImage(img.url, 'JPEG', x, imgY, imgW, imgH)
       } catch (e) {
-        // fallback: draw placeholder box
         doc.setDrawColor(200)
-        doc.rect(x, y, imgW, imgH)
+        doc.rect(x, imgY, imgW, imgH)
       }
-      // caption link-like
+      
+      // Caption as blue link text
       doc.setFontSize(7)
-      doc.setTextColor(20, 90, 200)
-      const name = img.name || `Image ${i+1}`
-      const captionX = x
-      const captionY = y + imgH + 4
-      doc.text(name, captionX, captionY)
-      doc.setTextColor(0,0,0)
-
-      if (col === 1) {
-        // advance to next row
-        y += imgH + 12
+      doc.setTextColor(0, 0, 255)
+      const name = img.name || `GetAttachmentThumbnail.jpg`
+      doc.text(name, x, imgY + imgH + 3)
+      doc.setTextColor(0, 0, 0)
+      
+      if (i === images.length - 1 || (i % 2 === 1)) {
+        y = imgY + imgH + 12
       }
-      ix++
     }
     y += 6
   }
 
-  // Activity box (simple)
-  doc.setFont(undefined, "bold")
-  doc.setFontSize(9)
-  doc.text(`Activité (1)`, margin, y)
+  // Activity section with status box
+  checkPageBreak(25)
+  doc.setDrawColor(150, 150, 150)
+  doc.setLineWidth(0.2)
+  doc.line(margin, y, pageWidth - margin, y)
   y += 6
-  doc.setFont(undefined, "normal")
-  doc.setFontSize(8)
-  const activityName = observation.creatorName || observation.creatorId || ""
-  const activityDate = observation.createdAt ? new Date(observation.createdAt).toLocaleString("fr-FR") : ""
-  doc.text(`${activityName}`, margin, y)
-  doc.text(`${activityDate}`, margin, y + 4)
-  // status box
-  const boxX = margin + 80
-  const boxW = pageWidth - margin - boxX
-  doc.setDrawColor(200)
-  doc.rect(boxX, y - 1, boxW, 14)
+  
+  doc.setFont("helvetica", "bold")
   doc.setFontSize(9)
-  doc.text(`Statut modifié : ${observation.status || ""}`, boxX + 4, y + 6)
-  y += 20
+  doc.text("Activité (1)", margin, y)
+  y += 6
+  
+  doc.setFont("helvetica", "normal")
+  doc.setFontSize(8)
+  const activityName = getCreatorName()
+  const activityDate = observation.updatedAt || observation.createdAt
+  const activityDateStr = activityDate ? formatDateTime(activityDate) : ""
+  
+  doc.text(activityName, margin, y)
+  if (activityDateStr) {
+    doc.text(activityDateStr, margin, y + 4)
+  }
+  
+  // Status box - gray background, right aligned
+  const boxX = pageWidth - margin - 60
+  const boxW = 55
+  const boxY = y - 1
+  const boxH = 12
+  doc.setFillColor(220, 220, 220)
+  doc.setDrawColor(180, 180, 180)
+  doc.roundedRect(boxX, boxY, boxW, boxH, 1, 1, "FD")
+  doc.setFontSize(8)
+  doc.setTextColor(0, 0, 0)
+  doc.text(`Statut modifié: ${statusText}`, boxX + 3, boxY + 7)
+  y += 18
 
-  // Footer: company left, page center, printed date/time right
+  // Footer on all pages
   const pageCount = (doc as any).internal.getNumberOfPages()
+  const footerY = pageHeight - 8
+  const printDate = new Date()
+  const printDateStr = formatDateTime(printDate)
+
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i)
     doc.setFontSize(6)
-    doc.setTextColor(120, 120, 120)
-    // left
-    doc.text("Construction Interlag", margin, pageHeight - 8)
-    // center
-    doc.text(`Page ${i} sur ${pageCount}`, pageWidth / 2, pageHeight - 8, { align: "center" })
-    // right - printed date
-    const printed = new Date().toLocaleDateString("fr-FR") + "  " + new Date().toLocaleTimeString("fr-FR")
-    doc.text(printed, pageWidth - margin, pageHeight - 8, { align: "right" })
+    doc.setTextColor(100, 100, 100)
+    doc.text("Construction Interlag", margin, footerY)
+    doc.text(`Page ${i} sur ${pageCount}`, pageWidth / 2, footerY, { align: "center" })
+    doc.text(`Imprimé le : ${printDateStr}`, pageWidth - margin, footerY, { align: "right" })
+    doc.setTextColor(0, 0, 0)
   }
 
   doc.save(filename)
@@ -545,8 +763,30 @@ export async function exportInspectionAsPdf(inspection: any, filename: string) {
   const jsPDF = (await import("jspdf")).default
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
   const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
   const margin = 12
   let y = margin
+
+  const checkPageBreak = (needed: number) => {
+    if (y + needed > pageHeight - margin - 15) {
+      doc.addPage()
+      y = margin
+      // Redraw header on new page
+      try {
+        doc.addImage("/logo.png", "PNG", margin, y, 22, 22)
+      } catch {}
+      doc.setFontSize(10)
+      doc.setFont("helvetica", "bold")
+      doc.text("Construction Interlag", margin + 26, y + 5)
+      doc.setFontSize(8)
+      doc.setFont("helvetica", "normal")
+      doc.text("926 av Simard, #201", margin + 26, y + 10)
+      doc.text("Chambly, Quebec J3L 4X2", margin + 26, y + 14)
+      doc.text("Téléphone : 514-323-6710", margin + 26, y + 18)
+      doc.text("Télécopieur : 514-323-3682", margin + 26, y + 22)
+      y += 26
+    }
+  }
 
   // Header: Logo and company info
   try {
@@ -563,13 +803,19 @@ export async function exportInspectionAsPdf(inspection: any, filename: string) {
   doc.text("Télécopieur : 514-323-3682", margin + 26, y + 22)
 
   // Project info (right)
-  let projectInfo = []
+  const projectInfo = []
   if (inspection.projectNumber) projectInfo.push(`Projet : ${inspection.projectNumber}`)
   if (inspection.projectName) projectInfo.push(inspection.projectName)
   if (inspection.projectLocation) projectInfo.push(inspection.projectLocation)
   if (projectInfo.length > 0) {
     doc.setFontSize(8)
-    doc.text(projectInfo.join(" - "), pageWidth - margin, y + 7, { align: "right" })
+    const projText = projectInfo.join(" - ")
+    const projLines = doc.splitTextToSize(projText, 80)
+    let projY = y + 5
+    projLines.forEach((line: string) => {
+      doc.text(line, pageWidth - margin, projY, { align: "right" })
+      projY += 4
+    })
   }
 
   y += 26
@@ -580,117 +826,281 @@ export async function exportInspectionAsPdf(inspection: any, filename: string) {
   // Title
   doc.setFontSize(13)
   doc.setFont("helvetica", "bold")
-  doc.text(`Inspection N°${inspection.number || inspection.id.slice(-6)}`, pageWidth / 2, y, { align: "center" })
-  y += 9
+  const inspectionNumber = inspection.number || inspection.id.slice(-6)
+  doc.text(`Inspection N°${inspectionNumber} - Inspection journalière`, margin, y)
+  y += 6
+  if (projectInfo.length > 0) {
+    doc.setFontSize(9)
+    doc.setFont("helvetica", "normal")
+    const fullProjectText = projectInfo.join(" - ")
+    const projectLines = doc.splitTextToSize(fullProjectText, pageWidth - 2 * margin)
+    projectLines.forEach((line: string) => {
+      doc.text(line, margin, y)
+      y += 4
+    })
+  }
+  y += 4
 
-  // Details (left column)
+  // Summary statistics
+  const allItems = inspectionSections.flatMap((s: any) => s?.items || [])
+  const totalItems = allItems.length
+  const allResponses = inspection.responses || []
+  const conforming = allResponses.filter((r: any) => r.response === "conforming").length
+  const nonConforming = allResponses.filter((r: any) => r.response === "non-conforming").length
+  const notApplicable = allResponses.filter((r: any) => r.response === "not-applicable" || r.response === "na").length
+  const unanswered = totalItems - allResponses.filter((r: any) => r.response !== null && r.response !== undefined).length
+
+  doc.setFontSize(9)
+  doc.setFont("helvetica", "bold")
+  doc.text(`${totalItems}/${totalItems} Articles inspectés`, margin, y)
+  y += 5
+  doc.setFontSize(8)
+  doc.setFont("helvetica", "normal")
+  doc.text(`${conforming} Conforme`, margin, y)
+  doc.text(`${nonConforming} Déficient`, margin + 30, y)
+  doc.text(`${notApplicable} S.O.`, margin + 60, y)
+  doc.text(`${unanswered} Neutre`, margin + 85, y)
+  y += 6
+
+  // Details section
   doc.setFontSize(9)
   doc.setFont("helvetica", "bold")
   doc.text("Détails de l'inspection", margin, y)
-  y += 6
+  y += 5
   doc.setFontSize(8)
   doc.setFont("helvetica", "normal")
   const details = [
-    ["Type", inspection.type],
-    ["Statut", inspection.status],
-    ["Créé par", inspection.creatorId],
-    ["Distribution", Array.isArray(inspection.distribution) ? inspection.distribution.join(", ") : ""],
-    ["Date de création", inspection.createdAt ? new Date(inspection.createdAt).toLocaleDateString("fr-FR") : ""],
+    ["Type", inspection.type || "-"],
+    ["Métier", inspection.metier || "-"],
+    ["Statut", inspection.status || "-"],
+    ["Lieu", inspection.lieu || "-"],
+    ["Section du devis", inspection.sectionDevis || "-"],
+    ["Créé par", inspection.createdBy || inspection.creatorId || "-"],
+    ["Plans liés", inspection.plansLies || "-"],
+    ["Description", inspection.description || "-"],
+    ["Pièces jointes", inspection.attachments?.length > 0 ? `${inspection.attachments.length} fichier(s)` : "-"],
   ]
   details.forEach(([label, value]) => {
-    doc.text(`${label} : ${value || "-"}`, margin, y)
-    y += 5
+    doc.text(`${label} : ${value}`, margin, y)
+    y += 4
   })
-
-  // Statistics
-  const totalItems = inspection.responses?.length || 0
-  const conforming = inspection.responses?.filter((r: any) => r.response === "conforming").length || 0
-  const nonConforming = inspection.responses?.filter((r: any) => r.response === "non-conforming").length || 0
-  const notApplicable = inspection.responses?.filter((r: any) => r.response === "not-applicable" || r.response === "na").length || 0
-  const unanswered = totalItems - conforming - nonConforming - notApplicable
   y += 2
-  doc.setFont("helvetica", "bold")
-  doc.text(`Articles inspectés : ${totalItems}   Conforme : ${conforming}   Déficient : ${nonConforming}   S.O. : ${notApplicable}   Non répondu : ${unanswered}`, margin, y)
-  y += 7
 
-  // Checklist table
-  doc.setFontSize(9)
-  doc.setFont("helvetica", "bold")
-  doc.text("Liste de vérification", margin, y)
+  // Date section
+  doc.text("Date de l'inspection :", margin, y)
+  doc.text(inspection.inspectionDate ? new Date(inspection.inspectionDate).toLocaleDateString("fr-FR") : new Date().toLocaleDateString("fr-FR"), margin + 50, y)
+  y += 4
+  doc.text("Date d'échéance :", margin, y)
+  doc.text(inspection.dueDate ? new Date(inspection.dueDate).toLocaleDateString("fr-FR") : "-", margin + 50, y)
+  y += 4
+  doc.text("Point de contact :", margin, y)
+  doc.text(inspection.contactPoint || "-", margin + 50, y)
+  y += 4
+  doc.text("Entrepreneur responsable :", margin, y)
+  doc.text(inspection.contractor || "-", margin + 50, y)
+  y += 4
+  doc.text("Personne(s) assignée(s) :", margin, y)
+  const assigned = Array.isArray(inspection.distribution) 
+    ? inspection.distribution.map((d: any) => d.email || d.userId || "").filter(Boolean).join(", ") || "-"
+    : "-"
+  doc.text(assigned, margin + 50, y)
   y += 6
-  doc.setFontSize(8)
-  doc.setFont("helvetica", "normal")
+
+  // Inspection sections
   inspectionSections.forEach((section: any) => {
+    checkPageBreak(20)
+    
+    // Section title
+    doc.setFontSize(10)
     doc.setFont("helvetica", "bold")
-    doc.text(section.titleKey, margin, y)
+    // Use titleKey directly (it's already in French for French sections)
+    const sectionTitle = section.titleKey || section.title || ""
+    doc.text(sectionTitle, margin, y)
     y += 5
+
+    // Calculate section statistics
+    const sectionItems = section.items || []
+    const sectionResponses = sectionItems.map((item: any) => 
+      allResponses.find((r: any) => r.itemId === item.id)
+    )
+    const sectionConforming = sectionResponses.filter((r: any) => r?.response === "conforming").length
+    const sectionNonConforming = sectionResponses.filter((r: any) => r?.response === "non-conforming").length
+    const sectionNotApplicable = sectionResponses.filter((r: any) => r?.response === "not-applicable" || r?.response === "na").length
+    const sectionNeutral = sectionResponses.filter((r: any) => !r || r.response === null || r.response === undefined).length
+
+    // Section summary
+    doc.setFontSize(8)
     doc.setFont("helvetica", "normal")
-    section.items.forEach((item: any) => {
-      const response = inspection.responses.find((r: any) => r.itemId === item.id)
-      // Draw checkboxes
-      let boxX = margin
-      const boxSize = 4
-      const labels = ["Conforme", "Déficient", "S.O."]
-      const values = ["conforming", "non-conforming", "not-applicable"]
-      labels.forEach((lbl, idx) => {
-        doc.rect(boxX, y - boxSize + 1, boxSize, boxSize)
-        if (response && response.response === values[idx]) {
-          doc.setFontSize(10)
-          doc.text("✓", boxX + 1, y + 1)
+    doc.text(`0 Neutre, ${sectionConforming} Conforme, ${sectionNonConforming} Déficient, ${sectionNotApplicable} S.O.`, margin, y)
+    y += 5
+
+    // Section items
+    doc.setFontSize(8)
+    sectionItems.forEach((item: any) => {
+      checkPageBreak(25)
+      
+      const response = allResponses.find((r: any) => r.itemId === item.id)
+      const hasResponse = response && response.response !== null && response.response !== undefined
+      const responseCount = hasResponse ? 1 : 0
+      const attachmentsCount = response?.attachments?.length || 0
+      const photosCount = response?.attachments?.filter((a: any) => a.type?.startsWith("image/")).length || 0
+      const commentsCount = response?.comment ? 1 : 0
+      const observationsCount = 0 // Not currently tracked
+
+      // Item number and description
+      doc.setFont("helvetica", "bold")
+      doc.text(`${item.number} ${item.label}`, margin, y)
+      y += 4
+
+      // Activity line
+      doc.setFont("helvetica", "normal")
+      doc.setFontSize(7)
+      const activityText = `Activité: ${responseCount} Changement${responseCount > 1 ? "s" : ""} de réponse, ${attachmentsCount} Pièces jointes, ${photosCount} Photo${photosCount > 1 ? "s" : ""}, ${commentsCount} Commentaire${commentsCount > 1 ? "s" : ""}, ${observationsCount} Observation${observationsCount > 1 ? "s" : ""}`
+      doc.text(activityText, margin, y)
+      y += 4
+
+      // Response record
+      if (hasResponse && response) {
+        const responseDate = response.updatedAt || response.createdAt || inspection.updatedAt || inspection.createdAt || new Date()
+        const dateStr = new Date(responseDate).toLocaleDateString("fr-FR", { 
+          day: "numeric", 
+          month: "short", 
+          year: "numeric" 
+        })
+        const timeStr = new Date(responseDate).toLocaleTimeString("fr-FR", { 
+          hour: "2-digit", 
+          minute: "2-digit" 
+        })
+        const responderName = inspection.createdBy || inspection.creatorId || "Utilisateur"
+        const companyName = "Construction Interlag"
+        
+        let responseStatus = ""
+        if (response.response === "conforming") responseStatus = "Conforme"
+        else if (response.response === "non-conforming") responseStatus = "Échec"
+        else if (response.response === "not-applicable" || response.response === "na") responseStatus = "N/A"
+        
+        doc.text(`${responderName} (${companyName}) a répondu ${responseStatus} le ${dateStr} à ${timeStr} EDT`, margin, y)
+        y += 4
+      }
+
+      // Checkboxes
+      const boxSize = 3
+      const boxY = y - 2
+      let boxX = pageWidth - margin - 60
+      const checkboxLabels = ["Conforme", "Échec", "S.O."]
+      const checkboxValues = ["conforming", "non-conforming", "not-applicable"]
+      
+      checkboxLabels.forEach((label, idx) => {
+        doc.rect(boxX, boxY, boxSize, boxSize)
+        if (response && response.response === checkboxValues[idx]) {
           doc.setFontSize(8)
+          doc.text("✓", boxX + 0.5, boxY + 2.2)
         }
-        doc.text(lbl, boxX + boxSize + 2, y + 2)
-        boxX += 24
+        doc.setFontSize(7)
+        doc.text(label, boxX + boxSize + 1, boxY + 2)
+        boxX += 18
       })
-      // Item number and label
-      doc.text(`${item.number} ${item.label}`, margin + 75, y + 2)
-      y += 7
+      y += 5
+
       // Comment if present
       if (response && response.comment) {
+        checkPageBreak(10)
         doc.setFontSize(7)
-        doc.text(`Commentaire : ${response.comment}`, margin + 10, y)
-        doc.setFontSize(8)
-        y += 5
+        const commentDate = response.updatedAt || response.createdAt || new Date()
+        const commentDateStr = new Date(commentDate).toLocaleDateString("fr-FR", { 
+          day: "numeric", 
+          month: "short", 
+          year: "numeric" 
+        })
+        const commentTimeStr = new Date(commentDate).toLocaleTimeString("fr-FR", { 
+          hour: "2-digit", 
+          minute: "2-digit" 
+        })
+        doc.text(`${responderName} (${companyName}) a laissé un commentaire le ${commentDateStr} à ${commentTimeStr} EDT:`, margin + 5, y)
+        y += 3
+        const commentLines = doc.splitTextToSize(response.comment, pageWidth - 2 * margin - 10)
+        commentLines.forEach((line: string) => {
+          doc.text(line, margin + 5, y)
+          y += 3
+        })
+        y += 2
       }
-      // Page break if needed
-      if (y > 270) {
-        doc.addPage()
-        y = margin
+
+      // Photos if present
+      if (response && response.attachments) {
+        const photos = response.attachments.filter((a: any) => a.type?.startsWith("image/"))
+        if (photos.length > 0) {
+          checkPageBreak(50)
+          const photoDate = response.updatedAt || response.createdAt || new Date()
+          const photoDateStr = new Date(photoDate).toLocaleDateString("fr-FR", { 
+            day: "numeric", 
+            month: "short", 
+            year: "numeric" 
+          })
+          const photoTimeStr = new Date(photoDate).toLocaleTimeString("fr-FR", { 
+            hour: "2-digit", 
+            minute: "2-digit" 
+          })
+          doc.setFontSize(7)
+          doc.text(`${responderName} (${companyName}) a ajouté ${photos.length} photo${photos.length > 1 ? "s" : ""} via mobile le ${photoDateStr} à ${photoTimeStr} EDT`, margin + 5, y)
+          y += 4
+          
+          // Display photos in grid
+          photos.forEach((photo: any, idx: number) => {
+            if (idx % 2 === 0 && idx > 0) {
+              y += 35 // Move to next row
+            }
+            try {
+              const photoX = idx % 2 === 0 ? margin + 5 : margin + 5 + 60
+              if (idx % 2 === 0 && idx > 0) {
+                checkPageBreak(40)
+              } else {
+                checkPageBreak(40)
+              }
+              doc.addImage(photo.url, "JPEG", photoX, y, 50, 35)
+              if (idx % 2 === 1 || idx === photos.length - 1) {
+                y += 37
+              }
+            } catch (e) {
+              doc.text(`[Image: ${photo.name || "?"}]`, margin + 5, y)
+              y += 4
+            }
+          })
+          if (photos.length % 2 === 1) {
+            y += 35
+          }
+          y += 2
+        }
       }
+
+      y += 3
     })
     y += 3
   })
 
-  // Attachments (images)
-  const images = inspection.attachments?.filter((a: any) => a.type?.startsWith("image/")) || []
-  if (images.length > 0) {
-    doc.setFont("helvetica", "bold")
-    doc.setFontSize(9)
-    doc.text("Pièces jointes", margin, y)
-    y += 6
-    images.forEach((img: any) => {
-      try {
-        doc.addImage(img.url, "JPEG", margin, y, 50, 38)
-        y += 40
-        doc.setFontSize(7)
-        doc.text(img.name, margin, y)
-        y += 6
-      } catch {}
-    })
-  }
-
-  // Footer
+  // Footer on all pages
   const pageCount = (doc as any).internal.getNumberOfPages()
+  const footerY = pageHeight - 8
+  const printDate = new Date()
+  const printDateStr = printDate.toLocaleDateString("fr-FR", { 
+    day: "numeric", 
+    month: "short", 
+    year: "numeric" 
+  })
+  const printTimeStr = printDate.toLocaleTimeString("fr-FR", { 
+    hour: "2-digit", 
+    minute: "2-digit" 
+  })
+  const printedStr = `Imprimé le : ${printDateStr} ${printTimeStr} EDT`
+
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i)
     doc.setFontSize(6)
-    doc.setTextColor(120, 120, 120)
-    doc.text(
-      `Généré le ${new Date().toLocaleDateString("fr-FR")} à ${new Date().toLocaleTimeString("fr-FR")}`,
-      margin,
-      290
-    )
-    doc.text(`Page ${i} sur ${pageCount}`, pageWidth - margin - 20, 290)
+    doc.setTextColor(100, 100, 100)
+    doc.text("Construction Interlag", margin, footerY)
+    doc.text(`Page ${i} sur ${pageCount}`, pageWidth / 2, footerY, { align: "center" })
+    doc.text(printedStr, pageWidth - margin, footerY, { align: "right" })
+    doc.setTextColor(0, 0, 0)
   }
 
   doc.save(filename)
