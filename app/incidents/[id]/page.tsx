@@ -20,7 +20,8 @@ import { FormSection } from "@/components/forms/form-section"
 import { Badge } from "@/components/ui/badge"
 import { AppShell } from "@/components/app-shell"
 import { useLocale } from "@/lib/locale-context"
-import { exportElementAsPdf } from "@/lib/pdf"
+import { exportIncidentAsPdf } from "@/lib/pdf"
+import { toast } from "sonner"
 import { useAppStore } from "@/lib/store"
 import { cn, distanceToNowLocalized, formatLocalized } from "@/lib/utils"
 
@@ -59,7 +60,16 @@ export default function IncidentDetailPage({ params }: { params: Promise<{ id: s
         title={incident.title || incident.number}
         backHref="/incidents"
         onEdit={() => router.push(`/incidents/${id}/edit`)}
-        onExportPdf={() => exportElementAsPdf({ elementId: "form-detail", filename: `${(incident.title || incident.number)}-${locale}.pdf` })}
+        onExportPdf={async () => {
+          try {
+            const filename = `${incident.title || incident.number}-${locale}.pdf`
+            await exportIncidentAsPdf(incident, filename, { projects, users })
+            toast.success("Incident exported as PDF successfully")
+          } catch (e) {
+            console.error("PDF export error:", e)
+            toast.error("Failed to export incident as PDF")
+          }
+        }}
       />
 
       <div id="form-detail" className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto space-y-6">

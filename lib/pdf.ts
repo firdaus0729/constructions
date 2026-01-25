@@ -696,143 +696,331 @@ export async function exportInspectionAsPdf(inspection: any, filename: string) {
   doc.save(filename)
 }
 
-// Export incident with proper formatting and embedded images
-export async function exportIncidentAsPdf(incident: any, filename: string) {
-  if (typeof window === "undefined") return;
-  const jsPDF = (await import("jspdf")).default;
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const margin = 12;
-  let y = margin;
+// Resolve project/creator for incident PDF when opts provided
+function resolveIncidentContext(
+  incident: any,
+  opts?: { projects?: { id: string; name?: string; code?: string; location?: string }[]; users?: { id: string; name?: string }[] }
+) {
+  const project = opts?.projects?.find((p) => p.id === incident.projectId)
+  const creator = opts?.users?.find((u) => u.id === incident.creatorId)
+  return {
+    projectName: incident.projectName ?? project?.name ?? "",
+    projectNumber: incident.projectNumber ?? project?.code ?? "",
+    projectLocation: incident.projectLocation ?? project?.location ?? "",
+    creatorName: incident.creatorName ?? creator?.name ?? "",
+  }
+}
 
-  // Header: Logo and company info
-  try {
-    doc.addImage("/logo.png", "PNG", margin, y, 22, 22);
-  } catch {}
-  doc.setFontSize(10);
-  doc.setFont(undefined, "bold");
-  doc.text("Construction Interlag", margin + 26, y + 5);
-  doc.setFontSize(8);
-  doc.setFont(undefined, "normal");
-  doc.text("926 av Simard, #201", margin + 26, y + 10);
-  doc.text("Chambly, Quebec J3L 4X2", margin + 26, y + 14);
-  doc.text("Téléphone : 514-323-6710", margin + 26, y + 18);
-  doc.text("Télécopieur : 514-323-3682", margin + 26, y + 22);
+// Export incident as Excel Perfect PDF matching the French template (grid, dashed underlines, red border)
+export async function exportIncidentAsPdf(
+  incident: any,
+  filename: string,
+  opts?: { projects?: { id: string; name?: string; code?: string; location?: string }[]; users?: { id: string; name?: string }[] }
+) {
+  if (typeof window === "undefined") return
+  const jsPDF = (await import("jspdf")).default
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const margin = 10
+  const contentWidth = pageWidth - 2 * margin
+  const { projectName, projectNumber, projectLocation, creatorName } = resolveIncidentContext(incident, opts)
 
-  // Project info (right)
-  let projectInfo = [];
-  if (incident.projectName) projectInfo.push(incident.projectName);
-  if (incident.projectNumber) projectInfo.push(incident.projectNumber);
-  if (incident.projectLocation) projectInfo.push(incident.projectLocation);
-  if (projectInfo.length > 0) {
-    doc.setFontSize(8);
-    doc.text(projectInfo.join(" - "), pageWidth - margin, y + 7, { align: "right" });
+  let y = margin
+
+  const setDashed = () => {
+    try {
+      ;(doc as any).setLineDashPattern([2, 2], 0)
+    } catch {
+      /* noop */
+    }
+  }
+  const setSolid = () => {
+    try {
+      ;(doc as any).setLineDashPattern([], 0)
+    } catch {
+      /* noop */
+    }
   }
 
-  y += 26;
-  doc.setDrawColor(150, 150, 150);
-  doc.line(margin, y, pageWidth - margin, y);
-  y += 6;
+  const drawDashedHLine = (x1: number, x2: number, y: number) => {
+    setDashed()
+    doc.setDrawColor(100, 100, 100)
+    doc.setLineWidth(0.2)
+    doc.line(x1, y, x2, y)
+    setSolid()
+    doc.setDrawColor(0, 0, 0)
+  }
 
-  // Title
-  doc.setFontSize(13);
-  doc.setFont(undefined, "bold");
-  doc.text(`Incident n°${incident.number} - ${incident.title || ""}`, margin, y);
-  y += 8;
+  const checkPageBreak = (need: number) => {
+    if (y + need > pageHeight - margin - 14) {
+      doc.addPage()
+      y = margin
+    }
+  }
 
-  // Two-column info
-  doc.setFontSize(8);
-  doc.setFont(undefined, "normal");
-  const leftInfo = [
-    ["Créateur", incident.creatorName || ""],
+  // ----- Header: logo + company (left), project (right) -----
+  try {
+    doc.addImage("/logo.png", "PNG", margin, y, 22, 22)
+  } catch {
+    /* noop */
+  }
+  doc.setFontSize(10)
+  doc.setFont("helvetica", "bold")
+  doc.text("Construction Interlag", margin + 26, y + 5)
+  doc.setFontSize(8)
+  doc.setFont("helvetica", "normal")
+  doc.text("916 av Simard, #201", margin + 26, y + 10)
+  doc.text("Chambly, Quebec J3L 4X2", margin + 26, y + 14)
+  doc.text("Téléphone: 514-323-6710", margin + 26, y + 18)
+  doc.text("Télécopieur: 514-323-3002", margin + 26, y + 22)
+
+  const projColX = pageWidth - margin
+  const projColW = 75
+  let ry = y + 4
+  doc.setFontSize(8)
+  const projLine1 = [projectNumber && `Projet : ${projectNumber}`, projectName].filter(Boolean).join(", ")
+  if (projLine1) {
+    const projLines = doc.splitTextToSize(projLine1, projColW)
+    projLines.forEach((ln: string) => {
+      doc.text(ln, projColX, ry, { align: "right" })
+      ry += 4
+    })
+  }
+  if (projectLocation) {
+    const locLines = doc.splitTextToSize(projectLocation, projColW)
+    locLines.forEach((ln: string) => {
+      doc.text(ln, projColX, ry, { align: "right" })
+      ry += 4
+    })
+  }
+
+  y += 26
+
+  // ----- Title: centered in dashed box -----
+  const title = `Incident n°${incident.number} : ${incident.title || ""}`
+  const titleLines = doc.splitTextToSize(title, contentWidth - 8)
+  const titleH = Math.max(8, titleLines.length * 5) + 4
+  const titleY0 = y
+  setDashed()
+  doc.setDrawColor(80, 80, 80)
+  doc.setLineWidth(0.2)
+  doc.rect(margin + 2, titleY0, contentWidth - 4, titleH)
+  setSolid()
+  doc.setDrawColor(0, 0, 0)
+  doc.setFontSize(13)
+  doc.setFont("helvetica", "bold")
+  titleLines.forEach((ln: string, i: number) => {
+    doc.text(ln, pageWidth / 2, titleY0 + 4 + i * 5, { align: "center" })
+  })
+  y = titleY0 + titleH + 4
+
+  // ----- Two-column grid with dashed underlines -----
+  const leftColX = margin + 2
+  const leftColW = contentWidth / 2 - 6
+  const rightColX = pageWidth / 2 + 2
+  const rightColW = contentWidth / 2 - 6
+  const labelW = 32
+  const rowH = 5.5
+
+  const leftRows: [string, string][] = [
+    ["Créateur", creatorName],
     ["Lieu", incident.location || ""],
     ["Date de l'événement", incident.eventDate ? new Date(incident.eventDate).toLocaleDateString("fr-FR") : ""],
-    ["Privé(e)", incident.private ? "Oui" : "Non"],
-  ];
-  const rightInfo = [
-    ["Créé à", incident.createdAt ? new Date(incident.createdAt).toLocaleDateString("fr-FR") : ""],
-    ["Statut", incident.status || ""],
-    ["Heure de l'événement", incident.eventTime || ""],
-    ["Distribution", (incident.distribution || []).join(", ")],
-  ];
-  const colYStart = y;
-  let leftY = colYStart;
-  let rightY = colYStart;
-  leftInfo.forEach(([label, value]) => {
-    doc.text(`${label}`, margin, leftY);
-    doc.text(`${value}`, margin + 35, leftY);
-    leftY += 5;
-  });
-  rightInfo.forEach(([label, value]) => {
-    doc.text(`${label}`, pageWidth / 2 + 5, rightY);
-    doc.text(`${value}`, pageWidth / 2 + 40, rightY);
-    rightY += 5;
-  });
-  y = Math.max(leftY, rightY) + 2;
+    ["Privé(e)", (incident as any).private ? "Oui" : "Non"],
+  ]
 
-  // Description section
-  if (incident.description) {
-    doc.setFont(undefined, "bold");
-    doc.text("À déclarer", margin, y);
-    y += 5;
-    doc.setFont(undefined, "normal");
-    const descLines = doc.splitTextToSize(incident.description, pageWidth - 2 * margin);
-    descLines.forEach((line: string) => {
-      doc.text(line, margin, y);
-      y += 4;
-    });
+  const createdStr = incident.createdAt ? new Date(incident.createdAt).toLocaleDateString("fr-FR") : ""
+  const statusMap: Record<string, string> = { open: "Ouvert", closed: "Fermé", draft: "Brouillon", "in-progress": "En cours", submitted: "Soumis" }
+  const statusStr = statusMap[incident.status] ?? incident.status ?? ""
+  const eventTimeStr = incident.eventTime || ""
+  const dist = incident.distribution || []
+  const distLines = Array.isArray(dist) ? dist : [String(dist)]
+
+  doc.setFontSize(8)
+  doc.setFont("helvetica", "normal")
+
+  let leftY = y
+  leftRows.forEach(([label, value]) => {
+    doc.setFont("helvetica", "bold")
+    doc.text(label, leftColX, leftY)
+    doc.setFont("helvetica", "normal")
+    const v = String(value || "")
+    const vLines = doc.splitTextToSize(v, leftColW - labelW - 2)
+    doc.text(vLines[0] || "", leftColX + labelW, leftY)
+    drawDashedHLine(leftColX + labelW, leftColX + leftColW, leftY + 1.5)
+    leftY += rowH
+  })
+
+  let rightY = y
+  doc.setFont("helvetica", "bold")
+  doc.text("Créé à", rightColX, rightY)
+  doc.setFont("helvetica", "normal")
+  doc.text(createdStr, rightColX + labelW, rightY)
+  drawDashedHLine(rightColX + labelW, rightColX + rightColW, rightY + 1.5)
+  rightY += rowH
+
+  doc.setFont("helvetica", "bold")
+  doc.text("Statut", rightColX, rightY)
+  doc.setFont("helvetica", "normal")
+  doc.text(statusStr, rightColX + labelW, rightY)
+  drawDashedHLine(rightColX + labelW, rightColX + rightColW, rightY + 1.5)
+  rightY += rowH
+
+  doc.setFont("helvetica", "bold")
+  doc.text("Heure de l'événement", rightColX, rightY)
+  doc.setFont("helvetica", "normal")
+  doc.text(eventTimeStr, rightColX + labelW, rightY)
+  drawDashedHLine(rightColX + labelW, rightColX + rightColW, rightY + 1.5)
+  rightY += rowH
+
+  doc.setFont("helvetica", "bold")
+  doc.text("Distribution", rightColX, rightY)
+  doc.setFont("helvetica", "normal")
+  rightY += 3.5
+  distLines.forEach((line: string) => {
+    doc.text(String(line), rightColX + 2, rightY)
+    rightY += 3.5
+  })
+  rightY += 1.5
+  drawDashedHLine(rightColX, rightColX + rightColW, rightY)
+
+  y = Math.max(leftY, rightY) + 6
+
+  // ----- À déclarer + Description -----
+  checkPageBreak(20)
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(9)
+  doc.text("À déclarer", leftColX, y)
+  doc.setFont("helvetica", "normal")
+  doc.text((incident as any).aDeclarer === true ? "Oui" : "Non", leftColX + labelW, y)
+  drawDashedHLine(leftColX + labelW, leftColX + leftColW, y + 1.5)
+  y += 6
+
+  doc.setFont("helvetica", "bold")
+  doc.text("Description", leftColX, y)
+  y += 5
+  doc.setFont("helvetica", "normal")
+  doc.setFontSize(8)
+  const desc = incident.description || ""
+  const descLines = doc.splitTextToSize(desc || " ", contentWidth - 10)
+  const maxDescLines = Math.floor((pageHeight - margin - 14 - y) / 4)
+  const firstChunk = descLines.slice(0, Math.max(1, maxDescLines))
+  const descH = Math.max(12, firstChunk.length * 4) + 4
+  checkPageBreak(descH + 4)
+  const descY0 = y
+  doc.setDrawColor(0, 0, 0)
+  doc.setLineWidth(0.15)
+  doc.rect(leftColX, descY0, contentWidth - 4, descH)
+  firstChunk.forEach((ln: string, i: number) => {
+    doc.text(ln, leftColX + 2, descY0 + 4 + i * 4)
+  })
+  y = descY0 + descH + 4
+  const restChunk = descLines.slice(firstChunk.length)
+  restChunk.forEach((ln: string) => {
+    checkPageBreak(4)
+    doc.text(ln, leftColX + 2, y)
+    y += 4
+  })
+  if (restChunk.length) y += 2
+
+  // ----- Pièces jointes -----
+  const attachments = incident.attachments || []
+  const images = attachments.filter((a: any) => a.type?.startsWith("image/"))
+  if (attachments.length > 0) {
+    checkPageBreak(20)
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(9)
+    doc.text("Pièces jointes", leftColX, y)
+    y += 5
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(8)
+    for (const att of attachments) {
+      if (att.type?.startsWith("image/")) {
+        try {
+          checkPageBreak(50)
+          doc.addImage(att.url, "JPEG", leftColX, y, 60, 40)
+          y += 41
+          doc.setFontSize(7)
+          doc.text(att.name || "Image", leftColX, y)
+          y += 5
+          doc.setFontSize(8)
+        } catch {
+          doc.text(`[Image: ${att.name || "?"}]`, leftColX, y)
+          y += 5
+        }
+      } else {
+        doc.text(att.name || "Pièce jointe", leftColX, y)
+        drawDashedHLine(leftColX, leftColX + leftColW, y + 1.5)
+        y += 5
+      }
+    }
+    y += 4
   }
 
-  // Attachments (images)
-  const images = incident.attachments?.filter((a: any) => a.type?.startsWith("image/")) || [];
-  if (images.length > 0) {
-    y += 4;
-    doc.setFont(undefined, "bold");
-    doc.text("Pièces jointes", margin, y);
-    y += 5;
-    images.forEach((img: any) => {
-      try {
-        doc.addImage(img.url, "JPEG", margin, y, 60, 40);
-        y += 42;
-        doc.setFontSize(7);
-        doc.text(img.name, margin, y);
-        y += 6;
-      } catch {}
-    });
+  // ----- Informations sur l'enquête (2x3 grid with dashed underlines) -----
+  checkPageBreak(36)
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(9)
+  doc.text("Informations sur l'enquête", leftColX, y)
+  y += 6
+  doc.setFont("helvetica", "normal")
+  doc.setFontSize(8)
+
+  const invW = (contentWidth - 6) / 2
+  const invRowH = 9
+  const invLabelW = 38
+  const invGrid: [string, string][] = [
+    ["Danger", incident.investigation?.danger ?? ""],
+    ["Condition contributive", incident.investigation?.contributingCondition ?? ""],
+    ["Pris dans/entre", (incident.investigation as any)?.prisDansEntre ?? ""],
+    ["Équipement", (incident.investigation as any)?.equipement ?? ""],
+    ["Comportement contributif", incident.investigation?.contributingBehavior ?? ""],
+    ["Utiliser", (incident.investigation as any)?.utiliser ?? ""],
+  ]
+
+  for (let row = 0; row < 3; row++) {
+    const rowY = y + row * invRowH
+    for (let col = 0; col < 2; col++) {
+      const idx = row * 2 + col
+      const [lbl, val] = invGrid[idx]
+      const xx = leftColX + 2 + col * (invW + 2)
+      doc.setFont("helvetica", "bold")
+      doc.text(lbl, xx, rowY)
+      doc.setFont("helvetica", "normal")
+      const vLines = doc.splitTextToSize(String(val || ""), invW - invLabelW - 2)
+      doc.text(vLines[0] || "", xx + invLabelW, rowY)
+      drawDashedHLine(xx + invLabelW, xx + invW, rowY + 1.5)
+    }
   }
+  y += invRowH * 3 + 4
 
-  // Investigation section
-  y += 2;
-  doc.setFont(undefined, "bold");
-  doc.text("Informations sur L'enquête", margin, y);
-  y += 5;
-  doc.setFont(undefined, "normal");
-  const invLabels = [
-    ["Danger", incident.investigation?.danger || ""],
-    ["Condition contributive", incident.investigation?.contributingCondition || ""],
-    ["Comportement contributif", incident.investigation?.contributingBehavior || ""],
-  ];
-  let invX = margin;
-  invLabels.forEach(([label, value]) => {
-    doc.text(label, invX, y);
-    doc.text(value, invX, y + 5);
-    invX += 60;
-  });
-  y += 12;
+  // ----- Footer: thin red line + Construction Interlag | Page X sur Y | Imprimé le ... -----
+  const pageCount = (doc as any).internal.getNumberOfPages()
+  const footerY = pageHeight - 10
+  const printedStr = (() => {
+    const d = new Date()
+    const day = String(d.getDate()).padStart(2, "0")
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const year = d.getFullYear()
+    const h = String(d.getHours()).padStart(2, "0")
+    const m = String(d.getMinutes()).padStart(2, "0")
+    return `Imprimé le ${day}/${month}/${year} à ${h} h ${m}`
+  })()
 
-  // Footer
-  const pageCount = (doc as any).internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(6);
-    doc.setTextColor(120, 120, 120);
-    doc.text(
-      `Généré le ${new Date().toLocaleDateString("fr-FR")} à ${new Date().toLocaleTimeString("fr-FR")}`,
-      margin,
-      290
-    );
-    doc.text(`Page ${i} sur ${pageCount}`, pageWidth - margin - 20, 290);
+    doc.setPage(i)
+    doc.setDrawColor(180, 50, 50)
+    doc.setLineWidth(0.3)
+    doc.line(margin, footerY - 2, pageWidth - margin, footerY - 2)
+    doc.setDrawColor(0, 0, 0)
+    doc.setFontSize(6)
+    doc.setTextColor(100, 100, 100)
+    doc.text("Construction Interlag", margin + 2, footerY + 4)
+    doc.text(`Page ${i} sur ${pageCount}`, pageWidth / 2, footerY + 4, { align: "center" })
+    doc.text(printedStr, pageWidth - margin - 2, footerY + 4, { align: "right" })
+    doc.setTextColor(0, 0, 0)
   }
 
-  doc.save(filename);
+  doc.save(filename)
 }

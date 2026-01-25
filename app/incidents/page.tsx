@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState } from "react"
 import Link from "next/link"
@@ -36,7 +36,7 @@ const getStatusTranslationKey = (status: string): string => {
 }
 
 export default function IncidentsPage() {
-  const { incidents, deleteIncident, projects } = useAppStore()
+  const { incidents, deleteIncident, projects, users } = useAppStore()
   const { t } = useLocale()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<string | null>(null)
@@ -55,7 +55,7 @@ export default function IncidentsPage() {
   const handleExportPDF = async (incident: (typeof incidents)[0]) => {
     try {
       const filename = `${incident.title || incident.number}.pdf`
-      await exportIncidentAsPdf(incident, filename)
+      await exportIncidentAsPdf(incident, filename, { projects, users })
       toast.success("Incident exported as PDF successfully")
     } catch (error) {
       console.error("PDF export error:", error)

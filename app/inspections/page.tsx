@@ -18,9 +18,9 @@ import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
 const statusVariants: Record<string, string> = {
-  draft: "bg-blue-100 text-white dark:bg-blue-900",
-  "in-progress": "bg-yellow-100 text-white dark:bg-yellow-900",
-  closed: "bg-green-100 text-white dark:bg-green-900",
+  draft: "bg-blue text-white dark:bg-blue-900",
+  "in-progress": "bg-yellow text-white dark:bg-yellow-900",
+  closed: "bg-green text-white dark:bg-green-900",
 }
 
 // Helper function to convert status key to translation key
@@ -160,7 +160,7 @@ export default function InspectionsPage() {
                   <Card key={inspection.id} className="hover:shadow-lg transition-shadow">
                     <CardContent className="p-6">
                       <div className="flex items-start gap-4 mb-4">
-                        <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900 shrink-0">
+                        <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-purple dark:bg-purple-900 shrink-0">
                           <ClipboardCheck className="h-6 w-6 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
