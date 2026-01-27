@@ -11,7 +11,9 @@
     "load-test:report": "npm run load-test && node load-tests/generate-report.js load-tests/results.json load-tests/load-test-report.html"
   },
   "dependencies": {
+    "@azure/msal-browser": "^3.28.0",
     "@hookform/resolvers": "^3.10.0",
+    "@microsoft/microsoft-graph-client": "^3.0.7",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-aspect-ratio": "1.1.1",
@@ -53,6 +55,7 @@
     "lucide-react": "^0.454.0",
     "next": "16.0.10",
     "next-themes": "^0.4.6",
+    "nodemailer": "^7.0.13",
     "puppeteer": "^24.35.0",
     "react": "19.2.0",
     "react-day-picker": "9.8.0",
@@ -66,9 +69,7 @@
     "use-sync-external-store": "latest",
     "vaul": "^1.1.2",
     "zod": "3.25.76",
-    "zustand": "5.0.10",
-    "@azure/msal-browser": "^3.28.0",
-    "@microsoft/microsoft-graph-client": "^3.0.7"
+    "zustand": "5.0.10"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",
