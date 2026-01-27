@@ -12,7 +12,9 @@ import type {
   InspectionSection,
   AuthUser,
   UserGroup,
-  FormAssignment
+  FormAssignment,
+  AzureADGroupConfig,
+  UserRole
 } from "./types"
 
 // Create a custom storage that checks for window availability
@@ -362,6 +364,7 @@ interface AppState {
   currentAuthUserId: string | null
   userGroups: UserGroup[]
   formAssignments: FormAssignment[]
+  azureAdGroupConfigs: AzureADGroupConfig[] // Configuration for 3 role-based Azure AD Groups
 
   // Legacy form data
   observations: Observation[]
@@ -388,6 +391,11 @@ interface AppState {
   deleteUserGroup: (id: string) => void
   addUserToGroup: (groupId: string, userId: string) => void
   removeUserFromGroup: (groupId: string, userId: string) => void
+
+  // Azure AD Group Configuration actions
+  setAzureAdGroupConfig: (role: UserRole, config: Partial<AzureADGroupConfig>) => void
+  getAzureAdGroupConfig: (role: UserRole) => AzureADGroupConfig | null
+  initializeAzureAdGroupConfigs: () => void
 
   // Assignment actions
   assignForm: (assignment: FormAssignment) => void
@@ -426,6 +434,11 @@ export const useAppStore = create<AppState>()(
       currentAuthUserId: null,
       userGroups: [],
       formAssignments: [],
+      azureAdGroupConfigs: [
+        { role: "admin", azureGroupId: null, azureGroupName: null, lastSyncedAt: null },
+        { role: "supervisor", azureGroupId: null, azureGroupName: null, lastSyncedAt: null },
+        { role: "worker", azureGroupId: null, azureGroupName: null, lastSyncedAt: null },
+      ],
 
       // Legacy form data
       observations: [],
@@ -481,6 +494,32 @@ export const useAppStore = create<AppState>()(
             g.id === groupId ? { ...g, memberIds: g.memberIds.filter((id) => id !== userId) } : g,
           ),
         })),
+
+      // Azure AD Group Configuration actions
+      setAzureAdGroupConfig: (role, config) =>
+        set((state) => ({
+          azureAdGroupConfigs: state.azureAdGroupConfigs.map((c) =>
+            c.role === role ? { ...c, ...config } : c,
+          ),
+        })),
+      getAzureAdGroupConfig: (role) => {
+        const state = get()
+        return state.azureAdGroupConfigs.find((c) => c.role === role) || null
+      },
+      initializeAzureAdGroupConfigs: () =>
+        set((state) => {
+          // Only initialize if configs don't exist
+          if (state.azureAdGroupConfigs.length === 0) {
+            return {
+              azureAdGroupConfigs: [
+                { role: "admin", azureGroupId: null, azureGroupName: null, lastSyncedAt: null },
+                { role: "supervisor", azureGroupId: null, azureGroupName: null, lastSyncedAt: null },
+                { role: "worker", azureGroupId: null, azureGroupName: null, lastSyncedAt: null },
+              ],
+            }
+          }
+          return state
+        }),
 
       // Assignment actions
       assignForm: (assignment) =>

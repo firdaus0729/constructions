@@ -22,6 +22,8 @@ import { useAppStore, inspectionSections } from "@/lib/store"
 import { Check, X, AlertCircle, Mail } from "lucide-react"
 import type { Inspection, InspectionItemResponse } from "@/lib/types"
 import { useLocale } from "@/lib/locale-context"
+import { sendFormNotificationEmails, collectEmailAddresses } from "@/lib/email-service"
+import { toast } from "sonner"
 
 export default function NewInspection() {
   const router = useRouter()
@@ -96,7 +98,7 @@ export default function NewInspection() {
         selectedGroupIds.forEach((groupId) => {
           const group = userGroups?.find((g) => g.id === groupId)
           if (group) {
-            group.members?.forEach((memberId) => {
+            group.memberIds?.forEach((memberId) => {
               const user = authUsers?.find((u) => u.id === memberId)
               if (user) {
                 distributionList.push({ userId: memberId, groupId, email: user.email })
@@ -112,7 +114,7 @@ export default function NewInspection() {
           projectId: formData.projectId,
           description: formData.description,
           creatorId: currentUser?.id || "unknown",
-          distribution: distributionList,
+          distribution: distributionList.map((d) => d.email || "").filter(Boolean),
           closedById: null,
           status: formData.status,
           responses: responsesArray,
@@ -122,7 +124,48 @@ export default function NewInspection() {
         }
 
         addInspection(inspection)
-        alert(t("alert.saveSuccess.inspection"))
+
+        // Send email notifications if enabled
+        if (sendNotifications) {
+          const recipientEmails = collectEmailAddresses(
+            selectedUserIds,
+            selectedGroupIds,
+            authUsers,
+            userGroups
+          )
+
+          if (recipientEmails.length > 0) {
+            const project = projects?.find((p) => p.id === formData.projectId)
+            
+            const emailResult = await sendFormNotificationEmails(
+              {
+                formType: "inspection",
+                formNumber: inspection.id.slice(0, 8).toUpperCase(),
+                formTitle: inspection.documentTitle,
+                projectName: project?.name,
+                creatorName: currentUser?.name || "Unknown",
+                creatorEmail: currentUser?.email || "",
+                status: inspection.status,
+                description: inspection.description,
+                assignedTo: recipientEmails.map((email) => {
+                  const user = authUsers.find((u) => u.email === email)
+                  return { name: user?.name || email, email }
+                }),
+              },
+              recipientEmails,
+              sendNotifications
+            )
+
+            if (emailResult.success && emailResult.sent > 0) {
+              toast.success(`Inspection créée et ${emailResult.sent} email(s) envoyé(s)`)
+            } else if (emailResult.failed > 0) {
+              toast.warning(`Inspection créée mais ${emailResult.failed} email(s) ont échoué`)
+            }
+          }
+        } else {
+          toast.success(t("alert.saveSuccess.inspection") || "Inspection créée avec succès")
+        }
+
         router.push("/inspections")
       } catch (error) {
         console.error("Error saving inspection:", error)

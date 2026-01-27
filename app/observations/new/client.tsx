@@ -18,6 +18,8 @@ import { getObservationTypes } from "@/lib/reference-data-loader"
 import { AlertTriangle, CheckCircle2, Mail } from "lucide-react"
 import type { Observation, Attachment } from "@/lib/types"
 import { useLocale } from "@/lib/locale-context"
+import { sendFormNotificationEmails, collectEmailAddresses } from "@/lib/email-service"
+import { toast } from "sonner"
 
 export default function NewObservation() {
   const router = useRouter()
@@ -159,12 +161,48 @@ export default function NewObservation() {
         addObservation(observation)
 
         // Send email notifications if enabled
-        if (sendNotifications && uniqueDistribution.length > 0) {
-          await sendEmailNotifications(observation, uniqueDistribution, authUsers)
+        if (sendNotifications) {
+          const recipientEmails = collectEmailAddresses(
+            selectedUserIds,
+            selectedGroupIds,
+            authUsers,
+            userGroups
+          )
+
+          if (recipientEmails.length > 0) {
+            const creatorUser = authUsers.find((u) => u.id === currentUser?.id) || currentUser || authUsers[0]
+            const project = projects?.find((p) => p.id === formData.projectId)
+            
+            const emailResult = await sendFormNotificationEmails(
+              {
+                formType: "observation",
+                formNumber: observation.number,
+                formTitle: observation.title,
+                projectName: project?.name,
+                creatorName: creatorUser?.name || "Unknown",
+                creatorEmail: creatorUser?.email || "",
+                priority: observation.priority,
+                status: observation.status,
+                description: observation.description,
+                assignedTo: recipientEmails.map((email) => {
+                  const user = authUsers.find((u) => u.email === email)
+                  return { name: user?.name || email, email }
+                }),
+              },
+              recipientEmails,
+              sendNotifications
+            )
+
+            if (emailResult.success && emailResult.sent > 0) {
+              toast.success(`Observation créée et ${emailResult.sent} email(s) envoyé(s)`)
+            } else if (emailResult.failed > 0) {
+              toast.warning(`Observation créée mais ${emailResult.failed} email(s) ont échoué`)
+            }
+          }
         }
 
         // Show success message
-        alert(t("alert.saveSuccess.observation"))
+        toast.success(t("alert.saveSuccess.observation") || "Observation créée avec succès")
         router.push("/observations")
       } catch (error) {
         console.error("Error saving observation:", error)
@@ -176,19 +214,6 @@ export default function NewObservation() {
     [formData, validateForm, addObservation, currentUser, router, selectedUserIds, selectedGroupIds, sendNotifications, userGroups, authUsers, projects],
   )
 
-  // Email notification function (simulated for now)
-  const sendEmailNotifications = async (observation: Observation, userIds: string[], users: any[]) => {
-    console.log("📧 Email notifications would be sent to:")
-    userIds.forEach((userId) => {
-      const user = users.find((u) => u.id === userId)
-      if (user) {
-        console.log(`   → ${user.name} <${user.email}>`)
-        console.log(`      Subject: New Observation Assignment - ${observation.title}`)
-        console.log(`      Body: You have been assigned to observation ${observation.number}`)
-      }
-    })
-    // In production, this would call an email API service
-  }
   const selectedType = observationTypes?.find((t) => t.id === formData.type)
   const selectedProject = projects?.find((p) => p.id === formData.projectId)
   

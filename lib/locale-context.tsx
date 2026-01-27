@@ -450,6 +450,10 @@ const translations = {
     "supervisorsCanOnlyCreateWorkers": "Supervisors can only create worker accounts",
     "cancel": "Cancel",
 
+    // Roles and Users (Azure AD)
+    "rolesAndUsers": "Roles & Users",
+    "rolesAndUsersDescription": "Manage role-based access control with Microsoft Azure AD Groups",
+
     // Group Management
     "groupManagement": "Group Management",
     "manageGroupsDescription": "Create and manage user groups for form assignments",

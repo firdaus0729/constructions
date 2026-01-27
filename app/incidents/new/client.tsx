@@ -28,6 +28,7 @@ import { getAccidentTypes, getInjuryTypes, getBodyParts } from "@/lib/reference-
 import type { Incident, Attachment, FormStatus } from "@/lib/types"
 import { Card, CardContent } from "@/components/ui/card"
 import { DistributionSelector } from "@/components/forms"
+import { sendFormNotificationEmails, collectEmailAddresses } from "@/lib/email-service"
 
 export default function NewIncidentPage() {
   const router = useRouter()
@@ -249,7 +250,49 @@ export default function NewIncidentPage() {
       try {
         const incident = createIncidentObject("submitted")
         addIncident(incident)
-        toast.success(t("alert.saveSuccess.incident"))
+
+        // Send email notifications if enabled
+        if (sendNotifications) {
+          const recipientEmails = collectEmailAddresses(
+            selectedUserIds,
+            selectedGroupIds,
+            authUsers,
+            userGroups
+          )
+
+          if (recipientEmails.length > 0) {
+            const project = projects?.find((p) => p.id === formData.projectId)
+            
+            const emailResult = await sendFormNotificationEmails(
+              {
+                formType: "incident",
+                formNumber: incident.number,
+                formTitle: incident.title,
+                projectName: project?.name,
+                creatorName: currentUser?.name || "Unknown",
+                creatorEmail: currentUser?.email || "",
+                priority: isFatal ? "critical" : "high",
+                status: incident.status,
+                description: incident.description,
+                assignedTo: recipientEmails.map((email) => {
+                  const user = authUsers.find((u) => u.email === email)
+                  return { name: user?.name || email, email }
+                }),
+              },
+              recipientEmails,
+              sendNotifications
+            )
+
+            if (emailResult.success && emailResult.sent > 0) {
+              toast.success(`Incident créé et ${emailResult.sent} email(s) envoyé(s)`)
+            } else if (emailResult.failed > 0) {
+              toast.warning(`Incident créé mais ${emailResult.failed} email(s) ont échoué`)
+            }
+          }
+        } else {
+          toast.success(t("alert.saveSuccess.incident"))
+        }
+
         router.push("/incidents")
       } catch (error) {
         toast.error(t("alert.saveError.incident"))
@@ -258,7 +301,7 @@ export default function NewIncidentPage() {
         setIsSubmitting(false)
       }
     },
-    [validateForm, createIncidentObject, addIncident, router]
+    [validateForm, createIncidentObject, addIncident, router, sendNotifications, selectedUserIds, selectedGroupIds, authUsers, userGroups, projects, currentUser, formData, isFatal, t]
   )
 
   const handleFieldChange = useCallback(

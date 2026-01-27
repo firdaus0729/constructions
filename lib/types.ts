@@ -5,6 +5,16 @@ export type Priority = "low" | "medium" | "high" | "critical"
 export type SyncStatus = "synced" | "pending" | "error"
 export type UserRole = "admin" | "supervisor" | "worker"
 
+// Azure AD Group Configuration
+export interface AzureADGroupConfig {
+  role: UserRole
+  azureGroupId: string | null
+  azureGroupName: string | null
+  description?: string
+  lastSyncedAt: Date | null
+  memberCount?: number
+}
+
 // Authentication user (different from form creator)
 export interface AuthUser {
   id: string
@@ -13,6 +23,9 @@ export interface AuthUser {
   passwordHash: string
   role: UserRole
   createdAt: Date
+  azureAdId?: string // Azure AD Object ID
+  azureAdUpn?: string // Azure AD User Principal Name
+  azureAdGroupId?: string // Azure AD Group ID the user belongs to
 }
 
 export interface UserGroup {

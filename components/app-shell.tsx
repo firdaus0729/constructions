@@ -43,6 +43,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const adminNavigation = user?.role === "admin"
     ? [
+        { key: "rolesAndUsers", href: "/admin/roles-users", icon: Shield, label: t("rolesAndUsers") || "Roles & Users" },
         { key: "userManagement", href: "/admin/users", icon: UserCircle, label: t("userManagement") },
         { key: "groupManagement", href: "/admin/groups", icon: Users, label: t("groupManagement") },
       ]
