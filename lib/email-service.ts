@@ -40,34 +40,32 @@ export interface FormEmailData {
  */
 export async function sendEmail(options: EmailOptions): Promise<{ success: boolean; error?: string }> {
   try {
-    // Try Resend first (recommended for production)
+    // IMPORTANT: This function is called from client-side form pages.
+    // Client bundles do not have access to non-public env vars like SMTP_HOST,
+    // so we cannot reliably branch on them here. Instead:
+    //
+    // - If running in the browser, always delegate to the Next.js API route
+    //   which handles SMTP (using server-side env vars).
+    // - If running on the server, we can use direct providers when configured.
+
+    if (typeof window !== "undefined") {
+      // Browser: always go through the SMTP API route.
+      return await sendEmailViaSMTP(options)
+    }
+
+    // Server-side usage (not currently used by the app, but kept for completeness)
     if (process.env.RESEND_API_KEY) {
       return await sendEmailViaResend(options)
     }
 
-    // Fallback to SMTP
-    if (process.env.SMTP_HOST) {
-      return await sendEmailViaSMTP(options)
-    }
-
-    // Fallback to SendGrid
     if (process.env.SENDGRID_API_KEY) {
       return await sendEmailViaSendGrid(options)
     }
 
-    // Development mode - log email instead of sending
-    if (process.env.NODE_ENV === "development") {
-      console.log("📧 Email would be sent:", {
-        to: options.to,
-        subject: options.subject,
-        html: options.html,
-      })
-      return { success: true }
-    }
-
+    // Fallback: no provider configured on the server
     return {
       success: false,
-      error: "No email provider configured. Please set RESEND_API_KEY, SMTP_HOST, or SENDGRID_API_KEY",
+      error: "No email provider configured. Please set RESEND_API_KEY or SENDGRID_API_KEY",
     }
   } catch (error) {
     console.error("Email sending error:", error)
