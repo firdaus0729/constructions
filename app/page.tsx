@@ -1,6 +1,6 @@
 "use client"
 
-import { ClipboardCheck, Eye, AlertTriangle } from "lucide-react"
+import { ClipboardCheck, Eye, AlertTriangle, FileText } from "lucide-react"
 
 export const dynamic = 'force-dynamic'
 
@@ -30,7 +30,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <QuickActionCard
             title={t("dashboard.newInspection")}
             href="/inspections/new"
@@ -43,6 +43,12 @@ export default function DashboardPage() {
             href="/incidents/new"
             icon={AlertTriangle}
             variant="warning"
+          />
+          <QuickActionCard
+            title={t("dashboard.newLivrable")}
+            href="/livrables/new"
+            icon={FileText}
+            variant="default"
           />
         </div>
 

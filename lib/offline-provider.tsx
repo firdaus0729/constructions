@@ -17,7 +17,7 @@ const OfflineContext = createContext<OfflineContextType | undefined>(undefined)
 
 export function OfflineProvider({ children }: { children: ReactNode }) {
   const { t } = useLocale()
-  const { setOnlineStatus, setSyncing, observations, incidents, inspections } = useAppStore()
+  const { setOnlineStatus, setSyncing, observations, incidents, inspections, livrables } = useAppStore()
   const [isOnline, setIsOnline] = useState(true)
   const [isSyncing, setIsSyncingLocal] = useState(false)
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
@@ -27,6 +27,7 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
     ...observations.filter((o) => o.syncStatus === "pending"),
     ...incidents.filter((i) => i.syncStatus === "pending"),
     ...inspections.filter((i) => i.syncStatus === "pending"),
+    ...livrables.filter((s) => s.syncStatus === "pending"),
   ].length
 
   // Monitor online/offline status

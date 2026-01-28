@@ -62,8 +62,7 @@ export default function IncidentDetailPage({ params }: { params: Promise<{ id: s
         onEdit={() => router.push(`/incidents/${id}/edit`)}
         onExportPdf={async () => {
           try {
-            const filename = `${incident.title || incident.number}-${locale}.pdf`
-            await exportIncidentAsPdf(incident, filename, { projects, users })
+            await exportIncidentAsPdf(incident, "Example Procore Incident.pdf", { projects, users })
             toast.success("Incident exported as PDF successfully")
           } catch (e) {
             console.error("PDF export error:", e)

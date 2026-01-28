@@ -70,6 +70,8 @@ export default function NewIncidentPage() {
     eventTime: "",
     accidentType: "",
     concernedCompany: "",
+    aDeclarer: false, // À déclarer field
+    isPrivate: false, // Privé(e) field
 
     // Description
     description: "",
@@ -197,6 +199,9 @@ export default function NewIncidentPage() {
         concernedCompany: formData.concernedCompany,
         description: formData.description,
         attachments: formData.attachments,
+        aDeclarer: formData.aDeclarer,
+        isPrivate: formData.isPrivate,
+        date: formData.date,
         investigation: {
           danger: formData.danger,
           contributingCondition: formData.contributingCondition,
@@ -380,18 +385,12 @@ export default function NewIncidentPage() {
 
               {/* Project */}
               <FormField label={t("form.project")} required error={errors.projectId}>
-                <Select value={formData.projectId} onValueChange={(value) => handleFieldChange("projectId", value)}>
-                  <SelectTrigger className={`h-12 ${errors.projectId ? "border-destructive" : ""}`}>
-                    <SelectValue placeholder={t("incident.selectProject")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {projects?.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  value={formData.projectId}
+                  onChange={(e) => handleFieldChange("projectId", e.target.value)}
+                  placeholder={t("incident.selectProject")}
+                  className={`h-12 ${errors.projectId ? "border-destructive" : ""}`}
+                />
               </FormField>
 
               {/* Creator */}
@@ -490,6 +489,18 @@ export default function NewIncidentPage() {
                   className="h-12"
                 />
               </FormField>
+
+              {/* À déclarer */}
+              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border border-border">
+                <Label className="font-semibold">{t("incident.toDeclare")}</Label>
+                <Switch checked={!!formData.aDeclarer} onCheckedChange={(checked) => handleFieldChange("aDeclarer", checked)} />
+              </div>
+
+              {/* Privé(e) */}
+              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border border-border">
+                <Label className="font-semibold">{t("incident.private")}</Label>
+                <Switch checked={!!formData.isPrivate} onCheckedChange={(checked) => handleFieldChange("isPrivate", checked)} />
+              </div>
             </div>
           </FormSection>
 

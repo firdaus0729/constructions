@@ -47,7 +47,6 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
     type: string
     projectId: string
     projectNumber: string
-    location: string
     description: string
     priority: "low" | "medium" | "high"
     concernedCompany: string
@@ -62,7 +61,6 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
     type: observation?.type || "",
     projectId: observation?.projectId || (projects && Array.isArray(projects) && projects.length > 0) ? projects[0]?.id : "",
     projectNumber: observation?.projectNumber || "",
-    location: "",
     description: observation?.description || "",
     priority: (observation?.priority as any) || "medium",
     concernedCompany: observation?.concernedCompany || "",
@@ -119,7 +117,6 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
           title: formData.title,
           type: formData.type,
           projectId: formData.projectId,
-          projectNumber: formData.projectNumber,
           description: formData.description,
           priority: formData.priority,
           concernedCompany: formData.concernedCompany,
@@ -235,36 +232,13 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
               error={errors.projectId}
               required
             >
-              <Select value={formData.projectId} onValueChange={(value) => setFormData((prev) => ({ ...prev, projectId: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t("inspection.projectSelect")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects?.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                value={formData.projectId}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, projectId: e.target.value }))}
+                placeholder={t("form.project")}
+              />
             </FormField>
           </div>
-
-          <FormField label={t("observation.projectNumber")}>
-            <Input
-              value={formData.projectNumber}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, projectNumber: e.target.value }))}
-              placeholder={t("form.description")}
-            />
-          </FormField>
-
-          <FormField label={t("field.location")}>
-            <Input
-              value={formData.location}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
-              placeholder={t("form.description")}
-            />
-          </FormField>
 
           <FormField label={t("observation.concernedCompanyLabel")}>
             <Input
@@ -274,7 +248,7 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
             />
           </FormField>
 
-          <FormField label={t("observation.referenceArticleLabel")}>
+          <FormField label="Référence Article CRTC">
             <Input
               value={formData.referenceArticle}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, referenceArticle: e.target.value }))}

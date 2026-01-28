@@ -8,7 +8,7 @@ import { useAppStore } from "@/lib/store"
 
 export default function SubmissionsPage() {
   const { t } = useLocale()
-  const { observations, incidents, inspections, projects } = useAppStore()
+  const { observations, incidents, inspections, livrables, projects } = useAppStore()
 
   // Get all submitted forms
   const allSubmissions = [
@@ -47,6 +47,18 @@ export default function SubmissionsPage() {
         status: i.status,
         updatedAt: new Date(i.updatedAt),
         syncStatus: i.syncStatus,
+      })),
+    ...livrables
+      .filter((s) => s.status === "submitted")
+      .map((s) => ({
+        id: s.id,
+        type: "livrable" as const,
+        number: s.number,
+        title: s.title,
+        projectName: projects.find((p) => p.id === s.projectId)?.name || "",
+        status: s.status,
+        updatedAt: new Date(s.updatedAt),
+        syncStatus: s.syncStatus,
       })),
   ].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
 

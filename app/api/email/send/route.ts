@@ -1,8 +1,15 @@
 /**
  * API Route for sending emails via SMTP
  *
- * This route is called from the client-side email service when SMTP is the
- * selected provider. It uses nodemailer under the hood.
+ * This route is called from the client-side email service.
+ * It uses nodemailer and SMTP_* environment variables on the server.
+ *
+ * Configuration (local .env / Vercel):
+ * - SMTP_HOST
+ * - SMTP_PORT
+ * - SMTP_USER
+ * - SMTP_PASSWORD
+ * - EMAIL_FROM
  */
 
 import { NextRequest, NextResponse } from "next/server"
@@ -21,15 +28,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if SMTP is configured
+    // Ensure SMTP is configured on the server
     if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
       return NextResponse.json(
-        { success: false, error: "SMTP not configured" },
+        { success: false, error: "SMTP is not configured on the server (missing SMTP_* env vars)" },
         { status: 500 },
       )
     }
 
-    // Some users put quotes in .env values; strip them defensively
+    // Strip accidental quotes from env values
     const stripQuotes = (value: string | undefined) =>
       value ? value.replace(/^"+|"+$/g, "").replace(/^'+|'+$/g, "") : value
 
@@ -42,14 +49,12 @@ export async function POST(request: NextRequest) {
     const transporter = nodemailer.createTransport({
       host,
       port,
-      secure: port === 465, // true for 465, false for other ports
-      auth: {
-        user,
-        pass,
-      },
+      secure: port === 465, // true for 465, false for others
+      auth: { user, pass },
     })
 
-    const toArray = Array.isArray(to) ? to : [to]
+    const toArray: string[] = Array.isArray(to) ? to : [to]
+
     const mailOptions = {
       from: from || defaultFrom,
       to: toArray,

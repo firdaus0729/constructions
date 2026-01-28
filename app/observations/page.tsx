@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState } from "react"
 import Link from "next/link"
@@ -23,17 +23,18 @@ const priorityVariants: Record<string, string> = {
 }
 
 const statusVariants: Record<string, string> = {
-  draft: "bg-blue-600 text-white dark:bg-blue-700",
-  "in-progress": "bg-indigo-600 text-white dark:bg-indigo-700",
-  submitted: "bg-green-600 text-white dark:bg-green-700",
-  archived: "bg-gray-500 text-white dark:bg-gray-600",
-  open: "bg-blue-600 text-white dark:bg-blue-700",
+  draft: "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
+  "in-progress": "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
+  submitted: "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
+  archived: "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
+  open: "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
 }
 
 // Helper function to convert status key to translation key
 const getStatusTranslationKey = (status: string): string => {
   const statusMap: Record<string, string> = {
     "draft": "status.draft",
+    "in-progress": "status.inProgress",
     "submitted": "status.submitted",
     "archived": "status.archived",
     "open": "status.open"
@@ -60,12 +61,11 @@ export default function ObservationsPage() {
 
   const handleExportPDF = async (observation: (typeof observations)[0]) => {
     try {
-      const filename = `${observation.title || observation.number}.pdf`
-      await exportObservationAsPdf(observation, filename)
-      toast.success("Observation exported as PDF successfully")
+      await exportObservationAsPdf(observation, "Exemple Procore Observation.pdf")
+      toast.success(t("toast.pdfExportSuccess.observation" as any))
     } catch (error) {
       console.error("PDF export error:", error)
-      toast.error("Failed to export observation as PDF")
+      toast.error(t("toast.pdfExportError.observation" as any))
     }
   }
 

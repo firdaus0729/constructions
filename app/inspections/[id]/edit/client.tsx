@@ -25,6 +25,7 @@ import { useLocale } from "@/lib/locale-context"
 import { useAppStore, inspectionSections } from "@/lib/store"
 import type { Inspection, InspectionItemResponse, Attachment } from "@/lib/types"
 import { DistributionSelector } from "@/components/forms"
+import { ProjectNoCombobox } from "@/components/project-no-combobox"
 
 export default function EditInspectionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -46,6 +47,17 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
     documentTitle: string
     type: string
     projectId: string
+    projectNumber: string
+    projectLocation: string
+    metier: string
+    lieu: string
+    sectionDevis: string
+    plansLies: string
+    inspectionDate: string
+    dueDate: string
+    contactPoint: string
+    contractor: string
+    createdBy: string
     description: string
     status: string
     responses: Record<string, InspectionItemResponse>
@@ -54,6 +66,17 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
     documentTitle: inspection?.documentTitle || "",
     type: inspection?.type || "",
     projectId: inspection?.projectId || (projects && Array.isArray(projects) && projects.length > 0 ? projects[0]?.id : ""),
+    projectNumber: (inspection as any)?.projectNumber || "",
+    projectLocation: (inspection as any)?.projectLocation || "",
+    metier: (inspection as any)?.metier || "",
+    lieu: (inspection as any)?.lieu || "",
+    sectionDevis: (inspection as any)?.sectionDevis || "",
+    plansLies: (inspection as any)?.plansLies || "",
+    inspectionDate: (inspection as any)?.inspectionDate ? new Date((inspection as any).inspectionDate).toISOString().split("T")[0] : "",
+    dueDate: (inspection as any)?.dueDate ? new Date((inspection as any).dueDate).toISOString().split("T")[0] : "",
+    contactPoint: (inspection as any)?.contactPoint || "",
+    contractor: (inspection as any)?.contractor || "",
+    createdBy: (inspection as any)?.createdBy || currentUser?.name || "Unknown",
     description: inspection?.description || "",
     status: (inspection?.status as string) || "draft",
     responses: inspection?.responses?.reduce((acc, resp) => {
@@ -70,6 +93,17 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
         documentTitle: inspection.documentTitle,
         type: inspection.type,
         projectId: inspection.projectId,
+        projectNumber: (inspection as any)?.projectNumber || "",
+        projectLocation: (inspection as any)?.projectLocation || "",
+        metier: (inspection as any)?.metier || "",
+        lieu: (inspection as any)?.lieu || "",
+        sectionDevis: (inspection as any)?.sectionDevis || "",
+        plansLies: (inspection as any)?.plansLies || "",
+        inspectionDate: (inspection as any)?.inspectionDate ? new Date((inspection as any).inspectionDate).toISOString().split("T")[0] : "",
+        dueDate: (inspection as any)?.dueDate ? new Date((inspection as any).dueDate).toISOString().split("T")[0] : "",
+        contactPoint: (inspection as any)?.contactPoint || "",
+        contractor: (inspection as any)?.contractor || "",
+        createdBy: (inspection as any)?.createdBy || currentUser?.name || "Unknown",
         description: inspection.description,
         status: (inspection.status as string),
         responses: inspection.responses?.reduce((acc, resp) => {
@@ -149,6 +183,18 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
           documentTitle: formData.documentTitle,
           type: formData.type,
           projectId: formData.projectId,
+          projectNumber: formData.projectNumber,
+          projectName: formData.projectId,
+          projectLocation: formData.projectLocation,
+          metier: formData.metier,
+          lieu: formData.lieu,
+          sectionDevis: formData.sectionDevis,
+          plansLies: formData.plansLies,
+          inspectionDate: formData.inspectionDate ? new Date(formData.inspectionDate) : (inspection as any)?.inspectionDate,
+          dueDate: formData.dueDate ? new Date(formData.dueDate) : null,
+          contactPoint: formData.contactPoint,
+          contractor: formData.contractor,
+          createdBy: formData.createdBy || (inspection as any)?.createdBy,
           description: formData.description,
           status: formData.status,
           distribution: distributionList,
@@ -317,18 +363,115 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
               error={errors.projectId}
               required
             >
-              <Select value={formData.projectId} onValueChange={(value) => setFormData((prev) => ({ ...prev, projectId: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t("inspection.projectSelect")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects?.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                value={formData.projectId}
+                onChange={(e) => setFormData((prev) => ({ ...prev, projectId: e.target.value }))}
+                placeholder={t("form.project")}
+                className="h-12"
+              />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label={t("observation.projectNumber")}>
+              <ProjectNoCombobox
+                projects={projects}
+                value={projects.find((p) => p.code === formData.projectNumber)?.id || null}
+                onChange={(projectId) => {
+                  const p = projects.find((x) => x.id === projectId)
+                  if (!p) return
+                  setFormData((prev) => ({
+                    ...prev,
+                    projectNumber: p.code,
+                    projectLocation: prev.projectLocation || p.location,
+                  }))
+                }}
+                placeholder={t("observation.projectNumber")}
+              />
+            </FormField>
+            <FormField label={t("field.location")}>
+              <Input
+                value={formData.projectLocation}
+                onChange={(e) => setFormData((prev) => ({ ...prev, projectLocation: e.target.value }))}
+                placeholder={t("field.location")}
+                className="h-12"
+              />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label="Métier">
+              <Input
+                value={formData.metier}
+                onChange={(e) => setFormData((prev) => ({ ...prev, metier: e.target.value }))}
+                placeholder="Métier"
+                className="h-12"
+              />
+            </FormField>
+            <FormField label="Lieu">
+              <Input
+                value={formData.lieu}
+                onChange={(e) => setFormData((prev) => ({ ...prev, lieu: e.target.value }))}
+                placeholder="Lieu"
+                className="h-12"
+              />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label="Section du devis">
+              <Input
+                value={formData.sectionDevis}
+                onChange={(e) => setFormData((prev) => ({ ...prev, sectionDevis: e.target.value }))}
+                placeholder="Section du devis"
+                className="h-12"
+              />
+            </FormField>
+            <FormField label="Plans liés">
+              <Input
+                value={formData.plansLies}
+                onChange={(e) => setFormData((prev) => ({ ...prev, plansLies: e.target.value }))}
+                placeholder="Plans liés"
+                className="h-12"
+              />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label="Date de l'inspection">
+              <Input
+                type="date"
+                value={formData.inspectionDate}
+                onChange={(e) => setFormData((prev) => ({ ...prev, inspectionDate: e.target.value }))}
+                className="h-12"
+              />
+            </FormField>
+            <FormField label="Date d'échéance">
+              <Input
+                type="date"
+                value={formData.dueDate}
+                onChange={(e) => setFormData((prev) => ({ ...prev, dueDate: e.target.value }))}
+                className="h-12"
+              />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label="Point de contact">
+              <Input
+                value={formData.contactPoint}
+                onChange={(e) => setFormData((prev) => ({ ...prev, contactPoint: e.target.value }))}
+                placeholder="Point de contact"
+                className="h-12"
+              />
+            </FormField>
+            <FormField label="Entrepreneur responsable">
+              <Input
+                value={formData.contractor}
+                onChange={(e) => setFormData((prev) => ({ ...prev, contractor: e.target.value }))}
+                placeholder="Entrepreneur responsable"
+                className="h-12"
+              />
             </FormField>
           </div>
 
@@ -373,7 +516,7 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
           return (
             <FormSection
               key={section.id}
-              title={section.title || section.titleKey}
+              title={section.title || (section.titleKey ? (t(section.titleKey as any) as any) : "")}
               defaultOpen={false}
             >
               {section.instruction && (

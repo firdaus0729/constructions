@@ -61,7 +61,7 @@ export function OfflineIndicator({ variant = "minimal", className }: OfflineIndi
         </p>
       </div>
       {isOnline && pendingChanges > 0 && (
-        <Button variant="outline" size="sm" onClick={syncNow} disabled={isSyncing} className="shrink-0 px-3">
+        <Button variant="outline" size="sm" onClick={syncNow} disabled={isSyncing} className="shrink-0 whitespace-nowrap">
           {isSyncing ? t("sync.syncing") : t("sync.syncNow")}
         </Button>
       )}

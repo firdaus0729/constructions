@@ -5,7 +5,7 @@ import type React from "react"
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ClipboardCheck, Eye, AlertTriangle, LayoutDashboard, Menu, Globe, Settings, Users, UserCircle, LogOut, Shield, ChevronDown } from "lucide-react"
+import { ClipboardCheck, Eye, AlertTriangle, LayoutDashboard, Menu, Globe, Settings, Users, UserCircle, LogOut, Shield, ChevronDown, FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -24,6 +24,7 @@ const navigation = [
       { key: "nav.inspections", href: "/inspections", icon: ClipboardCheck },
       { key: "nav.observations", href: "/observations", icon: Eye },
       { key: "nav.incidents", href: "/incidents", icon: AlertTriangle },
+      { key: "nav.livrables", href: "/livrables", icon: FileText },
     ]
   },
   { key: "nav.settings", href: "/settings", icon: Settings },
@@ -158,7 +159,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Desktop sidebar */}
       <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-64 lg:flex-col bg-sidebar border-r border-sidebar-border">
         <div className="flex h-16 items-center gap-2 px-6 border-b border-sidebar-border">
-          <img src="/logo.png" alt="Logo" className="h-14 w-14" />
+          <img src="/logo.png" alt="Logo" className="h-14 w-14 rounded-full" />
           <span className="text-lg font-semibold text-sidebar-foreground">{t("dashboard.title")}</span>
         </div>
         <div className="flex-1 overflow-y-auto py-4 px-3">

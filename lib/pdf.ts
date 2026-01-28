@@ -294,7 +294,7 @@ export async function exportElementAsPdf(options?: {
 }
 
 // Export observation with proper formatting and embedded images - Pixel perfect match to reference images
-export async function exportObservationAsPdf(observation: any, filename: string) {
+export async function exportObservationAsPdf(observation: any, filename: string = "Exemple Procore Observation.pdf") {
   if (typeof window === "undefined") return
 
   const jsPDF = (await import("jspdf")).default
@@ -308,7 +308,7 @@ export async function exportObservationAsPdf(observation: any, filename: string)
     if (y + needed > pageHeight - margin - 15) {
       doc.addPage()
       y = margin
-      // Redraw header on new page
+      // Redraw header on new page (no outer frame for observations)
       try {
         doc.addImage("/logo.png", "PNG", margin, y, 26, 26)
       } catch {}
@@ -346,7 +346,7 @@ export async function exportObservationAsPdf(observation: any, filename: string)
     return `${day}/${month}/${year} à ${hours} h ${minutes} EDT`
   }
 
-  // Header: logo left + company info, project info right
+  // Header: logo left + company info, project info right (no outer frame for observations)
   try {
     doc.addImage("/logo.png", "PNG", margin, y, 26, 26)
   } catch (e) {
@@ -368,7 +368,7 @@ export async function exportObservationAsPdf(observation: any, filename: string)
   let projectLocation = observation.projectLocation || ""
   if (typeof window !== "undefined" && observation.projectId) {
     try {
-      const storeData = localStorage.getItem("app-store")
+      const storeData = localStorage.getItem("construction-forms-storage")
       if (storeData) {
         const parsed = JSON.parse(storeData)
         const state = parsed.state
@@ -402,9 +402,12 @@ export async function exportObservationAsPdf(observation: any, filename: string)
   }
 
   y += 30
-  doc.setDrawColor(150, 150, 150)
+  // Horizontal separator under header
+  doc.setDrawColor(0, 0, 0)
+  doc.setLineWidth(0.4)
+  doc.line(8, y, pageWidth - 8, y)
+  doc.setDrawColor(0, 0, 0)
   doc.setLineWidth(0.2)
-  doc.line(margin, y, pageWidth - margin, y)
   y += 6
 
   // Title - centered below header line
@@ -655,27 +658,32 @@ export async function exportObservationAsPdf(observation: any, filename: string)
     y += 4
   }
 
-  // Attachments section (Pièces jointes) - 2x2 grid
+  // Attachments section (Pièces jointes) - 2x2 grid with tight vertical spacing
   const images = observation.attachments?.filter((a: any) => a.type?.startsWith("image/")) || []
   if (images.length > 0) {
-    checkPageBreak(60)
+    // Reserve space for all image rows plus heading so we don't create a large gap
+    const imgGap = 6
+    const imgW = (contentWidth - imgGap) / 2
+    const imgH = 45
+    const rows = Math.ceil(images.length / 2)
+    const estimatedHeight = 6 /* heading */ + rows * (imgH + 16)
+    checkPageBreak(estimatedHeight)
+
     doc.setFont("helvetica", "bold")
     doc.setFontSize(9)
     doc.text("Pièces jointes", margin, y)
     y += 6
-    
-    const imgGap = 6
-    const imgW = (contentWidth - imgGap) / 2
-    const imgH = 45
-    
+
+    const baseY = y
+
     for (let i = 0; i < images.length; i++) {
       const img = images[i]
       const col = i % 2
       const row = Math.floor(i / 2)
       const x = margin + col * (imgW + imgGap)
-      const imgY = y + row * (imgH + 12)
-      
-      checkPageBreak(imgH + 15)
+      // Use a fixed row height so the space between the first and second
+      // row of images is narrow, matching the original PDF.
+      const imgY = baseY + row * (imgH + 16)
       
       try {
         doc.addImage(img.url, 'JPEG', x, imgY, imgW, imgH)
@@ -683,18 +691,16 @@ export async function exportObservationAsPdf(observation: any, filename: string)
         doc.setDrawColor(200)
         doc.rect(x, imgY, imgW, imgH)
       }
-      
+
       // Caption as blue link text
       doc.setFontSize(7)
       doc.setTextColor(0, 0, 255)
       const name = img.name || `GetAttachmentThumbnail.jpg`
       doc.text(name, x, imgY + imgH + 3)
       doc.setTextColor(0, 0, 0)
-      
-      if (i === images.length - 1 || (i % 2 === 1)) {
-        y = imgY + imgH + 12
-      }
     }
+    // Move y just below the last row of images and their captions
+    y = baseY + rows * (imgH + 16)
     y += 6
   }
 
@@ -757,7 +763,11 @@ export async function exportObservationAsPdf(observation: any, filename: string)
 
 // New PDF export matching French template with checkboxes and layout
 import { inspectionSections } from "./store"
-export async function exportInspectionAsPdf(inspection: any, filename: string) {
+export async function exportInspectionAsPdf(
+  inspection: any,
+  filename: string = "Example Procore Inspection.pdf",
+  opts?: { projects?: { id: string; name?: string; code?: string; location?: string }[]; users?: { id: string; name?: string }[] }
+) {
   if (typeof window === "undefined") return
 
   const jsPDF = (await import("jspdf")).default
@@ -767,28 +777,88 @@ export async function exportInspectionAsPdf(inspection: any, filename: string) {
   const margin = 12
   let y = margin
 
+  const RED: [number, number, number] = [220, 38, 38]
+  const LIGHT_GRAY: [number, number, number] = [245, 245, 245]
+  const BORDER_GRAY: [number, number, number] = [210, 210, 210]
+
+  const formatDateFR = (d: Date) => d.toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })
+  const formatTimeFR = (d: Date) => d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }).replace(":", " h ")
+
+  const resolveProject = () => {
+    const project = opts?.projects?.find((p) => p.id === inspection.projectId)
+    return {
+      projectNumber: inspection.projectNumber ?? project?.code ?? "",
+      projectName: inspection.projectName ?? project?.name ?? (inspection.projectId || ""),
+      projectLocation: inspection.projectLocation ?? project?.location ?? "",
+    }
+  }
+  const resolveCreator = () => {
+    const creator = opts?.users?.find((u) => u.id === inspection.creatorId)
+    return inspection.createdBy ?? creator?.name ?? inspection.creatorName ?? inspection.creatorId ?? "Utilisateur"
+  }
+  const { projectNumber, projectName, projectLocation } = resolveProject()
+  const responderName = resolveCreator()
+  const companyName = "Construction Interlag"
+
+  const drawOuterRedFrame = () => {
+    doc.setDrawColor(RED[0], RED[1], RED[2])
+    doc.setLineWidth(0.6)
+    doc.rect(8, 8, pageWidth - 16, pageHeight - 16)
+    doc.setDrawColor(0, 0, 0)
+    doc.setLineWidth(0.2)
+  }
+
+  const drawRedBox = (x: number, y: number, w: number, h: number) => {
+    doc.setDrawColor(RED[0], RED[1], RED[2])
+    doc.setLineWidth(0.6)
+    doc.rect(x, y, w, h)
+    doc.setDrawColor(0, 0, 0)
+    doc.setLineWidth(0.2)
+  }
+
+  const drawLightRow = (x: number, y: number, w: number, h: number) => {
+    doc.setFillColor(LIGHT_GRAY[0], LIGHT_GRAY[1], LIGHT_GRAY[2])
+    doc.rect(x, y, w, h, "F")
+    doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
+    doc.rect(x, y, w, h)
+    doc.setDrawColor(0, 0, 0)
+  }
+
+  const drawTopHeaderForContinuationPages = () => {
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(8)
+    const inspectionNumber = inspection.number || inspection.id.slice(-6)
+    doc.text(`Inspection N°${inspectionNumber} - Inspection journalière`, 10, 12)
+
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(7)
+    const projRight = `Projet : ${projectNumber} ${projectName}`.trim()
+    const projLines = doc.splitTextToSize(projRight, 95)
+    let py = 12
+    projLines.slice(0, 2).forEach((ln: string) => {
+      doc.text(ln, pageWidth - 10, py, { align: "right" })
+      py += 3.5
+    })
+
+    doc.setDrawColor(RED[0], RED[1], RED[2])
+    doc.setLineWidth(0.6)
+    doc.line(8, 14, pageWidth - 8, 14)
+    doc.setDrawColor(0, 0, 0)
+    doc.setLineWidth(0.2)
+    y = 18
+  }
+
   const checkPageBreak = (needed: number) => {
     if (y + needed > pageHeight - margin - 15) {
       doc.addPage()
       y = margin
-      // Redraw header on new page
-      try {
-        doc.addImage("/logo.png", "PNG", margin, y, 22, 22)
-      } catch {}
-      doc.setFontSize(10)
-      doc.setFont("helvetica", "bold")
-      doc.text("Construction Interlag", margin + 26, y + 5)
-      doc.setFontSize(8)
-      doc.setFont("helvetica", "normal")
-      doc.text("926 av Simard, #201", margin + 26, y + 10)
-      doc.text("Chambly, Quebec J3L 4X2", margin + 26, y + 14)
-      doc.text("Téléphone : 514-323-6710", margin + 26, y + 18)
-      doc.text("Télécopieur : 514-323-3682", margin + 26, y + 22)
-      y += 26
+      drawOuterRedFrame()
+      drawTopHeaderForContinuationPages()
     }
   }
 
   // Header: Logo and company info
+  drawOuterRedFrame()
   try {
     doc.addImage("/logo.png", "PNG", margin, y, 22, 22)
   } catch {}
@@ -802,44 +872,41 @@ export async function exportInspectionAsPdf(inspection: any, filename: string) {
   doc.text("Téléphone : 514-323-6710", margin + 26, y + 18)
   doc.text("Télécopieur : 514-323-3682", margin + 26, y + 22)
 
-  // Project info (right)
-  const projectInfo = []
-  if (inspection.projectNumber) projectInfo.push(`Projet : ${inspection.projectNumber}`)
-  if (inspection.projectName) projectInfo.push(inspection.projectName)
-  if (inspection.projectLocation) projectInfo.push(inspection.projectLocation)
-  if (projectInfo.length > 0) {
-    doc.setFontSize(8)
-    const projText = projectInfo.join(" - ")
-    const projLines = doc.splitTextToSize(projText, 80)
-    let projY = y + 5
-    projLines.forEach((line: string) => {
+  // Project info (right) - match reference formatting
+  doc.setFontSize(7)
+  const projText = `Projet : ${projectNumber} ${projectName}`.trim()
+  const projLines = doc.splitTextToSize(projText, 85)
+  let projY = y + 5
+  projLines.forEach((line: string) => {
+    doc.text(line, pageWidth - margin, projY, { align: "right" })
+    projY += 3.5
+  })
+  if (projectLocation) {
+    const locLines = doc.splitTextToSize(projectLocation, 85)
+    locLines.forEach((line: string) => {
       doc.text(line, pageWidth - margin, projY, { align: "right" })
-      projY += 4
+      projY += 3.5
     })
   }
 
   y += 26
-  doc.setDrawColor(150, 150, 150)
-  doc.line(margin, y, pageWidth - margin, y)
+  doc.setDrawColor(RED[0], RED[1], RED[2])
+  doc.setLineWidth(0.6)
+  doc.line(8, y, pageWidth - 8, y)
+  doc.setDrawColor(0, 0, 0)
+  doc.setLineWidth(0.2)
   y += 6
 
   // Title
   doc.setFontSize(13)
   doc.setFont("helvetica", "bold")
   const inspectionNumber = inspection.number || inspection.id.slice(-6)
-  doc.text(`Inspection N°${inspectionNumber} - Inspection journalière`, margin, y)
+  // Match Procore: "Inspection : Inspection journalière N°608"
+  doc.text(`Inspection : Inspection journalière N°${inspectionNumber}`, margin, y)
+  // red box around title
+  drawRedBox(8, y - 6, pageWidth - 16, 10)
   y += 6
-  if (projectInfo.length > 0) {
-    doc.setFontSize(9)
-    doc.setFont("helvetica", "normal")
-    const fullProjectText = projectInfo.join(" - ")
-    const projectLines = doc.splitTextToSize(fullProjectText, pageWidth - 2 * margin)
-    projectLines.forEach((line: string) => {
-      doc.text(line, margin, y)
-      y += 4
-    })
-  }
-  y += 4
+  y += 2
 
   // Summary statistics
   const allItems = inspectionSections.flatMap((s: any) => s?.items || [])
@@ -850,73 +917,122 @@ export async function exportInspectionAsPdf(inspection: any, filename: string) {
   const notApplicable = allResponses.filter((r: any) => r.response === "not-applicable" || r.response === "na").length
   const unanswered = totalItems - allResponses.filter((r: any) => r.response !== null && r.response !== undefined).length
 
-  doc.setFontSize(9)
-  doc.setFont("helvetica", "bold")
-  doc.text(`${totalItems}/${totalItems} Articles inspectés`, margin, y)
-  y += 5
-  doc.setFontSize(8)
-  doc.setFont("helvetica", "normal")
-  doc.text(`${conforming} Conforme`, margin, y)
-  doc.text(`${nonConforming} Déficient`, margin + 30, y)
-  doc.text(`${notApplicable} S.O.`, margin + 60, y)
-  doc.text(`${unanswered} Neutre`, margin + 85, y)
-  y += 6
+  const sumY = y
+  drawRedBox(8, sumY, pageWidth - 16, 16)
+  const colW = (pageWidth - 16) / 5
+  const drawSummaryCell = (idx: number, value: string, label: string) => {
+    const x = 8 + idx * colW
+    if (idx > 0) {
+      doc.setDrawColor(RED[0], RED[1], RED[2])
+      doc.setLineWidth(0.2)
+      doc.line(x, sumY, x, sumY + 16)
+      doc.setDrawColor(0, 0, 0)
+      doc.setLineWidth(0.2)
+    }
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(9)
+    doc.text(value, x + colW / 2, sumY + 7, { align: "center" })
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(7)
+    doc.text(label, x + colW / 2, sumY + 14, { align: "center" })
+  }
+  drawSummaryCell(0, `${totalItems}/${totalItems}`, "Articles inspectés")
+  drawSummaryCell(1, `${conforming}`, "Conforme")
+  drawSummaryCell(2, `${nonConforming}`, "Déficient")
+  drawSummaryCell(3, `${notApplicable}`, "S.O.")
+  drawSummaryCell(4, `${unanswered}`, "Neutre")
+  y = sumY + 20
 
   // Details section
+  const detailBoxY = y
+  drawRedBox(8, detailBoxY, pageWidth - 16, 34)
   doc.setFontSize(9)
   doc.setFont("helvetica", "bold")
-  doc.text("Détails de l'inspection", margin, y)
-  y += 5
+  doc.text("Détails de l'inspection", margin, y + 6)
   doc.setFontSize(8)
   doc.setFont("helvetica", "normal")
-  const details = [
+  y += 12
+  const statusLabel =
+    inspection.status === "in-progress"
+      ? "En Progression"
+      : inspection.status === "closed"
+        ? "Fermé"
+        : inspection.status === "draft"
+          ? "Brouillon"
+          : String(inspection.status || "-")
+
+  const leftX = margin
+  const rightX = pageWidth / 2 + 2
+  const lineH = 4.2
+  const detailsLeft: Array<[string, string]> = [
     ["Type", inspection.type || "-"],
     ["Métier", inspection.metier || "-"],
-    ["Statut", inspection.status || "-"],
-    ["Lieu", inspection.lieu || "-"],
     ["Section du devis", inspection.sectionDevis || "-"],
-    ["Créé par", inspection.createdBy || inspection.creatorId || "-"],
     ["Plans liés", inspection.plansLies || "-"],
     ["Description", inspection.description || "-"],
-    ["Pièces jointes", inspection.attachments?.length > 0 ? `${inspection.attachments.length} fichier(s)` : "-"],
   ]
-  details.forEach(([label, value]) => {
-    doc.text(`${label} : ${value}`, margin, y)
-    y += 4
-  })
-  y += 2
+  const detailsRight: Array<[string, string]> = [
+    ["Statut", statusLabel],
+    ["Lieu", inspection.lieu || "-"],
+    ["Créé par", responderName || "-"],
+    ["Pièces jointes", inspection.attachments?.length > 0 ? `${inspection.attachments.length}` : "-"],
+  ]
+  const maxLines = Math.max(detailsLeft.length, detailsRight.length)
+  for (let i = 0; i < maxLines; i++) {
+    const [ll, lv] = detailsLeft[i] || ["", ""]
+    const [rl, rv] = detailsRight[i] || ["", ""]
+    if (ll) doc.text(ll, leftX, y)
+    if (ll) doc.text(lv, leftX + 30, y)
+    if (rl) doc.text(rl, rightX, y)
+    if (rl) doc.text(rv, rightX + 30, y)
+    y += lineH
+  }
+  y = detailBoxY + 38
 
   // Date section
-  doc.text("Date de l'inspection :", margin, y)
-  doc.text(inspection.inspectionDate ? new Date(inspection.inspectionDate).toLocaleDateString("fr-FR") : new Date().toLocaleDateString("fr-FR"), margin + 50, y)
-  y += 4
-  doc.text("Date d'échéance :", margin, y)
-  doc.text(inspection.dueDate ? new Date(inspection.dueDate).toLocaleDateString("fr-FR") : "-", margin + 50, y)
-  y += 4
-  doc.text("Point de contact :", margin, y)
-  doc.text(inspection.contactPoint || "-", margin + 50, y)
-  y += 4
-  doc.text("Entrepreneur responsable :", margin, y)
-  doc.text(inspection.contractor || "-", margin + 50, y)
-  y += 4
-  doc.text("Personne(s) assignée(s) :", margin, y)
-  const assigned = Array.isArray(inspection.distribution) 
-    ? inspection.distribution.map((d: any) => d.email || d.userId || "").filter(Boolean).join(", ") || "-"
-    : "-"
-  doc.text(assigned, margin + 50, y)
-  y += 6
+  const infoBoxY = y
+  drawRedBox(8, infoBoxY, pageWidth - 16, 26)
+  doc.setFontSize(9)
+  doc.setFont("helvetica", "bold")
+  doc.text("Détails de L'inspection", margin, y + 6)
+  doc.setFontSize(8)
+  doc.setFont("helvetica", "normal")
+  y += 12
+  const inspectionDate = inspection.inspectionDate ? new Date(inspection.inspectionDate) : (inspection.createdAt ? new Date(inspection.createdAt) : new Date())
+  const dueDate = inspection.dueDate ? new Date(inspection.dueDate) : null
+  doc.text("Date de l'inspection", leftX, y)
+  doc.text(formatDateFR(inspectionDate), leftX + 45, y)
+  doc.text("Date d'échéance", rightX, y)
+  doc.text(dueDate ? formatDateFR(dueDate) : "-", rightX + 45, y)
+  y += 5
+  doc.text("Point de contact", leftX, y)
+  doc.text(inspection.contactPoint || "-", leftX + 45, y)
+  doc.text("Entrepreneur responsable", rightX, y)
+  doc.text(inspection.contractor || "-", rightX + 45, y)
+  y += 5
+  doc.text("Personne(s) assignée(s)", leftX, y)
+  const assigned =
+    Array.isArray(inspection.distribution) && inspection.distribution.length > 0
+      ? inspection.distribution
+          .map((d: any) => (typeof d === "string" ? d : d?.email || d?.userId || ""))
+          .filter(Boolean)
+          .join(", ")
+      : "-"
+  const assignedLines = doc.splitTextToSize(assigned || "-", pageWidth - 2 * margin - 50)
+  doc.text(assignedLines, leftX + 45, y)
+  y = infoBoxY + 30
 
-  // Inspection sections
   inspectionSections.forEach((section: any) => {
-    checkPageBreak(20)
+    checkPageBreak(30)
     
+    const sectionStartY = y
+    drawLightRow(10, y, pageWidth - 20, 10)
     // Section title
     doc.setFontSize(10)
     doc.setFont("helvetica", "bold")
     // Use titleKey directly (it's already in French for French sections)
     const sectionTitle = section.titleKey || section.title || ""
-    doc.text(sectionTitle, margin, y)
-    y += 5
+    doc.text(sectionTitle, margin, y + 6.5)
 
     // Calculate section statistics
     const sectionItems = section.items || []
@@ -931,13 +1047,14 @@ export async function exportInspectionAsPdf(inspection: any, filename: string) {
     // Section summary
     doc.setFontSize(8)
     doc.setFont("helvetica", "normal")
-    doc.text(`0 Neutre, ${sectionConforming} Conforme, ${sectionNonConforming} Déficient, ${sectionNotApplicable} S.O.`, margin, y)
-    y += 5
+    const summaryRight = `${sectionNeutral} Neutre     ${sectionConforming} Conforme     ${sectionNonConforming} Déficient     ${sectionNotApplicable} S.O.`
+    doc.text(summaryRight, pageWidth - margin, y + 6.5, { align: "right" })
+    y += 14
 
     // Section items
     doc.setFontSize(8)
     sectionItems.forEach((item: any) => {
-      checkPageBreak(25)
+      checkPageBreak(38)
       
       const response = allResponses.find((r: any) => r.itemId === item.id)
       const hasResponse = response && response.response !== null && response.response !== undefined
@@ -947,45 +1064,37 @@ export async function exportInspectionAsPdf(inspection: any, filename: string) {
       const commentsCount = response?.comment ? 1 : 0
       const observationsCount = 0 // Not currently tracked
 
+      const rowY = y
+      drawLightRow(10, rowY, pageWidth - 20, 16)
+
       // Item number and description
       doc.setFont("helvetica", "bold")
-      doc.text(`${item.number} ${item.label}`, margin, y)
-      y += 4
+      doc.text(`${item.number} ${item.label}`, margin, rowY + 6)
 
       // Activity line
       doc.setFont("helvetica", "normal")
       doc.setFontSize(7)
-      const activityText = `Activité: ${responseCount} Changement${responseCount > 1 ? "s" : ""} de réponse, ${attachmentsCount} Pièces jointes, ${photosCount} Photo${photosCount > 1 ? "s" : ""}, ${commentsCount} Commentaire${commentsCount > 1 ? "s" : ""}, ${observationsCount} Observation${observationsCount > 1 ? "s" : ""}`
-      doc.text(activityText, margin, y)
-      y += 4
+      const activityText = `Activité : ${responseCount} Changement${responseCount > 1 ? "s" : ""} de réponse, ${attachmentsCount} Pièces jointes, ${photosCount} Photo${photosCount > 1 ? "s" : ""}, ${commentsCount} Commentaire${commentsCount > 1 ? "s" : ""}, ${observationsCount} Observation${observationsCount > 1 ? "s" : ""}`
+      doc.text(activityText, margin, rowY + 11)
 
       // Response record
       if (hasResponse && response) {
         const responseDate = response.updatedAt || response.createdAt || inspection.updatedAt || inspection.createdAt || new Date()
-        const dateStr = new Date(responseDate).toLocaleDateString("fr-FR", { 
-          day: "numeric", 
-          month: "short", 
-          year: "numeric" 
-        })
-        const timeStr = new Date(responseDate).toLocaleTimeString("fr-FR", { 
-          hour: "2-digit", 
-          minute: "2-digit" 
-        })
-        const responderName = inspection.createdBy || inspection.creatorId || "Utilisateur"
-        const companyName = "Construction Interlag"
+        const dateStr = formatDateFR(new Date(responseDate))
+        const timeStr = formatTimeFR(new Date(responseDate))
         
         let responseStatus = ""
         if (response.response === "conforming") responseStatus = "Conforme"
         else if (response.response === "non-conforming") responseStatus = "Échec"
         else if (response.response === "not-applicable" || response.response === "na") responseStatus = "N/A"
         
-        doc.text(`${responderName} (${companyName}) a répondu ${responseStatus} le ${dateStr} à ${timeStr} EDT`, margin, y)
-        y += 4
+        doc.setFontSize(7)
+        doc.text(`${responderName} (${companyName}) a répondu ${responseStatus} le ${dateStr} à ${timeStr} EDT`, margin, rowY + 15.2)
       }
 
       // Checkboxes
       const boxSize = 3
-      const boxY = y - 2
+      const boxY = rowY + 4
       let boxX = pageWidth - margin - 60
       const checkboxLabels = ["Conforme", "Échec", "S.O."]
       const checkboxValues = ["conforming", "non-conforming", "not-applicable"]
@@ -1000,23 +1109,16 @@ export async function exportInspectionAsPdf(inspection: any, filename: string) {
         doc.text(label, boxX + boxSize + 1, boxY + 2)
         boxX += 18
       })
-      y += 5
+      y = rowY + 20
 
       // Comment if present
       if (response && response.comment) {
         checkPageBreak(10)
         doc.setFontSize(7)
         const commentDate = response.updatedAt || response.createdAt || new Date()
-        const commentDateStr = new Date(commentDate).toLocaleDateString("fr-FR", { 
-          day: "numeric", 
-          month: "short", 
-          year: "numeric" 
-        })
-        const commentTimeStr = new Date(commentDate).toLocaleTimeString("fr-FR", { 
-          hour: "2-digit", 
-          minute: "2-digit" 
-        })
-        doc.text(`${responderName} (${companyName}) a laissé un commentaire le ${commentDateStr} à ${commentTimeStr} EDT:`, margin + 5, y)
+        const commentDateStr = formatDateFR(new Date(commentDate))
+        const commentTimeStr = formatTimeFR(new Date(commentDate))
+        doc.text(`${responderName} (${companyName}) a laissé un commentaire le ${commentDateStr} à ${commentTimeStr} EDT`, margin + 5, y)
         y += 3
         const commentLines = doc.splitTextToSize(response.comment, pageWidth - 2 * margin - 10)
         commentLines.forEach((line: string) => {
@@ -1030,52 +1132,64 @@ export async function exportInspectionAsPdf(inspection: any, filename: string) {
       if (response && response.attachments) {
         const photos = response.attachments.filter((a: any) => a.type?.startsWith("image/"))
         if (photos.length > 0) {
-          checkPageBreak(50)
+          checkPageBreak(60)
           const photoDate = response.updatedAt || response.createdAt || new Date()
-          const photoDateStr = new Date(photoDate).toLocaleDateString("fr-FR", { 
-            day: "numeric", 
-            month: "short", 
-            year: "numeric" 
-          })
-          const photoTimeStr = new Date(photoDate).toLocaleTimeString("fr-FR", { 
-            hour: "2-digit", 
-            minute: "2-digit" 
-          })
+          const photoDateStr = formatDateFR(new Date(photoDate))
+          const photoTimeStr = formatTimeFR(new Date(photoDate))
           doc.setFontSize(7)
           doc.text(`${responderName} (${companyName}) a ajouté ${photos.length} photo${photos.length > 1 ? "s" : ""} via mobile le ${photoDateStr} à ${photoTimeStr} EDT`, margin + 5, y)
           y += 4
           
-          // Display photos in grid
-          photos.forEach((photo: any, idx: number) => {
-            if (idx % 2 === 0 && idx > 0) {
-              y += 35 // Move to next row
-            }
+          const cellW = 78
+          const cellH = 44
+          const imgW = 60
+          const imgH = 28
+          const startX = margin + 5
+          const gapX = 8
+          const gapY = 6
+
+          for (let idx = 0; idx < photos.length; idx++) {
+            const col = idx % 2
+            const row = Math.floor(idx / 2)
+            const x = startX + col * (cellW + gapX)
+            const yy = y + row * (cellH + gapY)
+            checkPageBreak(cellH + 18)
+
+            doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
+            doc.rect(x, yy, cellW, cellH)
+
+            const imgX = x + (cellW - imgW) / 2
+            const imgY = yy + 6
+            doc.rect(imgX, imgY, imgW, imgH)
             try {
-              const photoX = idx % 2 === 0 ? margin + 5 : margin + 5 + 60
-              if (idx % 2 === 0 && idx > 0) {
-                checkPageBreak(40)
-              } else {
-                checkPageBreak(40)
-              }
-              doc.addImage(photo.url, "JPEG", photoX, y, 50, 35)
-              if (idx % 2 === 1 || idx === photos.length - 1) {
-                y += 37
-              }
-            } catch (e) {
-              doc.text(`[Image: ${photo.name || "?"}]`, margin + 5, y)
-              y += 4
-            }
-          })
-          if (photos.length % 2 === 1) {
-            y += 35
+              doc.addImage(photos[idx].url, "JPEG", imgX + 0.5, imgY + 0.5, imgW - 1, imgH - 1)
+            } catch {}
+
+            const name = photos[idx].name || "photo.jpg"
+            doc.setFontSize(7)
+            doc.setTextColor(0, 0, 255)
+            const textY = imgY + imgH + 6
+            doc.text(name, x + cellW / 2, textY, { align: "center" })
+            const textW = doc.getTextWidth(name)
+            doc.setDrawColor(0, 0, 255)
+            doc.setLineWidth(0.2)
+            doc.line(x + cellW / 2 - textW / 2, textY + 0.8, x + cellW / 2 + textW / 2, textY + 0.8)
+            doc.setTextColor(0, 0, 0)
+            doc.setDrawColor(0, 0, 0)
+            doc.setLineWidth(0.2)
           }
+
+          const rowsUsed = Math.ceil(photos.length / 2)
+          y += rowsUsed * (cellH + gapY) + 2
           y += 2
         }
       }
 
       y += 3
     })
-    y += 3
+    const sectionHeight = y - sectionStartY + 2
+    drawRedBox(8, sectionStartY - 2, pageWidth - 16, Math.max(18, sectionHeight))
+    y += 2
   })
 
   // Footer on all pages
@@ -1095,6 +1209,7 @@ export async function exportInspectionAsPdf(inspection: any, filename: string) {
 
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i)
+    drawOuterRedFrame()
     doc.setFontSize(6)
     doc.setTextColor(100, 100, 100)
     doc.text("Construction Interlag", margin, footerY)
@@ -1121,10 +1236,10 @@ function resolveIncidentContext(
   }
 }
 
-// Export incident as Excel Perfect PDF matching the French template (grid, dashed underlines, red border)
+// Export incident PDF matching the original Procore template exactly
 export async function exportIncidentAsPdf(
   incident: any,
-  filename: string,
+  filename: string = "Example Procore Incident.pdf",
   opts?: { projects?: { id: string; name?: string; code?: string; location?: string }[]; users?: { id: string; name?: string }[] }
 ) {
   if (typeof window === "undefined") return
@@ -1132,7 +1247,7 @@ export async function exportIncidentAsPdf(
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
-  const margin = 10
+  const margin = 12
   const contentWidth = pageWidth - 2 * margin
   const { projectName, projectNumber, projectLocation, creatorName } = resolveIncidentContext(incident, opts)
 
@@ -1163,89 +1278,174 @@ export async function exportIncidentAsPdf(
   }
 
   const checkPageBreak = (need: number) => {
-    if (y + need > pageHeight - margin - 14) {
+    if (y + need > pageHeight - margin - 15) {
       doc.addPage()
       y = margin
+      // Redraw header on new page
+      try {
+        doc.addImage("/logo.png", "PNG", margin, y, 20, 20)
+      } catch {}
+      doc.setFontSize(9)
+      doc.setFont("helvetica", "bold")
+      doc.text("Construction Interlag", margin + 24, y + 4)
+      doc.setFontSize(7)
+      doc.setFont("helvetica", "normal")
+      doc.text("926 av Simard, #201", margin + 24, y + 8)
+      doc.text("Chambly, Quebec J3L 4X2", margin + 24, y + 11)
+      doc.text("Téléphone : 514-323-6710", margin + 24, y + 14)
+      doc.text("Télécopieur : 514-323-3882", margin + 24, y + 17)
     }
   }
 
-  // ----- Header: logo + company (left), project (right) -----
+  // ----- Header: logo (square orange) + company (left), project (right) -----
+  // Logo should be square (20x20mm), positioned at top left
   try {
-    doc.addImage("/logo.png", "PNG", margin, y, 22, 22)
+    doc.addImage("/logo.png", "PNG", margin, y, 20, 20)
   } catch {
-    /* noop */
+    /* noop - logo not available */
   }
-  doc.setFontSize(10)
+  
+  // Company info to the right of logo
+  doc.setFontSize(9)
   doc.setFont("helvetica", "bold")
-  doc.text("Construction Interlag", margin + 26, y + 5)
-  doc.setFontSize(8)
+  doc.text("Construction Interlag", margin + 24, y + 4)
+  doc.setFontSize(7)
   doc.setFont("helvetica", "normal")
-  doc.text("916 av Simard, #201", margin + 26, y + 10)
-  doc.text("Chambly, Quebec J3L 4X2", margin + 26, y + 14)
-  doc.text("Téléphone: 514-323-6710", margin + 26, y + 18)
-  doc.text("Télécopieur: 514-323-3002", margin + 26, y + 22)
+  doc.text("926 av Simard, #201", margin + 24, y + 8)
+  doc.text("Chambly, Quebec J3L 4X2", margin + 24, y + 11)
+  doc.text("Téléphone : 514-323-6710", margin + 24, y + 14)
+  doc.text("Télécopieur : 514-323-3882", margin + 24, y + 17)
 
+  // Project info on right side
   const projColX = pageWidth - margin
   const projColW = 75
-  let ry = y + 4
-  doc.setFontSize(8)
-  const projLine1 = [projectNumber && `Projet : ${projectNumber}`, projectName].filter(Boolean).join(", ")
-  if (projLine1) {
-    const projLines = doc.splitTextToSize(projLine1, projColW)
-    projLines.forEach((ln: string) => {
-      doc.text(ln, projColX, ry, { align: "right" })
-      ry += 4
-    })
+  let ry = y + 2
+  doc.setFontSize(7)
+  if (projectName || projectNumber) {
+    const projText = projectNumber && projectName 
+      ? `Projet : ${projectNumber} ${projectName}` 
+      : projectNumber 
+        ? `Projet : ${projectNumber}` 
+        : projectName 
+          ? `Projet : ${projectName}` 
+          : ""
+    if (projText) {
+      const projLines = doc.splitTextToSize(projText, projColW)
+      projLines.forEach((ln: string) => {
+        doc.text(ln, projColX, ry, { align: "right" })
+        ry += 3.5
+      })
+    }
   }
   if (projectLocation) {
     const locLines = doc.splitTextToSize(projectLocation, projColW)
     locLines.forEach((ln: string) => {
       doc.text(ln, projColX, ry, { align: "right" })
-      ry += 4
+      ry += 3.5
     })
   }
 
-  y += 26
+  y += 22
 
-  // ----- Title: centered in dashed box -----
-  const title = `Incident n°${incident.number} : ${incident.title || ""}`
-  const titleLines = doc.splitTextToSize(title, contentWidth - 8)
-  const titleH = Math.max(8, titleLines.length * 5) + 4
-  const titleY0 = y
-  setDashed()
-  doc.setDrawColor(80, 80, 80)
-  doc.setLineWidth(0.2)
-  doc.rect(margin + 2, titleY0, contentWidth - 4, titleH)
-  setSolid()
-  doc.setDrawColor(0, 0, 0)
+  // ----- Title: bold, left-aligned (not centered), with line below -----
   doc.setFontSize(13)
   doc.setFont("helvetica", "bold")
+  // Title format: "Incident n°76 - F-1: Tristan Lavallée : Étirement épaule gauche"
+  // The title field may contain the full description or just part of it
+  const titleText = `Incident n°${incident.number}${incident.title ? ` : ${incident.title}` : ""}`
+  const titleLines = doc.splitTextToSize(titleText, contentWidth)
   titleLines.forEach((ln: string, i: number) => {
-    doc.text(ln, pageWidth / 2, titleY0 + 4 + i * 5, { align: "center" })
+    doc.text(ln, margin, y + (i * 5))
   })
-  y = titleY0 + titleH + 4
+  y += titleLines.length * 5 + 3
+  
+  // Horizontal line below title (solid black line)
+  doc.setDrawColor(0, 0, 0)
+  doc.setLineWidth(0.2)
+  setSolid()
+  doc.line(margin, y, pageWidth - margin, y)
+  y += 5
 
   // ----- Two-column grid with dashed underlines -----
-  const leftColX = margin + 2
-  const leftColW = contentWidth / 2 - 6
+  const leftColX = margin
+  const leftColW = (contentWidth - 4) / 2
   const rightColX = pageWidth / 2 + 2
-  const rightColW = contentWidth / 2 - 6
-  const labelW = 32
+  const rightColW = (contentWidth - 4) / 2
+  const labelW = 40
   const rowH = 5.5
 
+  // Format distribution with names and company
+  const formatDistribution = (): string[] => {
+    const dist = incident.distribution || []
+    if (Array.isArray(dist)) {
+      const users = opts?.users || []
+      // Also try to get from localStorage store
+      let storeUsers: any[] = []
+      if (typeof window !== "undefined") {
+        try {
+          const storeData = localStorage.getItem("construction-forms-storage")
+          if (storeData) {
+            const parsed = JSON.parse(storeData)
+            const state = parsed.state
+            storeUsers = state?.authUsers || state?.users || []
+          }
+        } catch {}
+      }
+      const allUsers = [...users, ...storeUsers]
+      
+      return dist.map((item: string) => {
+        if (typeof item === 'string' && item.includes('@')) {
+          // It's an email, try to find user by email
+          const user = allUsers.find((u: any) => u.email === item)
+          if (user) {
+            return `${user.name} (Construction Interlag)`
+          }
+          return item
+        }
+        // If it's a user ID, find the user
+        const user = allUsers.find((u: any) => u.id === item || u.email === item)
+        if (user) {
+          return `${user.name} (Construction Interlag)`
+        }
+        return String(item)
+      })
+    }
+    return [String(dist)]
+  }
+
+  // Format date as DD/MM/YYYY
+  const formatDate = (date: Date | string | null | undefined): string => {
+    if (!date) return ""
+    const d = new Date(date)
+    const day = String(d.getDate()).padStart(2, "0")
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const year = d.getFullYear()
+    return `${day}/${month}/${year}`
+  }
+
+  // Format time as "HH h MM EDT"
+  const formatTime = (time: string | null | undefined): string => {
+    if (!time) return ""
+    // If time is in format "HH:MM", convert to "HH h MM EDT"
+    if (time.includes(":")) {
+      const [hours, minutes] = time.split(":")
+      return `${hours} h ${minutes} EDT`
+    }
+    return time.includes("EDT") ? time : `${time} EDT`
+  }
+
   const leftRows: [string, string][] = [
-    ["Créateur", creatorName],
+    ["Créateur", creatorName || ""],
     ["Lieu", incident.location || ""],
-    ["Date de l'événement", incident.eventDate ? new Date(incident.eventDate).toLocaleDateString("fr-FR") : ""],
-    ["Privé(e)", (incident as any).private ? "Oui" : "Non"],
+    ["Date de l'événement", formatDate(incident.eventDate)],
+    ["Privé(e)", (incident as any).isPrivate || (incident as any).private ? "Oui" : "Non"],
   ]
 
-  const createdStr = incident.createdAt ? new Date(incident.createdAt).toLocaleDateString("fr-FR") : ""
+  const createdStr = formatDate(incident.createdAt)
   const statusMap: Record<string, string> = { open: "Ouvert", closed: "Fermé", draft: "Brouillon", "in-progress": "En cours", submitted: "Soumis" }
   const statusStr = statusMap[incident.status] ?? incident.status ?? ""
-  const eventTimeStr = incident.eventTime || ""
-  const dist = incident.distribution || []
-  const distLines = Array.isArray(dist) ? dist : [String(dist)]
+  const eventTimeStr = formatTime(incident.eventTime)
+  const distLines = formatDistribution()
 
   doc.setFontSize(8)
   doc.setFont("helvetica", "normal")
@@ -1336,33 +1536,43 @@ export async function exportIncidentAsPdf(
 
   // ----- Pièces jointes -----
   const attachments = incident.attachments || []
-  const images = attachments.filter((a: any) => a.type?.startsWith("image/"))
   if (attachments.length > 0) {
-    checkPageBreak(20)
+    checkPageBreak(30)
     doc.setFont("helvetica", "bold")
     doc.setFontSize(9)
     doc.text("Pièces jointes", leftColX, y)
     y += 5
     doc.setFont("helvetica", "normal")
     doc.setFontSize(8)
+    
     for (const att of attachments) {
       if (att.type?.startsWith("image/")) {
         try {
           checkPageBreak(50)
-          doc.addImage(att.url, "JPEG", leftColX, y, 60, 40)
-          y += 41
+          // Add thumbnail image
+          doc.addImage(att.url, "JPEG", leftColX, y, 50, 35)
+          y += 36
+          // Add blue link text below image
           doc.setFontSize(7)
+          doc.setTextColor(0, 0, 255) // Blue color for link
           doc.text(att.name || "Image", leftColX, y)
-          y += 5
+          doc.setTextColor(0, 0, 0) // Reset to black
+          y += 4
           doc.setFontSize(8)
         } catch {
-          doc.text(`[Image: ${att.name || "?"}]`, leftColX, y)
+          doc.setTextColor(0, 0, 255)
+          doc.text(att.name || "Image", leftColX, y)
+          doc.setTextColor(0, 0, 0)
           y += 5
         }
       } else {
+        // For PDF files, show as blue link
+        doc.setFontSize(7)
+        doc.setTextColor(0, 0, 255)
         doc.text(att.name || "Pièce jointe", leftColX, y)
-        drawDashedHLine(leftColX, leftColX + leftColW, y + 1.5)
-        y += 5
+        doc.setTextColor(0, 0, 0)
+        y += 4
+        doc.setFontSize(8)
       }
     }
     y += 4
@@ -1405,9 +1615,9 @@ export async function exportIncidentAsPdf(
   }
   y += invRowH * 3 + 4
 
-  // ----- Footer: thin red line + Construction Interlag | Page X sur Y | Imprimé le ... -----
+  // ----- Footer: thin red line + Construction Interlag | Page X sur Y | Imprimé le ... EDT -----
   const pageCount = (doc as any).internal.getNumberOfPages()
-  const footerY = pageHeight - 10
+  const footerY = pageHeight - 8
   const printedStr = (() => {
     const d = new Date()
     const day = String(d.getDate()).padStart(2, "0")
@@ -1415,20 +1625,21 @@ export async function exportIncidentAsPdf(
     const year = d.getFullYear()
     const h = String(d.getHours()).padStart(2, "0")
     const m = String(d.getMinutes()).padStart(2, "0")
-    return `Imprimé le ${day}/${month}/${year} à ${h} h ${m}`
+    return `Imprimé le ${day}/${month}/${year} à ${h} h ${m} EDT`
   })()
 
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i)
-    doc.setDrawColor(180, 50, 50)
-    doc.setLineWidth(0.3)
+    // Red line above footer (thin red line)
+    doc.setDrawColor(200, 50, 50)
+    doc.setLineWidth(0.2)
     doc.line(margin, footerY - 2, pageWidth - margin, footerY - 2)
     doc.setDrawColor(0, 0, 0)
     doc.setFontSize(6)
     doc.setTextColor(100, 100, 100)
-    doc.text("Construction Interlag", margin + 2, footerY + 4)
-    doc.text(`Page ${i} sur ${pageCount}`, pageWidth / 2, footerY + 4, { align: "center" })
-    doc.text(printedStr, pageWidth - margin - 2, footerY + 4, { align: "right" })
+    doc.text("Construction Interlag", margin, footerY + 2)
+    doc.text(`Page ${i} sur ${pageCount}`, pageWidth / 2, footerY + 2, { align: "center" })
+    doc.text(printedStr, pageWidth - margin, footerY + 2, { align: "right" })
     doc.setTextColor(0, 0, 0)
   }
 

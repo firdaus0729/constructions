@@ -38,7 +38,7 @@ export interface UserGroup {
 
 export interface FormAssignment {
   formId: string
-  formType: "observation" | "incident" | "inspection"
+  formType: "observation" | "incident" | "inspection" | "submittal"
   assignedToUserIds: string[] // AuthUser IDs
   assignedToGroupIds: string[] // UserGroup IDs
   assignedByUserId: string // AuthUser ID
@@ -84,6 +84,8 @@ export interface Observation {
   priority: Priority
   status: FormStatus
   distribution: string[]
+  // "Date de notification" (reference PDF shows this explicitly)
+  date: Date | null
   dueDate: Date | null
   completionDate: Date | null
   concernedCompany: string
@@ -117,6 +119,8 @@ export interface Incident {
   concernedCompany: string
   description: string
   attachments: Attachment[]
+  aDeclarer?: boolean // Field for "À déclarer"
+  isPrivate?: boolean // Field for "Privé(e)"
   investigation: {
     danger: string
     contributingCondition: string
@@ -166,8 +170,21 @@ export interface Inspection {
   id: string
   documentTitle: string
   projectId: string
+  projectNumber?: string
+  projectName?: string
+  projectLocation?: string
   type: string
+  metier?: string
   description: string
+  lieu?: string
+  sectionDevis?: string
+  plansLies?: string
+  inspectionDate?: Date | string
+  dueDate?: Date | string | null
+  contactPoint?: string
+  contractor?: string
+  createdBy?: string
+  attachments?: Attachment[]
   creatorId: string
   distribution: string[]
   closedById: string | null
@@ -178,10 +195,76 @@ export interface Inspection {
   syncStatus: SyncStatus
 }
 
+// Livrable workflow step
+export interface LivrableWorkflowStep {
+  id: string
+  step: number
+  name: string
+  role: string
+  dueDate: Date | null
+}
+
+// Livrable form types
+export interface Livrable {
+  id: string
+  number: string
+  title: string
+  projectId: string
+  creatorId: string
+  status: FormStatus
+  distribution: string[]
+  attachments: Attachment[]
+  description: string
+  
+  // Basic Information
+  specSection: string
+  numberValue: string
+  revision: string
+  submittalType: string
+  submittalPackage: string
+  responsibleContractor: string
+  receivedFrom: string
+  submittalManager: string
+  costCode: string
+  location: string
+  linkedDrawings: string
+  ballInCourt: string
+  isPrivate: boolean
+  
+  // Dates
+  submitBy: Date | null
+  receivedDate: Date | null
+  issueDate: Date | null
+  finalDueDate: Date | null
+  
+  // Schedule Information
+  scheduleTask: string
+  requiredOnSiteDate: Date | null
+  leadTime: number
+  plannedReturnDate: Date | null
+  designTeamReviewTime: number
+  plannedInternalReviewCompletedDate: Date | null
+  internalReviewTime: number
+  plannedSubmitByDate: Date | null
+  
+  // Delivery Information
+  anticipatedDeliveryDate: Date | null
+  confirmedDeliveryDate: Date | null
+  actualDeliveryDate: Date | null
+  
+  // Workflow
+  workflowTemplate: string
+  workflowSteps: LivrableWorkflowStep[]
+  
+  createdAt: Date
+  updatedAt: Date
+  syncStatus: SyncStatus
+}
+
 // Form list item (for dashboard display)
 export interface FormListItem {
   id: string
-  type: "inspection" | "observation" | "incident"
+  type: "inspection" | "observation" | "incident" | "livrable"
   number: string
   title: string
   projectName: string

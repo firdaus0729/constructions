@@ -1,6 +1,7 @@
 "use client"
 
-import { Globe, Sun, Database, Bell } from "lucide-react"
+import * as React from "react"
+import { Globe, Sun, Database, Bell, Hash, Plus, Pencil, Trash2 } from "lucide-react"
 import { useTheme } from "next-themes"
 
 export const dynamic = 'force-dynamic'
@@ -12,11 +13,18 @@ import { Switch } from "@/components/ui/switch"
 import { OfflineIndicator } from "@/components/offline-indicator"
 import { useLocale } from "@/lib/locale-context"
 import { useAppStore } from "@/lib/store"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 export default function SettingsPage() {
   const { locale, setLocale, t } = useLocale()
   const { theme, setTheme } = useTheme()
-  const { observations, incidents, inspections } = useAppStore()
+  const { observations, incidents, inspections, projects, addProject, updateProject, deleteProject } = useAppStore()
+  const [projectDialogOpen, setProjectDialogOpen] = React.useState(false)
+  const [editingProjectId, setEditingProjectId] = React.useState<string | null>(null)
+  const [projectForm, setProjectForm] = React.useState({ code: "", name: "", location: "" })
 
   const totalForms = observations.length + incidents.length + inspections.length
   const pendingSync = [
@@ -135,8 +143,159 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Project No (Projects) */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Hash className="h-5 w-5" />
+                {t("settings.projectNo.title" as any)}
+              </CardTitle>
+              <CardDescription>
+                {t("settings.projectNo.desc" as any)}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm text-muted-foreground">
+                  {t("settings.projectNo.count" as any, { count: projects.length })}
+                </div>
+                <Button
+                  type="button"
+                  className="gap-2"
+                  onClick={() => {
+                    setEditingProjectId(null)
+                    setProjectForm({ code: "", name: "", location: "" })
+                    setProjectDialogOpen(true)
+                  }}
+                >
+                  <Plus className="h-4 w-4" />
+                  {t("settings.projectNo.add" as any)}
+                </Button>
+              </div>
+
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("settings.projectNo.columns.code" as any)}</TableHead>
+                    <TableHead>{t("settings.projectNo.columns.name" as any)}</TableHead>
+                    <TableHead>{t("settings.projectNo.columns.location" as any)}</TableHead>
+                    <TableHead className="w-[120px]">{t("settings.projectNo.columns.actions" as any)}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {projects.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-mono">{p.code}</TableCell>
+                      <TableCell>{p.name}</TableCell>
+                      <TableCell className="truncate max-w-[220px]">{p.location}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon-sm"
+                            onClick={() => {
+                              setEditingProjectId(p.id)
+                              setProjectForm({ code: p.code, name: p.name, location: p.location })
+                              setProjectDialogOpen(true)
+                            }}
+                            title="Edit"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon-sm"
+                            onClick={() => {
+                              if (confirm(t("settings.projectNo.confirmDelete" as any))) deleteProject(p.id)
+                            }}
+                            title="Delete"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </div>
       </div>
+
+      <Dialog open={projectDialogOpen} onOpenChange={setProjectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingProjectId ? t("settings.projectNo.editTitle" as any) : t("settings.projectNo.addTitle" as any)}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>{t("settings.projectNo.fields.code" as any)}</Label>
+              <Input
+                value={projectForm.code}
+                onChange={(e) => setProjectForm((s) => ({ ...s, code: e.target.value }))}
+                placeholder={t("settings.projectNo.placeholders.code" as any)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>{t("settings.projectNo.fields.name" as any)}</Label>
+              <Input
+                value={projectForm.name}
+                onChange={(e) => setProjectForm((s) => ({ ...s, name: e.target.value }))}
+                placeholder={t("settings.projectNo.placeholders.name" as any)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>{t("settings.projectNo.fields.location" as any)}</Label>
+              <Input
+                value={projectForm.location}
+                onChange={(e) => setProjectForm((s) => ({ ...s, location: e.target.value }))}
+                placeholder={t("settings.projectNo.placeholders.location" as any)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setProjectDialogOpen(false)}
+            >
+              {t("action.cancel" as any)}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                const code = projectForm.code.trim()
+                if (!code) return
+                if (editingProjectId) {
+                  updateProject(editingProjectId, {
+                    code,
+                    name: projectForm.name.trim(),
+                    location: projectForm.location.trim(),
+                  })
+                } else {
+                  addProject({
+                    id: crypto.randomUUID(),
+                    code,
+                    name: projectForm.name.trim() || code,
+                    location: projectForm.location.trim(),
+                  })
+                }
+                setProjectDialogOpen(false)
+              }}
+            >
+              {t("action.save" as any)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   )
 }

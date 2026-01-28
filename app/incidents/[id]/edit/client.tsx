@@ -74,6 +74,9 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
     restrictedWorkDays: number
     returnToWorkDate: string
     dateOfDeath: string
+    aDeclarer: boolean
+    isPrivate: boolean
+    date: string
     attachments: Attachment[]
   }>(() => ({
     title: incident?.title || "",
@@ -85,8 +88,8 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
     concernedCompany: incident?.concernedCompany || "",
     description: incident?.description || "",
     danger: incident?.investigation?.danger || "",
-    contributingCondition: incident?.investigation?.conditions || "",
-    contributingBehavior: incident?.investigation?.behavior || "",
+    contributingCondition: incident?.investigation?.contributingCondition || "",
+    contributingBehavior: incident?.investigation?.contributingBehavior || "",
     injuryType: incident?.medicalTreatment?.injuryType || "",
     bodyPart: incident?.medicalTreatment?.bodyPart || "",
     emergencyTreatment: incident?.medicalTreatment?.emergencyTreatment || false,
@@ -95,6 +98,9 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
     restrictedWorkDays: incident?.medicalTreatment?.restrictedWorkDays || 0,
     returnToWorkDate: incident?.medicalTreatment?.returnToWorkDate ? new Date(incident.medicalTreatment.returnToWorkDate).toISOString().split("T")[0] : "",
     dateOfDeath: incident?.medicalTreatment?.dateOfDeath ? new Date(incident.medicalTreatment.dateOfDeath).toISOString().split("T")[0] : "",
+    aDeclarer: (incident as any)?.aDeclarer || false,
+    isPrivate: (incident as any)?.isPrivate || false,
+    date: incident?.date || "",
     attachments: incident?.attachments || [],
   }))
 
@@ -169,8 +175,8 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
           description: formData.description,
           investigation: {
             danger: formData.danger,
-            conditions: formData.contributingCondition,
-            behavior: formData.contributingBehavior,
+            contributingCondition: formData.contributingCondition,
+            contributingBehavior: formData.contributingBehavior,
           },
           medicalTreatment: hasMedicalTreatment
             ? {
@@ -186,6 +192,9 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
             : null,
           distribution: distributionList,
           attachments: formData.attachments,
+          aDeclarer: formData.aDeclarer,
+          isPrivate: formData.isPrivate,
+          date: formData.date,
           updatedAt: new Date(),
           syncStatus: "pending",
         }
@@ -268,19 +277,30 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
             </FormField>
 
             <FormField label={t("form.project")} error={errors.projectId} required>
-              <Select value={formData.projectId} onValueChange={(value) => setFormData((prev) => ({ ...prev, projectId: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t("inspection.projectSelect")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects?.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                value={formData.projectId}
+                onChange={(e) => setFormData((prev) => ({ ...prev, projectId: e.target.value }))}
+                placeholder={t("form.project")}
+                className="h-12"
+              />
             </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border border-border">
+              <Label className="font-semibold">{t("incident.toDeclare")}</Label>
+              <Switch
+                checked={!!formData.aDeclarer}
+                onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, aDeclarer: checked }))}
+              />
+            </div>
+            <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border border-border">
+              <Label className="font-semibold">{t("incident.private")}</Label>
+              <Switch
+                checked={!!formData.isPrivate}
+                onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, isPrivate: checked }))}
+              />
+            </div>
           </div>
 
           <FormField label={t("field.location")} error={errors.location} required>

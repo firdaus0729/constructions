@@ -6,6 +6,7 @@ import type {
   Observation, 
   Incident, 
   Inspection, 
+  Livrable,
   FormListItem, 
   Project, 
   User, 
@@ -48,7 +49,7 @@ const mockUsers: User[] = [
 ]
 
 // Inspection sections with items (data-driven)
-export const inspectionSections: InspectionSection[] = [
+const rawInspectionSections: InspectionSection[] = [
   {
     id: "ast",
     key: "ast",
@@ -279,16 +280,17 @@ export const inspectionSections: InspectionSection[] = [
       ],
     },
     {
+      id: "scaffolding",
       key: "scaffolding",
       titleKey: "inspection.section.scaffolding",
       items: [
-      { id: "sc-1", number: "5.1", label: "Scaffolding inspected before use", sectionId: "scaffolding" },
-      { id: "sc-2", number: "5.2", label: "Guard rails in place", sectionId: "scaffolding" },
-      { id: "sc-3", number: "5.3", label: "Ladders secured and in good condition", sectionId: "scaffolding" },
-      { id: "sc-4", number: "5.4", label: "Proper access provided", sectionId: "scaffolding" },
-      { id: "sc-5", number: "5.5", label: "Tag system in use", sectionId: "scaffolding" },
-    ],
-  },
+        { id: "sc-1", number: "5.1", label: "Scaffolding inspected before use", sectionId: "scaffolding" },
+        { id: "sc-2", number: "5.2", label: "Guard rails in place", sectionId: "scaffolding" },
+        { id: "sc-3", number: "5.3", label: "Ladders secured and in good condition", sectionId: "scaffolding" },
+        { id: "sc-4", number: "5.4", label: "Proper access provided", sectionId: "scaffolding" },
+        { id: "sc-5", number: "5.5", label: "Tag system in use", sectionId: "scaffolding" },
+      ],
+    },
   {
     id: "heights",
     key: "heights",
@@ -358,6 +360,16 @@ export const inspectionSections: InspectionSection[] = [
   },
 ]
 
+// Keep only the French template sections (remove the old English sections that show keys like `inspection.section.*`)
+export const inspectionSections: InspectionSection[] = rawInspectionSections.filter((s) => {
+  const k = String(s?.key || "")
+  const tk = String(s?.titleKey || "")
+  if (tk.startsWith("inspection.section.")) return false
+  // Extra safety: remove the old English-only blocks if they ever get reintroduced
+  if (["ppe", "housekeeping", "fire", "scaffolding", "heights", "water", "lifting", "excavation", "environment", "misc"].includes(k)) return false
+  return true
+})
+
 interface AppState {
   // Auth data
   authUsers: AuthUser[]
@@ -370,6 +382,7 @@ interface AppState {
   observations: Observation[]
   incidents: Incident[]
   inspections: Inspection[]
+  livrables: Livrable[]
   projects: Project[]
   users: User[]
   currentUser: User | null
@@ -421,6 +434,15 @@ interface AppState {
   updateInspection: (id: string, updates: Partial<Inspection>) => void
   deleteInspection: (id: string) => void
 
+  addLivrable: (livrable: Livrable) => void
+  updateLivrable: (id: string, updates: Partial<Livrable>) => void
+  deleteLivrable: (id: string) => void
+
+  // Projects (Project No) CRUD
+  addProject: (project: Project) => void
+  updateProject: (id: string, updates: Partial<Project>) => void
+  deleteProject: (id: string) => void
+
   // Computed
   getRecentDrafts: () => FormListItem[]
   getRecentSubmissions: () => FormListItem[]
@@ -444,6 +466,7 @@ export const useAppStore = create<AppState>()(
       observations: [],
       incidents: [],
       inspections: [],
+      livrables: [],
       projects: mockProjects,
       users: mockUsers,
       currentUser: mockUsers[0],
@@ -584,6 +607,20 @@ export const useAppStore = create<AppState>()(
         })),
       deleteInspection: (id) => set((state) => ({ inspections: state.inspections.filter((i) => i.id !== id) })),
 
+      // Livrables
+      addLivrable: (livrable) => set((state) => ({ livrables: [...state.livrables, livrable] })),
+      updateLivrable: (id, updates) =>
+        set((state) => ({
+          livrables: state.livrables.map((s) => (s.id === id ? { ...s, ...updates, updatedAt: new Date() } : s)),
+        })),
+      deleteLivrable: (id) => set((state) => ({ livrables: state.livrables.filter((s) => s.id !== id) })),
+
+      // Projects (Project No)
+      addProject: (project) => set((state) => ({ projects: [...state.projects, project] })),
+      updateProject: (id, updates) =>
+        set((state) => ({ projects: state.projects.map((p) => (p.id === id ? { ...p, ...updates } : p)) })),
+      deleteProject: (id) => set((state) => ({ projects: state.projects.filter((p) => p.id !== id) })),
+
       // Computed
       getRecentDrafts: () => {
         const state = get()
@@ -623,6 +660,18 @@ export const useAppStore = create<AppState>()(
               status: i.status,
               updatedAt: new Date(i.updatedAt),
               syncStatus: i.syncStatus,
+            })),
+          ...state.livrables
+            .filter((s) => s.status === "draft" || s.status === "in-progress")
+            .map((s) => ({
+              id: s.id,
+              type: "livrable" as const,
+              number: s.number,
+              title: s.title,
+              projectName: state.projects.find((p) => p.id === s.projectId)?.name || "",
+              status: s.status,
+              updatedAt: new Date(s.updatedAt),
+              syncStatus: s.syncStatus,
             })),
         ]
         return drafts.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()).slice(0, 5)
@@ -666,6 +715,18 @@ export const useAppStore = create<AppState>()(
               updatedAt: new Date(i.updatedAt),
               syncStatus: i.syncStatus,
             })),
+          ...state.livrables
+            .filter((s) => s.status === "submitted")
+            .map((s) => ({
+              id: s.id,
+              type: "livrable" as const,
+              number: s.number,
+              title: s.title,
+              projectName: state.projects.find((p) => p.id === s.projectId)?.name || "",
+              status: s.status,
+              updatedAt: new Date(s.updatedAt),
+              syncStatus: s.syncStatus,
+            })),
         ]
         return submissions.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()).slice(0, 5)
       },
@@ -679,6 +740,8 @@ export const useAppStore = create<AppState>()(
         observations: state.observations,
         incidents: state.incidents,
         inspections: state.inspections,
+        livrables: state.livrables,
+        projects: state.projects,
         // Auth data - persist for offline use
         authUsers: state.authUsers,
         userGroups: state.userGroups,

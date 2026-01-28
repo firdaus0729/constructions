@@ -76,7 +76,7 @@ export default function InspectionDetailPage({ params }: { params: Promise<{ id:
         title={inspection.documentTitle || "Inspection"}
         backHref="/inspections"
         onEdit={() => router.push(`/inspections/${id}/edit`)}
-        onExportPdf={() => exportInspectionAsPdf(inspection, `${(inspection.documentTitle || "Inspection")}-${locale}.pdf`)}
+        onExportPdf={() => exportInspectionAsPdf(inspection, "Example Procore Inspection.pdf", { projects, users })}
       />
 
       <div id="form-detail" className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto space-y-6">

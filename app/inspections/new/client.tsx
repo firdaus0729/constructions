@@ -24,6 +24,7 @@ import type { Inspection, InspectionItemResponse } from "@/lib/types"
 import { useLocale } from "@/lib/locale-context"
 import { sendFormNotificationEmails, collectEmailAddresses } from "@/lib/email-service"
 import { toast } from "sonner"
+import { ProjectNoCombobox } from "@/components/project-no-combobox"
 
 export default function NewInspection() {
   const router = useRouter()
@@ -40,6 +41,17 @@ export default function NewInspection() {
     documentTitle: "",
     type: "",
     projectId: projects[0]?.id || "",
+    projectNumber: "",
+    projectLocation: "",
+    metier: "",
+    lieu: "",
+    sectionDevis: "",
+    plansLies: "",
+    inspectionDate: "",
+    dueDate: "",
+    contactPoint: "",
+    contractor: "",
+    createdBy: currentUser?.name || "Unknown",
     description: "",
     status: "draft" as string,
     responses: {} as Record<string, InspectionItemResponse>,
@@ -112,6 +124,18 @@ export default function NewInspection() {
           documentTitle: formData.documentTitle,
           type: formData.type,
           projectId: formData.projectId,
+          projectNumber: formData.projectNumber,
+          projectName: formData.projectId,
+          projectLocation: formData.projectLocation,
+          metier: formData.metier,
+          lieu: formData.lieu,
+          sectionDevis: formData.sectionDevis,
+          plansLies: formData.plansLies,
+          inspectionDate: formData.inspectionDate ? new Date(formData.inspectionDate) : new Date(),
+          dueDate: formData.dueDate ? new Date(formData.dueDate) : null,
+          contactPoint: formData.contactPoint,
+          contractor: formData.contractor,
+          createdBy: formData.createdBy || currentUser?.name || "Unknown",
           description: formData.description,
           creatorId: currentUser?.id || "unknown",
           distribution: distributionList.map((d) => d.email || "").filter(Boolean),
@@ -238,6 +262,17 @@ export default function NewInspection() {
         documentTitle: formData.documentTitle,
         type: formData.type,
         projectId: formData.projectId,
+        projectNumber: formData.projectNumber,
+        projectName: formData.projectId,
+        projectLocation: formData.projectLocation,
+        metier: formData.metier,
+        lieu: formData.lieu,
+        sectionDevis: formData.sectionDevis,
+        plansLies: formData.plansLies,
+        inspectionDate: formData.inspectionDate ? new Date(formData.inspectionDate) : new Date(),
+        dueDate: formData.dueDate ? new Date(formData.dueDate) : null,
+        contactPoint: formData.contactPoint,
+        contractor: formData.contractor,
         description: formData.description,
         responses: Object.entries(formData.responses).map(([itemId, response]) => ({
           itemId,
@@ -251,7 +286,7 @@ export default function NewInspection() {
         closedAt: null,
         closedBy: null,
         syncStatus: "pending",
-        createdBy: currentUser?.name || "Unknown",
+        createdBy: formData.createdBy || currentUser?.name || "Unknown",
       }
       addInspection(inspection)
       alert(t("status.savedLocally"))
@@ -344,18 +379,115 @@ export default function NewInspection() {
               required
               error={errors.projectId}
             >
-              <select
+              <Input
                 value={formData.projectId}
                 onChange={(e) => setFormData((prev) => ({ ...prev, projectId: e.target.value }))}
-                className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
-              >
-                <option value="">{t("inspection.projectSelect")}</option>
-                {projects?.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
-              </select>
+                placeholder={t("form.project")}
+                className="h-10"
+              />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label={t("observation.projectNumber")}>
+              <ProjectNoCombobox
+                projects={projects}
+                value={projects.find((p) => p.code === formData.projectNumber)?.id || null}
+                onChange={(projectId) => {
+                  const p = projects.find((x) => x.id === projectId)
+                  if (!p) return
+                  setFormData((prev) => ({
+                    ...prev,
+                    projectNumber: p.code,
+                    projectLocation: prev.projectLocation || p.location,
+                  }))
+                }}
+                placeholder={t("observation.projectNumber")}
+              />
+            </FormField>
+            <FormField label={t("field.location")}>
+              <Input
+                value={formData.projectLocation}
+                onChange={(e) => setFormData((prev) => ({ ...prev, projectLocation: e.target.value }))}
+                placeholder={t("field.location")}
+                className="h-10"
+              />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label="Métier">
+              <Input
+                value={formData.metier}
+                onChange={(e) => setFormData((prev) => ({ ...prev, metier: e.target.value }))}
+                placeholder="Métier"
+                className="h-10"
+              />
+            </FormField>
+            <FormField label="Lieu">
+              <Input
+                value={formData.lieu}
+                onChange={(e) => setFormData((prev) => ({ ...prev, lieu: e.target.value }))}
+                placeholder="Lieu"
+                className="h-10"
+              />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label="Section du devis">
+              <Input
+                value={formData.sectionDevis}
+                onChange={(e) => setFormData((prev) => ({ ...prev, sectionDevis: e.target.value }))}
+                placeholder="Section du devis"
+                className="h-10"
+              />
+            </FormField>
+            <FormField label="Plans liés">
+              <Input
+                value={formData.plansLies}
+                onChange={(e) => setFormData((prev) => ({ ...prev, plansLies: e.target.value }))}
+                placeholder="Plans liés"
+                className="h-10"
+              />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label="Date de l'inspection">
+              <Input
+                type="date"
+                value={formData.inspectionDate}
+                onChange={(e) => setFormData((prev) => ({ ...prev, inspectionDate: e.target.value }))}
+                className="h-10"
+              />
+            </FormField>
+            <FormField label="Date d'échéance">
+              <Input
+                type="date"
+                value={formData.dueDate}
+                onChange={(e) => setFormData((prev) => ({ ...prev, dueDate: e.target.value }))}
+                className="h-10"
+              />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label="Point de contact">
+              <Input
+                value={formData.contactPoint}
+                onChange={(e) => setFormData((prev) => ({ ...prev, contactPoint: e.target.value }))}
+                placeholder="Point de contact"
+                className="h-10"
+              />
+            </FormField>
+            <FormField label="Entrepreneur responsable">
+              <Input
+                value={formData.contractor}
+                onChange={(e) => setFormData((prev) => ({ ...prev, contractor: e.target.value }))}
+                placeholder="Entrepreneur responsable"
+                className="h-10"
+              />
             </FormField>
           </div>
 
@@ -406,7 +538,7 @@ export default function NewInspection() {
           return (
             <FormSection
               key={section.id}
-              title={section.title || section.titleKey}
+              title={section.title || (section.titleKey ? (t(section.titleKey as any) as any) : "")}
               defaultOpen={false}
             >
               {section.instruction && (

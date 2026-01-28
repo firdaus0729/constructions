@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState } from "react"
 import Link from "next/link"
@@ -18,9 +18,9 @@ import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
 const statusVariants: Record<string, string> = {
-  draft: "bg-blue-100 text-white dark:bg-blue-900",
-  "in-progress": "bg-yellow-100 text-white dark:bg-yellow-900",
-  closed: "bg-green-100 text-white dark:bg-green-900",
+  draft: "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
+  "in-progress": "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
+  closed: "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
 }
 
 // Helper function to convert status key to translation key
@@ -34,7 +34,7 @@ const getStatusTranslationKey = (status: string): string => {
 }
 
 export default function InspectionsPage() {
-  const { inspections, deleteInspection, projects } = useAppStore()
+  const { inspections, deleteInspection, projects, users } = useAppStore()
   const { t } = useLocale()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<string | null>(null)
@@ -58,12 +58,11 @@ export default function InspectionsPage() {
 
   const handleExportPDF = async (inspection: (typeof inspections)[0]) => {
     try {
-      const filename = `${inspection.documentTitle || `Inspection ${inspection.id.slice(-6)}`}.pdf`
-      await exportInspectionAsPdf(inspection, filename)
-      toast.success("Inspection exported as PDF successfully")
+      await exportInspectionAsPdf(inspection, "Example Procore Inspection.pdf", { projects, users })
+      toast.success(t("toast.pdfExportSuccess.inspection" as any))
     } catch (error) {
       console.error("PDF export error:", error)
-      toast.error("Failed to export inspection as PDF")
+      toast.error(t("toast.pdfExportError.inspection" as any))
     }
   }
 
@@ -160,8 +159,8 @@ export default function InspectionsPage() {
                   <Card key={inspection.id} className="hover:shadow-lg transition-shadow">
                     <CardContent className="p-6">
                       <div className="flex items-start gap-4 mb-4">
-                        <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900 shrink-0">
-                          <ClipboardCheck className="h-6 w-6 text-white" />
+                        <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-orange-100 dark:bg-orange-900/30 shrink-0">
+                          <ClipboardCheck className="h-6 w-6 text-orange-700 dark:text-orange-200" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -174,7 +173,7 @@ export default function InspectionsPage() {
                             </Badge>
                           </div>
                           <p className="text-xs text-muted-foreground">{inspection.id}</p>
-                          {project && <p className="text-xs text-muted-foreground mt-1">{project.name}</p>}
+                          <p className="text-xs text-muted-foreground mt-1">{project?.name || inspection.projectId}</p>
                         </div>
                       </div>
 

@@ -20,6 +20,7 @@ import type { Observation, Attachment } from "@/lib/types"
 import { useLocale } from "@/lib/locale-context"
 import { sendFormNotificationEmails, collectEmailAddresses } from "@/lib/email-service"
 import { toast } from "sonner"
+import { ProjectNoCombobox } from "@/components/project-no-combobox"
 
 export default function NewObservation() {
   const router = useRouter()
@@ -51,6 +52,7 @@ export default function NewObservation() {
     concernedCompany: string
     referenceArticle: string
     dueDate: string
+    date: string
     completionDate: string
     attachments: Attachment[]
     safetyAnalysis: {
@@ -61,14 +63,15 @@ export default function NewObservation() {
   }>(() => ({
     title: "",
     type: "",
-    projectId: (projects && Array.isArray(projects) && projects.length > 0) ? projects[0]?.id : "",
-    projectNumber: projects && Array.isArray(projects) && projects.length > 0 ? projects[0]?.code || "" : "",
+    projectId: "",
+    projectNumber: "",
     description: "",
     priority: "medium",
     status: "draft",
     concernedCompany: "",
     referenceArticle: "",
     dueDate: "",
+    date: "",
     completionDate: "",
     attachments: [] as Attachment[],
     safetyAnalysis: {
@@ -95,14 +98,6 @@ export default function NewObservation() {
     return Object.keys(newErrors).length === 0
   }, [formData])
 
-  // Auto-generate project number when project changes
-  useEffect(() => {
-    const selected = projects?.find((p) => p.id === formData.projectId)
-    if (selected && selected.code && formData.projectNumber !== selected.code) {
-      setFormData((prev) => ({ ...prev, projectNumber: selected.code }))
-    }
-  }, [formData.projectId, projects])
-
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
@@ -127,25 +122,19 @@ export default function NewObservation() {
         // Remove duplicates
         const uniqueDistribution = Array.from(new Set(distributionList))
 
-        // Auto-generate project number if not set
-        let projectNumber = formData.projectNumber
-        if (!projectNumber) {
-          const selected = projects?.find((p) => p.id === formData.projectId)
-          if (selected && selected.code) projectNumber = selected.code
-        }
-
         const observation: Observation = {
           id: crypto.randomUUID(),
           number: `OBS-${Date.now().toString().slice(-6)}`,
           title: formData.title,
           type: formData.type,
           projectId: formData.projectId,
-          projectNumber,
+          projectNumber: formData.projectNumber || undefined,
           creatorId: currentUser?.id || "unknown",
           assignedPersonId: currentUser?.id || "unknown",
           priority: formData.priority,
           status: formData.status,
           distribution: uniqueDistribution,
+          date: formData.date ? new Date(formData.date) : null,
           dueDate: formData.dueDate ? new Date(formData.dueDate) : null,
           completionDate: formData.completionDate ? new Date(formData.completionDate) : null,
           concernedCompany: formData.concernedCompany,
@@ -229,7 +218,7 @@ export default function NewObservation() {
         title: formData.title,
         type: formData.type,
         projectId: formData.projectId,
-        projectNumber: formData.projectNumber,
+        projectNumber: formData.projectNumber || undefined,
         description: formData.description,
         priority: formData.priority,
         concernedCompany: formData.concernedCompany,
@@ -243,6 +232,7 @@ export default function NewObservation() {
         creatorId: currentUser?.id || "unknown",
         assignedPersonId: currentUser?.id || "unknown",
         distribution: [],
+        date: formData.date ? new Date(formData.date) : null,
         dueDate: null,
         completionDate: null,
       }
@@ -252,7 +242,7 @@ export default function NewObservation() {
     } catch (error) {
       alert(t("alert.saveDraft.error"))
     }
-  }, [formData.title, formData.type, formData.projectId, formData.projectNumber, formData.description, formData.priority, formData.concernedCompany, formData.referenceArticle, formData.safetyAnalysis, addObservation, currentUser, router, t])
+  }, [formData.title, formData.type, formData.projectId, formData.description, formData.priority, formData.concernedCompany, formData.referenceArticle, formData.safetyAnalysis, formData.date, addObservation, currentUser, router, t])
 
   return (
     <AppShell>
@@ -329,30 +319,28 @@ export default function NewObservation() {
               error={errors.projectId}
               required
             >
-              <Select value={formData.projectId} onValueChange={(value) => setFormData((prev) => ({ ...prev, projectId: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t("inspection.projectSelect")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects?.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                value={formData.projectId}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, projectId: e.target.value }))}
+                placeholder={t("form.project")}
+              />
             </FormField>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <FormField label={t("observation.projectNumber")}> 
-              <Input
-                value={formData.projectNumber}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, projectNumber: e.target.value }))}
-                placeholder={t("observation.projectNumber")}
-              />
-            </FormField>
+          <FormField label={t("observation.projectNumber")}>
+            <ProjectNoCombobox
+              projects={projects}
+              value={projects.find((p) => p.code === formData.projectNumber)?.id || null}
+              onChange={(projectId) => {
+                const p = projects.find((x) => x.id === projectId)
+                if (!p) return
+                setFormData((prev) => ({ ...prev, projectNumber: p.code }))
+              }}
+              placeholder={t("observation.projectNumber")}
+            />
+          </FormField>
 
+          <div className="grid grid-cols-2 gap-4">
             <FormField label={t("form.status")} required>
               <Select value={formData.status} onValueChange={(value: any) => setFormData((prev) => ({ ...prev, status: value }))}>
                 <SelectTrigger>
@@ -390,22 +378,28 @@ export default function NewObservation() {
             </FormField>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <FormField label={t("observation.dueDate")}> 
+          <div className="grid grid-cols-3 gap-4">
+            <FormField label="Date d'échéance mesure corrective">
               <Input
                 type="date"
                 value={formData.dueDate}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, dueDate: e.target.value }))}
-                placeholder={t("observation.dueDate")}
               />
             </FormField>
 
-            <FormField label={t("observation.completionDate")}> 
+            <FormField label="Date">
+              <Input
+                type="date"
+                value={formData.date}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, date: e.target.value }))}
+              />
+            </FormField>
+
+            <FormField label="Date de la correction">
               <Input
                 type="date"
                 value={formData.completionDate}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, completionDate: e.target.value }))}
-                placeholder={t("observation.completionDate")}
               />
             </FormField>
           </div>

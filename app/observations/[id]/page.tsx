@@ -14,11 +14,11 @@ import { useAppStore } from "@/lib/store"
 import { cn, distanceToNowLocalized, formatLocalized } from "@/lib/utils"
 
 const statusVariants = {
-  draft: "bg-muted text-muted-foreground",
-  submitted: "bg-primary/10 text-primary",
-  open: "bg-warning/10 text-warning-foreground",
-  closed: "bg-accent/10 text-accent",
-  "in-progress": "bg-info/10 text-info",
+  draft: "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
+  submitted: "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
+  open: "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
+  closed: "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
+  "in-progress": "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
 }
 
 const priorityVariants = {
@@ -82,11 +82,10 @@ function ObservationDetailHeader({ observation, id, locale }: { observation: any
   const handleExportPdf = async () => {
     try {
       setIsExporting(true)
-      const filename = `${(observation.title || observation.number)}-${locale}.pdf`
-      await exportObservationAsPdf(observation, filename)
+      await exportObservationAsPdf(observation, "Exemple Procore Observation.pdf")
     } catch (error) {
       console.error("Export error:", error)
-      alert("Failed to export PDF")
+      alert(t("toast.pdfExportError.generic" as any))
     } finally {
       setIsExporting(false)
     }
@@ -144,7 +143,7 @@ export default function ObservationDetailPage({ params }: { params: Promise<{ id
             <div className="flex items-center gap-2">
               <span className="font-mono text-sm text-muted-foreground">{observation.number}</span>
               <Badge variant="secondary" className={cn(statusVariants[observation.status])}>
-                {t(`status.${observation.status}` as any)}
+                {t(observation.status === "in-progress" ? ("status.inProgress" as any) : (`status.${observation.status}` as any))}
               </Badge>
               <Badge variant="secondary" className={cn(priorityVariants[observation.priority])}>
                 {t(`priority.${observation.priority}` as any)}

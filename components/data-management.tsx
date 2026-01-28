@@ -15,7 +15,7 @@ export function DataManagement() {
   const { locale, setLocale } = useLocale()
   const [language, setLanguage] = useState<Language>(locale)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const { incidents, observations, inspections, addIncident, addObservation, addInspection } = useAppStore()
+  const { incidents, observations, inspections, livrables, addIncident, addObservation, addInspection, addLivrable } = useAppStore()
   const t = getTranslation(language).dataManagement
   useEffect(() => {
     setLanguage(locale)
@@ -28,12 +28,14 @@ export function DataManagement() {
         incidents,
         observations,
         inspections,
+        livrables,
         exportDate: new Date().toISOString(),
         version: "1.0",
         stats: {
           totalIncidents: incidents.length,
           totalObservations: observations.length,
           totalInspections: inspections.length,
+          totalLivrables: livrables.length,
         },
       }
 

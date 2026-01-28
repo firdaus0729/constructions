@@ -1,14 +1,15 @@
 /**
  * Email Service for Automated Email Notifications
- * 
+ *
  * This service handles sending automated emails when forms are submitted.
- * Supports multiple email providers (SMTP, Resend, SendGrid, etc.)
- * 
- * Configuration:
- * - Set environment variables for your email provider
- * - For SMTP: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD
- * - For Resend: RESEND_API_KEY
- * - For SendGrid: SENDGRID_API_KEY
+ * It uses a single backend API route (`/api/email/send`) that sends via SMTP.
+ *
+ * Configuration (local .env / Vercel):
+ * - SMTP_HOST
+ * - SMTP_PORT
+ * - SMTP_USER
+ * - SMTP_PASSWORD
+ * - EMAIL_FROM
  */
 
 export interface EmailOptions {
@@ -22,7 +23,7 @@ export interface EmailOptions {
 }
 
 export interface FormEmailData {
-  formType: "observation" | "incident" | "inspection"
+  formType: "observation" | "incident" | "inspection" | "livrable"
   formNumber: string
   formTitle: string
   projectName?: string
@@ -36,93 +37,11 @@ export interface FormEmailData {
 }
 
 /**
- * Send email using configured provider
+ * Send email by calling the backend API route.
+ * The API route is responsible for talking to SMTP via nodemailer.
  */
 export async function sendEmail(options: EmailOptions): Promise<{ success: boolean; error?: string }> {
   try {
-    // IMPORTANT: This function is called from client-side form pages.
-    // Client bundles do not have access to non-public env vars like SMTP_HOST,
-    // so we cannot reliably branch on them here. Instead:
-    //
-    // - If running in the browser, always delegate to the Next.js API route
-    //   which handles SMTP (using server-side env vars).
-    // - If running on the server, we can use direct providers when configured.
-
-    if (typeof window !== "undefined") {
-      // Browser: always go through the SMTP API route.
-      return await sendEmailViaSMTP(options)
-    }
-
-    // Server-side usage (not currently used by the app, but kept for completeness)
-    if (process.env.RESEND_API_KEY) {
-      return await sendEmailViaResend(options)
-    }
-
-    if (process.env.SENDGRID_API_KEY) {
-      return await sendEmailViaSendGrid(options)
-    }
-
-    // Fallback: no provider configured on the server
-    return {
-      success: false,
-      error: "No email provider configured. Please set RESEND_API_KEY or SENDGRID_API_KEY",
-    }
-  } catch (error) {
-    console.error("Email sending error:", error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    }
-  }
-}
-
-/**
- * Send email via Resend API
- */
-async function sendEmailViaResend(options: EmailOptions): Promise<{ success: boolean; error?: string }> {
-  try {
-    const resendApiKey = process.env.RESEND_API_KEY
-    if (!resendApiKey) {
-      throw new Error("RESEND_API_KEY not configured")
-    }
-
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${resendApiKey}`,
-      },
-      body: JSON.stringify({
-        from: options.from || process.env.EMAIL_FROM || "noreply@construction.app",
-        to: Array.isArray(options.to) ? options.to : [options.to],
-        subject: options.subject,
-        html: options.html,
-        text: options.text,
-        cc: options.cc ? (Array.isArray(options.cc) ? options.cc : [options.cc]) : undefined,
-        bcc: options.bcc ? (Array.isArray(options.bcc) ? options.bcc : [options.bcc]) : undefined,
-      }),
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || "Failed to send email via Resend")
-    }
-
-    return { success: true }
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Resend API error",
-    }
-  }
-}
-
-/**
- * Send email via SMTP (using fetch to API route)
- */
-async function sendEmailViaSMTP(options: EmailOptions): Promise<{ success: boolean; error?: string }> {
-  try {
-    // In Next.js, SMTP should be handled via API route
     const response = await fetch("/api/email/send", {
       method: "POST",
       headers: {
@@ -132,71 +51,22 @@ async function sendEmailViaSMTP(options: EmailOptions): Promise<{ success: boole
     })
 
     if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || "Failed to send email via SMTP")
+      const data = await response.json().catch(() => null)
+      return {
+        success: false,
+        error: (data && (data.error as string)) || `Email API returned status ${response.status}`,
+      }
     }
 
-    return { success: true }
+    const data = await response.json().catch(() => null)
+    return {
+      success: data && typeof data.success === "boolean" ? data.success : true,
+    }
   } catch (error) {
+    console.error("Email sending error:", error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : "SMTP error",
-    }
-  }
-}
-
-/**
- * Send email via SendGrid API
- */
-async function sendEmailViaSendGrid(options: EmailOptions): Promise<{ success: boolean; error?: string }> {
-  try {
-    const sendGridApiKey = process.env.SENDGRID_API_KEY
-    if (!sendGridApiKey) {
-      throw new Error("SENDGRID_API_KEY not configured")
-    }
-
-    const toEmails = Array.isArray(options.to) ? options.to : [options.to]
-    const personalizations = toEmails.map((email) => ({ to: [{ email }] }))
-
-    const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${sendGridApiKey}`,
-      },
-      body: JSON.stringify({
-        personalizations,
-        from: {
-          email: options.from || process.env.EMAIL_FROM || "noreply@construction.app",
-        },
-        subject: options.subject,
-        content: [
-          {
-            type: "text/html",
-            value: options.html,
-          },
-          ...(options.text
-            ? [
-                {
-                  type: "text/plain",
-                  value: options.text,
-                },
-              ]
-            : []),
-        ],
-      }),
-    })
-
-    if (!response.ok) {
-      const error = await response.text()
-      throw new Error(error || "Failed to send email via SendGrid")
-    }
-
-    return { success: true }
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "SendGrid API error",
+      error: error instanceof Error ? error.message : "Unknown error",
     }
   }
 }
@@ -209,6 +79,7 @@ export function generateFormEmailTemplate(data: FormEmailData): string {
     observation: "Observation",
     incident: "Incident",
     inspection: "Inspection",
+    livrable: "Livrable",
   }
 
   const priorityBadge = data.priority
@@ -315,6 +186,7 @@ export async function sendFormNotificationEmails(
     observation: "Observation",
     incident: "Incident",
     inspection: "Inspection",
+    livrable: "Livrable",
   }
 
   const subject = `${formTypeLabels[data.formType]} #${data.formNumber}: ${data.formTitle}`
