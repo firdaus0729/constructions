@@ -37,14 +37,36 @@ const translations = {
     "form.formStatusDescription": "This form will be saved locally to IndexedDB. When you submit, it will be marked as pending sync. Once online connectivity is restored, it will automatically sync to the server.",
     "section.details": "Details",
 
+    // Status
+    "status.online": "Online",
+    "status.offline": "Offline",
+    "status.syncing": "Syncing...",
+    "status.savedLocally": "Saved locally",
+    "status.syncedSuccessfully": "Synced successfully",
+    "status.draft": "Draft",
+    "status.submitted": "Submitted",
+    "status.open": "Open",
+    "status.closed": "Closed",
+    "status.inProgress": "In Progress",
+    "status.archived": "Archived",
+
     // Generic
     "common.updated": "Updated {distance}",
     "units.days": "{count} days",
 
-    // Not found
+    // Empty / not found
     "empty.notFound.observation": "Observation not found",
     "empty.notFound.inspection": "Inspection not found",
     "empty.notFound.incident": "Incident not found",
+    "empty.noObservations": "No observations yet",
+    "empty.noInspections": "No inspections yet",
+    "empty.noIncidents": "No incidents yet",
+    "empty.noMatchingObservations": "No matching observations",
+    "empty.noMatchingInspections": "No matching inspections",
+    "empty.noMatchingIncidents": "No matching incidents",
+    "empty.createFirstObservation": "Create the first observation to get started",
+    "empty.createFirstInspection": "Create the first inspection to get started",
+    "empty.createFirstIncident": "Create the first incident to get started",
 
     // Settings
     "settings.syncStatus": "Sync Status",

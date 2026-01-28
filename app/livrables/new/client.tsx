@@ -20,13 +20,14 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useLocale } from "@/lib/locale-context"
 import { useAppStore } from "@/lib/store"
 import type { Livrable, Attachment, FormStatus, LivrableWorkflowStep } from "@/lib/types"
 import { DistributionSelector } from "@/components/forms"
 import { sendFormNotificationEmails, collectEmailAddresses } from "@/lib/email-service"
-import { X, GripVertical } from "lucide-react"
+import { X, GripVertical, Mail } from "lucide-react"
 
 export default function NewLivrablePage() {
   const router = useRouter()
@@ -556,9 +557,7 @@ export default function NewLivrablePage() {
                   value={formData.finalDueDate}
                   onChange={(e) => handleFieldChange("finalDueDate", e.target.value)}
                   className="h-12"
-                  disabled
                 />
-                <p className="text-sm text-muted-foreground mt-1">{t("submittal.noDueDates")}</p>
               </FormField>
 
               {/* Cost Code */}
@@ -595,22 +594,6 @@ export default function NewLivrablePage() {
                   placeholder="--"
                   className="h-12"
                 />
-              </FormField>
-
-              {/* Distribution List */}
-              <FormField label={t("submittal.distributionList")}>
-                <Select value="" onValueChange={() => {}}>
-                  <SelectTrigger className="h-12">
-                    <SelectValue placeholder={t("submittal.selectDistribution")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {authUsers.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </FormField>
 
               {/* Ball In Court */}
@@ -685,7 +668,6 @@ export default function NewLivrablePage() {
                   value={formData.plannedReturnDate}
                   onChange={(e) => handleFieldChange("plannedReturnDate", e.target.value)}
                   className="h-12"
-                  disabled
                 />
               </FormField>
 
@@ -709,7 +691,6 @@ export default function NewLivrablePage() {
                   value={formData.plannedInternalReviewCompletedDate}
                   onChange={(e) => handleFieldChange("plannedInternalReviewCompletedDate", e.target.value)}
                   className="h-12"
-                  disabled
                 />
               </FormField>
 
@@ -733,7 +714,6 @@ export default function NewLivrablePage() {
                   value={formData.plannedSubmitByDate}
                   onChange={(e) => handleFieldChange("plannedSubmitByDate", e.target.value)}
                   className="h-12"
-                  disabled
                 />
               </FormField>
             </div>
@@ -753,7 +733,6 @@ export default function NewLivrablePage() {
                   value={formData.anticipatedDeliveryDate}
                   onChange={(e) => handleFieldChange("anticipatedDeliveryDate", e.target.value)}
                   className="h-12"
-                  disabled
                 />
               </FormField>
 
@@ -898,20 +877,34 @@ export default function NewLivrablePage() {
             </div>
           </FormSection>
 
-          {/* Distribution */}
+          {/* Distribution - same UX as other forms */}
           <FormSection
             title={t("form.distribution")}
             collapsible={true}
-            defaultOpen={false}
+            defaultOpen
           >
+            <Alert className="mb-4">
+              <Mail className="h-4 w-4" />
+              <AlertDescription>{t("sendEmailNotifications")}</AlertDescription>
+            </Alert>
+
             <DistributionSelector
               selectedUserIds={selectedUserIds}
               selectedGroupIds={selectedGroupIds}
-              onUserIdsChange={setSelectedUserIds}
-              onGroupIdsChange={setSelectedGroupIds}
-              sendNotifications={sendNotifications}
-              onSendNotificationsChange={setSendNotifications}
+              onUsersChange={setSelectedUserIds}
+              onGroupsChange={setSelectedGroupIds}
             />
+
+            <div className="flex items-center space-x-2 mt-4 p-4 bg-muted/50 rounded-lg">
+              <Switch
+                id="notify"
+                checked={sendNotifications}
+                onCheckedChange={setSendNotifications}
+              />
+              <Label htmlFor="notify" className="cursor-pointer">
+                {t("notifyUsers")}
+              </Label>
+            </div>
           </FormSection>
 
           {/* Form Actions */}
@@ -929,7 +922,7 @@ export default function NewLivrablePage() {
               disabled={isSubmitting || isSaving}
               className="flex-1 bg-primary"
             >
-              {isSubmitting ? t("action.saving") : "Create"}
+              {isSubmitting ? t("action.saving") : t("action.save")}
             </Button>
             <Button
               type="button"
@@ -942,7 +935,7 @@ export default function NewLivrablePage() {
                 handleSubmit(e)
               }}
             >
-              Create & Send Emails
+              {t("notifyUsers")}
             </Button>
           </div>
 
