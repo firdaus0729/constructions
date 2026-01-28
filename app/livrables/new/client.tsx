@@ -28,12 +28,15 @@ import type { Livrable, Attachment, FormStatus, LivrableWorkflowStep } from "@/l
 import { DistributionSelector } from "@/components/forms"
 import { sendFormNotificationEmails, collectEmailAddresses } from "@/lib/email-service"
 import { X, GripVertical, Mail } from "lucide-react"
+import { LivrableCrudCombobox } from "@/components/livrable-crud-combobox"
 
 export default function NewLivrablePage() {
   const router = useRouter()
   const { t } = useLocale()
   const store = useAppStore()
-  const { projects = [], currentUser, addLivrable, authUsers = [], userGroups = [] } = store || {}
+  const { projects = [], currentUser, addLivrable, authUsers = [], userGroups = [], livrableOptionLists } = store || ({} as any)
+
+  // livrableOptionLists are now managed inline inside the dropdowns (CRUD UI)
   
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([])
@@ -44,6 +47,7 @@ export default function NewLivrablePage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["basic-info"]))
   const [workflowSteps, setWorkflowSteps] = useState<LivrableWorkflowStep[]>([])
+  const [newDrawingLink, setNewDrawingLink] = useState("")
 
   // Form data
   const [formData, setFormData] = useState({
@@ -138,25 +142,13 @@ export default function NewLivrablePage() {
   const createLivrableObject = useCallback(
     (status: FormStatus): Livrable => {
       const number = generateSubmittalNumber()
-      const distributionList: string[] = []
-      
-      selectedUserIds.forEach((userId) => {
-        const user = authUsers?.find((u) => u.id === userId)
-        if (user) {
-          distributionList.push(user.email)
-        }
-      })
+      // Distribution is stored as AuthUser IDs (same as other forms)
+      const distributionList: string[] = [...selectedUserIds]
       selectedGroupIds.forEach((groupId) => {
         const group = userGroups?.find((g) => g.id === groupId)
-        if (group) {
-          group.memberIds?.forEach((memberId) => {
-            const user = authUsers?.find((u) => u.id === memberId)
-            if (user) {
-              distributionList.push(user.email)
-            }
-          })
-        }
+        if (group) distributionList.push(...(group.memberIds || []))
       })
+      const uniqueDistribution = Array.from(new Set(distributionList))
 
       return {
         id: `livrable-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -165,7 +157,7 @@ export default function NewLivrablePage() {
         projectId: formData.projectId,
         creatorId: currentUser?.id || "",
         status,
-        distribution: [...new Set(distributionList)],
+        distribution: uniqueDistribution,
         attachments: formData.attachments,
         description: formData.description,
         
@@ -314,6 +306,47 @@ export default function NewLivrablePage() {
     [errors]
   )
 
+  const drawingLinks = useMemo(() => {
+    const raw = String(formData.linkedDrawings || "").trim()
+    if (!raw) return []
+    return raw
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean)
+  }, [formData.linkedDrawings])
+
+  const addDrawingLink = useCallback(() => {
+    const url = newDrawingLink.trim()
+    if (!url) return
+    try {
+      // Accept http(s) URLs only
+      const parsed = new URL(url)
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return
+    } catch {
+      return
+    }
+    setFormData((prev) => {
+      const existing = String(prev.linkedDrawings || "")
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean)
+      if (existing.includes(url)) return prev
+      return { ...prev, linkedDrawings: [...existing, url].join("\n") }
+    })
+    setNewDrawingLink("")
+  }, [newDrawingLink])
+
+  const removeDrawingLink = useCallback((url: string) => {
+    setFormData((prev) => {
+      const next = String(prev.linkedDrawings || "")
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .filter((u) => u !== url)
+      return { ...prev, linkedDrawings: next.join("\n") }
+    })
+  }, [])
+
   const toggleSection = (sectionId: string) => {
     setExpandedSections((prev) => {
       const updated = new Set(prev)
@@ -404,31 +437,24 @@ export default function NewLivrablePage() {
                 </div>
               </FormField>
 
-              {/* Submittal Type */}
-              <FormField label={t("submittal.submittalType")} error={errors.submittalType}>
-                <Select value={formData.submittalType} onValueChange={(value) => handleFieldChange("submittalType", value)}>
-                  <SelectTrigger className="h-12">
-                    <SelectValue placeholder={t("submittal.selectSubmittalType")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="product">Product Data</SelectItem>
-                    <SelectItem value="sample">Sample</SelectItem>
-                    <SelectItem value="shop-drawing">Shop Drawing</SelectItem>
-                  </SelectContent>
-                </Select>
+              {/* Type de livrable */}
+              <FormField label={t("livrable.livrableType")} error={errors.submittalType}>
+                <LivrableCrudCombobox
+                  listKey="types"
+                  value={formData.submittalType}
+                  onChange={(value) => handleFieldChange("submittalType", value)}
+                  placeholder={t("livrable.selectLivrableType")}
+                />
               </FormField>
 
-              {/* Submittal Package */}
+              {/* Paquet de livrable */}
               <FormField label={t("livrable.livrablePackage")} error={errors.submittalPackage}>
-                <Select value={formData.submittalPackage} onValueChange={(value) => handleFieldChange("submittalPackage", value)}>
-                  <SelectTrigger className="h-12">
-                    <SelectValue placeholder={t("livrable.selectLivrablePackage")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="package1">Package 1</SelectItem>
-                    <SelectItem value="package2">Package 2</SelectItem>
-                  </SelectContent>
-                </Select>
+                <LivrableCrudCombobox
+                  listKey="packages"
+                  value={formData.submittalPackage}
+                  onChange={(value) => handleFieldChange("submittalPackage", value)}
+                  placeholder={t("livrable.selectLivrablePackage")}
+                />
               </FormField>
 
               {/* Responsible Contractor */}
@@ -562,38 +588,61 @@ export default function NewLivrablePage() {
 
               {/* Cost Code */}
               <FormField label={t("livrable.costCode")}>
-                <Select value={formData.costCode} onValueChange={(value) => handleFieldChange("costCode", value)}>
-                  <SelectTrigger className="h-12">
-                    <SelectValue placeholder={t("livrable.selectCostCode")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="code1">Code 1</SelectItem>
-                    <SelectItem value="code2">Code 2</SelectItem>
-                  </SelectContent>
-                </Select>
+                <LivrableCrudCombobox
+                  listKey="costCodes"
+                  value={formData.costCode}
+                  onChange={(value) => handleFieldChange("costCode", value)}
+                  placeholder={t("livrable.selectCostCode")}
+                />
               </FormField>
 
               {/* Location */}
-              <FormField label={t("submittal.location")}>
-                <Select value={formData.location} onValueChange={(value) => handleFieldChange("location", value)}>
-                  <SelectTrigger className="h-12">
-                    <SelectValue placeholder={t("submittal.selectLocation")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="location1">Location 1</SelectItem>
-                    <SelectItem value="location2">Location 2</SelectItem>
-                  </SelectContent>
-                </Select>
+              <FormField label={t("livrable.location")}>
+                <LivrableCrudCombobox
+                  listKey="locations"
+                  value={formData.location}
+                  onChange={(value) => handleFieldChange("location", value)}
+                  placeholder={t("livrable.selectLocation")}
+                />
               </FormField>
 
               {/* Linked Drawings */}
               <FormField label={t("livrable.linkedDrawings")}>
-                <Input
-                  value={formData.linkedDrawings}
-                  onChange={(e) => handleFieldChange("linkedDrawings", e.target.value)}
-                  placeholder="--"
-                  className="h-12"
-                />
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <Input
+                      value={newDrawingLink}
+                      onChange={(e) => setNewDrawingLink(e.target.value)}
+                      placeholder={t("livrable.linkedDrawingsUrlPlaceholder")}
+                      className="h-12"
+                    />
+                    <Button type="button" variant="outline" className="h-12 shrink-0" onClick={addDrawingLink}>
+                      {t("livrable.linkedDrawingsAddLink")}
+                    </Button>
+                  </div>
+
+                  {drawingLinks.length > 0 ? (
+                    <div className="space-y-2">
+                      {drawingLinks.map((url) => (
+                        <div key={url} className="flex items-center gap-2 rounded-lg border p-3 bg-muted/30">
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sm text-primary underline break-all flex-1"
+                          >
+                            {url}
+                          </a>
+                          <Button type="button" variant="ghost" size="icon" onClick={() => removeDrawingLink(url)}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">{t("livrable.linkedDrawingsHelp")}</p>
+                  )}
+                </div>
               </FormField>
 
               {/* Ball In Court */}
@@ -627,15 +676,12 @@ export default function NewLivrablePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Schedule Task - Full Width */}
               <FormField label={t("livrable.scheduleTask")} className="md:col-span-2">
-                <Select value={formData.scheduleTask} onValueChange={(value) => handleFieldChange("scheduleTask", value)}>
-                  <SelectTrigger className="h-12">
-                    <SelectValue placeholder={t("livrable.selectScheduleTask")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="task1">Task 1</SelectItem>
-                    <SelectItem value="task2">Task 2</SelectItem>
-                  </SelectContent>
-                </Select>
+                <LivrableCrudCombobox
+                  listKey="scheduleTasks"
+                  value={formData.scheduleTask}
+                  onChange={(value) => handleFieldChange("scheduleTask", value)}
+                  placeholder={t("livrable.selectScheduleTask")}
+                />
               </FormField>
 
               {/* Required On-Site Date */}
@@ -942,6 +988,7 @@ export default function NewLivrablePage() {
           <p className="text-sm text-destructive">*required fields</p>
         </form>
       </div>
+
     </AppShell>
   )
 }

@@ -12,6 +12,7 @@ import { useLocale } from "@/lib/locale-context"
 import { toast } from "sonner"
 import { useAppStore } from "@/lib/store"
 import { cn, distanceToNowLocalized, formatLocalized } from "@/lib/utils"
+import { exportLivrableAsPdf } from "@/lib/pdf"
 
 const statusVariants = {
   draft: "bg-muted text-muted-foreground",
@@ -48,6 +49,15 @@ export default function LivrableDetailPage({ params }: { params: Promise<{ id: s
         title={livrable.title || livrable.number}
         backHref="/livrables"
         onEdit={() => router.push(`/livrables/${id}/edit`)}
+        onExportPdf={async () => {
+          try {
+            await exportLivrableAsPdf(livrable, "Livrable.pdf")
+            toast.success(t("toast.pdfExportSuccess.livrable" as any) || "PDF exported")
+          } catch (e) {
+            console.error(e)
+            toast.error(t("toast.pdfExportError.livrable" as any) || "PDF export failed")
+          }
+        }}
       />
 
       <div id="form-detail" className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto space-y-6">

@@ -5,7 +5,7 @@ import jsPDF from "jspdf"
 // Professional PDF generator for all forms with logo and header matching the template
 export async function generateProfessionalPDF(data: {
   title: string
-  type: "observation" | "inspection" | "incident"
+  type: "observation" | "inspection" | "incident" | "livrable"
   number: string
   projectInfo?: string
   details: Record<string, string | undefined>
@@ -230,6 +230,136 @@ export async function generateProfessionalPDF(data: {
   }
 
   doc.save(data.filename)
+}
+
+export async function exportLivrableAsPdf(livrable: any, filename: string = "Livrable.pdf") {
+  if (typeof window === "undefined") return
+
+  const jsPDFMod = (await import("jspdf")).default
+  const doc = new jsPDFMod({ orientation: "portrait", unit: "mm", format: "a4" })
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const margin = 15
+  const contentWidth = pageWidth - margin * 2
+  let y = margin
+
+  const check = (need: number) => {
+    if (y + need > pageHeight - margin) {
+      doc.addPage()
+      y = margin
+    }
+  }
+
+  // Header (reuse same style as professional generator)
+  try {
+    doc.addImage("/logo.png", "PNG", margin, y, 20, 20)
+  } catch {}
+  doc.setFontSize(9)
+  doc.setFont("helvetica", "bold")
+  doc.text("Construction Interlag", margin + 25, y + 4)
+  doc.setFontSize(7)
+  doc.setFont("helvetica", "normal")
+  doc.text("926 av Simard, #201", margin + 25, y + 8)
+  doc.text("Chambly, Quebec J3L 4X2", margin + 25, y + 11.5)
+  doc.text("Téléphone : 514-323-6710", margin + 25, y + 15)
+  doc.text("Télécopieur : 514-323-3682", margin + 25, y + 18.5)
+
+  y += 25
+  doc.setDrawColor(150, 150, 150)
+  doc.line(margin, y, pageWidth - margin, y)
+  y += 6
+
+  // Title
+  doc.setFontSize(13)
+  doc.setFont("helvetica", "bold")
+  const titleText = `Livrable : ${livrable.title || livrable.number || ""}`
+  doc.splitTextToSize(titleText, contentWidth).forEach((ln: string, idx: number) => {
+    doc.text(ln, pageWidth / 2, y + idx * 6, { align: "center" })
+  })
+  y += 12
+
+  // Details
+  doc.setFontSize(8)
+  doc.setFont("helvetica", "bold")
+  doc.text("Détails", margin, y)
+  y += 5
+  doc.setFont("helvetica", "normal")
+
+  const details: Array<[string, string]> = [
+    ["Numéro", livrable.number || "-"],
+    ["Statut", livrable.status || "-"],
+    ["Type de livrable", livrable.submittalType || "-"],
+    ["Paquet de livrable", livrable.submittalPackage || "-"],
+    ["Code de coût", livrable.costCode || "-"],
+    ["Emplacement", livrable.location || "-"],
+    ["Tâche du calendrier", livrable.scheduleTask || "-"],
+  ]
+
+  details.forEach(([k, v]) => {
+    check(6)
+    doc.setFont("helvetica", "bold")
+    doc.text(`${k} :`, margin, y)
+    doc.setFont("helvetica", "normal")
+    const lines = doc.splitTextToSize(String(v || "-"), contentWidth - 40)
+    lines.forEach((ln: string, idx: number) => {
+      doc.text(ln, margin + 40, y + idx * 4)
+    })
+    y += Math.max(5, lines.length * 4)
+  })
+
+  // Description
+  if (livrable.description) {
+    y += 3
+    check(12)
+    doc.setFont("helvetica", "bold")
+    doc.text("Description", margin, y)
+    y += 5
+    doc.setFont("helvetica", "normal")
+    const lines = doc.splitTextToSize(String(livrable.description), contentWidth)
+    lines.forEach((ln: string) => {
+      check(4)
+      doc.text(ln, margin, y)
+      y += 4
+    })
+  }
+
+  // Linked drawings
+  const links = String(livrable.linkedDrawings || "")
+    .split("\n")
+    .map((s: string) => s.trim())
+    .filter(Boolean)
+  if (links.length > 0) {
+    y += 3
+    check(12)
+    doc.setFont("helvetica", "bold")
+    doc.text("Dessins liés", margin, y)
+    y += 5
+    doc.setFont("helvetica", "normal")
+    doc.setTextColor(0, 0, 255)
+    links.forEach((u: string) => {
+      check(4)
+      doc.textWithLink(u, margin, y, { url: u })
+      y += 4
+    })
+    doc.setTextColor(0, 0, 0)
+  }
+
+  // Attachments (names only; images are handled in other PDFs, keep simple here)
+  if (Array.isArray(livrable.attachments) && livrable.attachments.length > 0) {
+    y += 3
+    check(12)
+    doc.setFont("helvetica", "bold")
+    doc.text("Pièces jointes", margin, y)
+    y += 5
+    doc.setFont("helvetica", "normal")
+    livrable.attachments.forEach((a: any) => {
+      check(4)
+      doc.text(`- ${a?.name || "Fichier"}`, margin, y)
+      y += 4
+    })
+  }
+
+  doc.save(filename)
 }
 
 // Lightweight client-side PDF export utility with dynamic imports.

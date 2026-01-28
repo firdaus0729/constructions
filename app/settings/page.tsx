@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Globe, Sun, Database, Bell, Hash, Plus, Pencil, Trash2 } from "lucide-react"
+import { Globe, Sun, Database, Bell, Hash, ListChecks, Plus, Pencil, Trash2 } from "lucide-react"
 import { useTheme } from "next-themes"
 
 export const dynamic = 'force-dynamic'
@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { LivrableOptionsDialog } from "@/components/livrable-options-dialog"
 
 export default function SettingsPage() {
   const { locale, setLocale, t } = useLocale()
@@ -25,6 +26,12 @@ export default function SettingsPage() {
   const [projectDialogOpen, setProjectDialogOpen] = React.useState(false)
   const [editingProjectId, setEditingProjectId] = React.useState<string | null>(null)
   const [projectForm, setProjectForm] = React.useState({ code: "", name: "", location: "" })
+
+  const [livrableOptsOpen, setLivrableOptsOpen] = React.useState(false)
+  const [livrableOptsKey, setLivrableOptsKey] = React.useState<
+    "types" | "packages" | "costCodes" | "locations" | "scheduleTasks"
+  >("types")
+  const [livrableOptsTitle, setLivrableOptsTitle] = React.useState("")
 
   const totalForms = observations.length + incidents.length + inspections.length
   const pendingSync = [
@@ -223,6 +230,76 @@ export default function SettingsPage() {
               </Table>
             </CardContent>
           </Card>
+
+          {/* Livrable dropdown options */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ListChecks className="h-5 w-5" />
+                {t("settings.livrableOptions.title")}
+              </CardTitle>
+              <CardDescription>{t("settings.livrableOptions.desc")}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setLivrableOptsKey("types")
+                    setLivrableOptsTitle(t("settings.livrableOptions.types"))
+                    setLivrableOptsOpen(true)
+                  }}
+                >
+                  {t("settings.livrableOptions.types")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setLivrableOptsKey("packages")
+                    setLivrableOptsTitle(t("settings.livrableOptions.packages"))
+                    setLivrableOptsOpen(true)
+                  }}
+                >
+                  {t("settings.livrableOptions.packages")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setLivrableOptsKey("costCodes")
+                    setLivrableOptsTitle(t("settings.livrableOptions.costCodes"))
+                    setLivrableOptsOpen(true)
+                  }}
+                >
+                  {t("settings.livrableOptions.costCodes")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setLivrableOptsKey("locations")
+                    setLivrableOptsTitle(t("settings.livrableOptions.locations"))
+                    setLivrableOptsOpen(true)
+                  }}
+                >
+                  {t("settings.livrableOptions.locations")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setLivrableOptsKey("scheduleTasks")
+                    setLivrableOptsTitle(t("settings.livrableOptions.scheduleTasks"))
+                    setLivrableOptsOpen(true)
+                  }}
+                >
+                  {t("settings.livrableOptions.scheduleTasks")}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
@@ -296,6 +373,13 @@ export default function SettingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <LivrableOptionsDialog
+        open={livrableOptsOpen}
+        onOpenChange={setLivrableOptsOpen}
+        listKey={livrableOptsKey}
+        title={livrableOptsTitle || t("settings.livrableOptions.title")}
+      />
     </AppShell>
   )
 }

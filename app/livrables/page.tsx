@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { AppShell } from "@/components/app-shell"
 import { toast } from "sonner"
+import { exportLivrableAsPdf } from "@/lib/pdf"
 
 const statusVariants: Record<string, string> = {
   draft: "bg-blue-500 text-white",
@@ -52,6 +53,16 @@ export default function LivrablesPage() {
 
     return matchesSearch && matchesStatus
   })
+
+  const handleExportPDF = async (livrable: any) => {
+    try {
+      await exportLivrableAsPdf(livrable, "Livrable.pdf")
+      toast.success(t("toast.pdfExportSuccess.livrable" as any) || "PDF exported")
+    } catch (e) {
+      console.error(e)
+      toast.error(t("toast.pdfExportError.livrable" as any) || "PDF export failed")
+    }
+  }
 
   return (
     <AppShell>
@@ -185,6 +196,15 @@ export default function LivrablesPage() {
                           {t("action.view")}
                         </Button>
                       </Link>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleExportPDF(livrable)}
+                        className="gap-2"
+                        title="Export as PDF"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="destructive"
                         size="sm"

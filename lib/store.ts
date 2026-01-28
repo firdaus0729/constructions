@@ -387,6 +387,15 @@ interface AppState {
   users: User[]
   currentUser: User | null
 
+  // Livrable option lists (editable dropdown options)
+  livrableOptionLists: {
+    types: { id: string; label: string }[]
+    packages: { id: string; label: string }[]
+    costCodes: { id: string; label: string }[]
+    locations: { id: string; label: string }[]
+    scheduleTasks: { id: string; label: string }[]
+  }
+
   // UI state
   isOnline: boolean
   isSyncing: boolean
@@ -443,6 +452,18 @@ interface AppState {
   updateProject: (id: string, updates: Partial<Project>) => void
   deleteProject: (id: string) => void
 
+  // Livrable option lists CRUD
+  addLivrableOption: (
+    list: keyof AppState["livrableOptionLists"],
+    item: { id: string; label: string }
+  ) => void
+  updateLivrableOption: (
+    list: keyof AppState["livrableOptionLists"],
+    id: string,
+    updates: Partial<{ label: string }>
+  ) => void
+  deleteLivrableOption: (list: keyof AppState["livrableOptionLists"], id: string) => void
+
   // Computed
   getRecentDrafts: () => FormListItem[]
   getRecentSubmissions: () => FormListItem[]
@@ -470,6 +491,37 @@ export const useAppStore = create<AppState>()(
       projects: mockProjects,
       users: mockUsers,
       currentUser: mockUsers[0],
+
+      livrableOptionLists: {
+        types: [
+          { id: "type-product-data", label: "Données produit" },
+          { id: "type-sample", label: "Échantillon" },
+          { id: "type-shop-drawing", label: "Dessin d’atelier" },
+          { id: "type-method", label: "Méthodologie" },
+        ],
+        packages: [
+          { id: "pkg-1", label: "Paquet 1" },
+          { id: "pkg-2", label: "Paquet 2" },
+          { id: "pkg-3", label: "Paquet 3" },
+        ],
+        costCodes: [
+          { id: "cc-01", label: "Code de coût 01" },
+          { id: "cc-02", label: "Code de coût 02" },
+          { id: "cc-03", label: "Code de coût 03" },
+        ],
+        locations: [
+          { id: "loc-site", label: "Chantier" },
+          { id: "loc-warehouse", label: "Entrepôt" },
+          { id: "loc-office", label: "Bureau" },
+          { id: "loc-other", label: "Autre" },
+        ],
+        scheduleTasks: [
+          { id: "task-planning", label: "Planification" },
+          { id: "task-procurement", label: "Approvisionnement" },
+          { id: "task-installation", label: "Installation" },
+          { id: "task-commissioning", label: "Mise en service" },
+        ],
+      },
 
       // UI state
       isOnline: typeof window !== 'undefined',
@@ -621,6 +673,29 @@ export const useAppStore = create<AppState>()(
         set((state) => ({ projects: state.projects.map((p) => (p.id === id ? { ...p, ...updates } : p)) })),
       deleteProject: (id) => set((state) => ({ projects: state.projects.filter((p) => p.id !== id) })),
 
+      // Livrable option lists
+      addLivrableOption: (list, item) =>
+        set((state) => ({
+          livrableOptionLists: {
+            ...state.livrableOptionLists,
+            [list]: [...state.livrableOptionLists[list], item],
+          } as AppState["livrableOptionLists"],
+        })),
+      updateLivrableOption: (list, id, updates) =>
+        set((state) => ({
+          livrableOptionLists: {
+            ...state.livrableOptionLists,
+            [list]: state.livrableOptionLists[list].map((it) => (it.id === id ? { ...it, ...updates } : it)),
+          } as AppState["livrableOptionLists"],
+        })),
+      deleteLivrableOption: (list, id) =>
+        set((state) => ({
+          livrableOptionLists: {
+            ...state.livrableOptionLists,
+            [list]: state.livrableOptionLists[list].filter((it) => it.id !== id),
+          } as AppState["livrableOptionLists"],
+        })),
+
       // Computed
       getRecentDrafts: () => {
         const state = get()
@@ -742,6 +817,7 @@ export const useAppStore = create<AppState>()(
         inspections: state.inspections,
         livrables: state.livrables,
         projects: state.projects,
+        livrableOptionLists: state.livrableOptionLists,
         // Auth data - persist for offline use
         authUsers: state.authUsers,
         userGroups: state.userGroups,
