@@ -13,19 +13,30 @@ import { exportObservationAsPdf } from "@/lib/pdf"
 import { useAppStore } from "@/lib/store"
 import { cn, distanceToNowLocalized, formatLocalized } from "@/lib/utils"
 
-const statusVariants = {
-  draft: "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
-  submitted: "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
-  open: "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
-  closed: "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
-  "in-progress": "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
+const STATUS_BADGE: Record<string, string> = {
+  submitted: "bg-[#1865E6] text-white",
+  draft: "bg-[#F28705] text-white",
+  "in-progress": "bg-[#F28705] text-white",
+  open: "bg-[#051DF7] text-white",
+  closed: "bg-[#05F719] text-white",
 }
 
-const priorityVariants = {
-  low: "bg-muted text-muted-foreground",
-  medium: "bg-warning/10 text-warning-foreground",
-  high: "bg-destructive/10 text-destructive",
-  critical: "bg-destructive text-destructive-foreground",
+const PRIORITY_BADGE: Record<string, string> = {
+  low: "bg-[#05F719] text-white",
+  medium: "bg-[#F28705] text-white",
+  high: "bg-[#F70505] text-white",
+  critical: "bg-[#F70505] text-white",
+}
+
+const getStatusTranslationKey = (status: string): string => {
+  const statusMap: Record<string, string> = {
+    draft: "status.draft",
+    "in-progress": "status.inProgress",
+    submitted: "status.submitted",
+    open: "status.open",
+    closed: "status.closed",
+  }
+  return statusMap[status] || `status.${status}`
 }
 
 
@@ -190,12 +201,18 @@ export default function ObservationDetailPage({ params }: { params: Promise<{ id
               </div>
             </div>
 
-            {observation.dueDate && (
+            {observation.dueDate != null && (
               <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
                 <Calendar className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <p className="text-xs text-muted-foreground">{t("observation.dueDate")}</p>
-                  <p className="font-medium">{formatLocalized(new Date(observation.dueDate), "MMM d, yyyy", locale)}</p>
+                  <p className="text-xs text-muted-foreground">{t("observation.dueDateMeasure")}</p>
+                  <p className="font-medium">
+                    {formatLocalized(
+                      observation.dueDate instanceof Date ? observation.dueDate : new Date(observation.dueDate),
+                      "MMM d, yyyy",
+                      locale
+                    )}
+                  </p>
                 </div>
               </div>
             )}

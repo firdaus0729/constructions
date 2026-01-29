@@ -16,28 +16,27 @@ import { AppShell } from "@/components/app-shell"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
-const priorityVariants: Record<string, string> = {
-  low: "bg-green-600 text-white dark:bg-green-700",
-  medium: "bg-yellow-500 text-white dark:bg-yellow-600",
-  high: "bg-red-600 text-white dark:bg-red-700",
+const STATUS_BADGE: Record<string, string> = {
+  submitted: "bg-[#1865E6] text-white",
+  draft: "bg-[#F28705] text-white",
+  "in-progress": "bg-[#F28705] text-white",
+  open: "bg-[#051DF7] text-white",
+  closed: "bg-[#05F719] text-white",
 }
 
-const statusVariants: Record<string, string> = {
-  draft: "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
-  "in-progress": "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
-  submitted: "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
-  archived: "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
-  open: "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
+const PRIORITY_BADGE: Record<string, string> = {
+  low: "bg-[#05F719] text-white",
+  medium: "bg-[#F28705] text-white",
+  high: "bg-[#F70505] text-white",
 }
 
-// Helper function to convert status key to translation key
 const getStatusTranslationKey = (status: string): string => {
   const statusMap: Record<string, string> = {
-    "draft": "status.draft",
+    draft: "status.draft",
     "in-progress": "status.inProgress",
-    "submitted": "status.submitted",
-    "archived": "status.archived",
-    "open": "status.open"
+    submitted: "status.submitted",
+    open: "status.open",
+    closed: "status.closed",
   }
   return statusMap[status] || `status.${status}`
 }
@@ -46,6 +45,7 @@ export default function ObservationsPage() {
   const { observations, deleteObservation, projects } = useAppStore()
   const { t } = useLocale()
   const [searchTerm, setSearchTerm] = useState("")
+  const [filterStatus, setFilterStatus] = useState<string | null>(null)
   const [filterPriority, setFilterPriority] = useState<string | null>(null)
 
   const filtered = observations.filter((obs) => {
@@ -54,9 +54,10 @@ export default function ObservationsPage() {
       obs.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       obs.number.toLowerCase().includes(searchTerm.toLowerCase())
 
+    const matchesStatus = !filterStatus || obs.status === filterStatus
     const matchesPriority = !filterPriority || obs.priority === filterPriority
 
-    return matchesSearch && matchesPriority
+    return matchesSearch && matchesStatus && matchesPriority
   })
 
   const handleExportPDF = async (observation: (typeof observations)[0]) => {
@@ -105,13 +106,31 @@ export default function ObservationsPage() {
               />
             </div>
             <div className="flex gap-2 flex-wrap">
+              {[
+                { key: "draft", label: "status.draft" },
+                { key: "in-progress", label: "status.inProgress" },
+                { key: "open", label: "status.open" },
+                { key: "closed", label: "status.closed" },
+              ].map((s) => (
+                <Button
+                  key={s.key}
+                  variant={filterStatus === s.key ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFilterStatus(filterStatus === s.key ? null : s.key)}
+                  className={cn("text-xs text-white", filterStatus === s.key && STATUS_BADGE[s.key])}
+                  style={filterStatus === s.key ? { backgroundColor: s.key === "draft" || s.key === "in-progress" ? "#F28705" : s.key === "open" ? "#051DF7" : s.key === "closed" ? "#05F719" : undefined } : undefined}
+                >
+                  {t(s.label as any)}
+                </Button>
+              ))}
               {["low", "medium", "high"].map((priority) => (
                 <Button
                   key={priority}
                   variant={filterPriority === priority ? "default" : "outline"}
                   size="sm"
                   onClick={() => setFilterPriority(filterPriority === priority ? null : priority)}
-                  className="capitalize text-xs"
+                  className={cn("capitalize text-xs text-white", filterPriority === priority && PRIORITY_BADGE[priority])}
+                  style={filterPriority === priority ? { backgroundColor: priority === "low" ? "#05F719" : priority === "medium" ? "#F28705" : "#F70505" } : undefined}
                 >
                   {t(`priority.${priority}` as any)}
                 </Button>
@@ -155,13 +174,13 @@ export default function ObservationsPage() {
                   <Card key={observation.id} className="hover:shadow-lg transition-shadow">
                     <CardContent className="p-6">
                       <div className="flex items-start gap-3 mb-4">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900 shrink-0">
-                          <Eye className="h-5 w-5 text-blue-600 dark:text-blue-300" />
+                        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-[#051DF7] shrink-0">
+                          <Eye className="h-5 w-5 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-base">{observation.title}</h3>
-                          <p className="text-xs text-muted-foreground">{observation.number}</p>
-                          {project && <p className="text-xs text-muted-foreground mt-1">{project.name}</p>}
+                          <p className="text-xs text-muted-foreground font-mono">{observation.number}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{project?.name || observation.projectId || "-"}</p>
                         </div>
                       </div>
 
@@ -170,7 +189,7 @@ export default function ObservationsPage() {
                       <div className="grid grid-cols-2 gap-2 mb-4 text-xs">
                         <div>
                           <span className="text-muted-foreground">{t("observation.projectNumber")}</span>
-                          <p className="font-medium">{observation.projectNumber || project?.code || "-"}</p>
+                          <p className="font-medium font-mono text-muted-foreground">{observation.projectNumber || project?.code || "-"}</p>
                         </div>
                         <div>
                           <span className="text-muted-foreground">{t("form.project")}</span>
@@ -179,13 +198,10 @@ export default function ObservationsPage() {
                       </div>
 
                       <div className="flex flex-wrap gap-2 mb-4">
-                        <Badge variant="secondary" className={cn("text-xs", statusVariants[observation.status])}>
+                        <Badge variant="secondary" className={cn("text-xs", STATUS_BADGE[observation.status] || "bg-[#F28705] text-white")}>
                           {t(getStatusTranslationKey(observation.status) as any)}
                         </Badge>
-                        <Badge
-                          variant="secondary"
-                          className={cn("text-xs", priorityVariants[observation.priority])}
-                        >
+                        <Badge variant="secondary" className={cn("text-xs", PRIORITY_BADGE[observation.priority] || "bg-[#05F719] text-white")}>
                           {t(`priority.${observation.priority}` as any)}
                         </Badge>
                       </div>

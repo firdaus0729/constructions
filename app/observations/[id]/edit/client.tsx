@@ -14,10 +14,11 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { useAppStore } from "@/lib/store"
-import { getObservationTypes } from "@/lib/reference-data-loader"
 import { AlertTriangle, CheckCircle2, Mail, Save } from "lucide-react"
 import type { Observation, Attachment } from "@/lib/types"
 import { useLocale } from "@/lib/locale-context"
+import { ObservationTypeCrudCombobox } from "@/components/observation-type-crud-combobox"
+import { ProjectNoCombobox } from "@/components/project-no-combobox"
 
 export default function EditObservation({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -72,6 +73,27 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
     },
   }))
 
+  useEffect(() => {
+    if (observation) {
+      setFormData({
+        title: observation.title,
+        type: observation.type,
+        projectId: observation.projectId,
+        projectNumber: observation.projectNumber || "",
+        description: observation.description || "",
+        priority: (observation.priority as any) || "medium",
+        status: (observation.status as string) || "draft",
+        date: toDateStr(observation.date as Date | null),
+        dueDate: toDateStr(observation.dueDate),
+        completionDate: toDateStr(observation.completionDate),
+        concernedCompany: observation.concernedCompany || "",
+        referenceArticle: observation.referenceArticle || "",
+        attachments: observation.attachments || [],
+        safetyAnalysis: observation.safetyAnalysis || { danger: "", contributingCondition: "", contributingBehavior: "" },
+      })
+    }
+  }, [observation?.id])
+
   const validateForm = useCallback(() => {
     const newErrors: Record<string, string> = {}
 
@@ -117,11 +139,17 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
           title: formData.title,
           type: formData.type,
           projectId: formData.projectId,
+          projectNumber: formData.projectNumber || undefined,
           description: formData.description,
           priority: formData.priority,
+          status: formData.status as Observation["status"],
+          date: formData.date ? new Date(formData.date) : null,
+          dueDate: formData.dueDate ? new Date(formData.dueDate) : null,
+          completionDate: formData.completionDate ? new Date(formData.completionDate) : null,
           concernedCompany: formData.concernedCompany,
           referenceArticle: formData.referenceArticle,
           distribution: uniqueDistribution,
+          attachments: formData.attachments,
           safetyAnalysis: formData.safetyAnalysis,
           updatedAt: new Date(),
           syncStatus: "pending",
@@ -170,26 +198,27 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
 
       {/* Priority indicators */}
       <div className="grid grid-cols-3 gap-4">
-        {(["low", "medium", "high"] as const).map((level) => (
-          <Card
-            key={level}
-            className={`cursor-pointer transition-all ${
-              formData.priority === level
-                ? "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950"
-                : "hover:border-blue-300"
-            }`}
-            onClick={() => setFormData((prev) => ({ ...prev, priority: level }))}
-          >
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-2">
-                {level === "low" && <CheckCircle2 className="h-4 w-4 text-green-600" />}
-                {level === "medium" && <AlertTriangle className="h-4 w-4 text-yellow-600" />}
-                {level === "high" && <AlertTriangle className="h-4 w-4 text-red-600" />}
-                <span className="capitalize font-medium">{t(`priority.${level}` as any)}</span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        {(["low", "medium", "high"] as const).map((level) => {
+          const isSelected = formData.priority === level
+          const bg = isSelected ? (level === "low" ? "#05F719" : level === "medium" ? "#F28705" : "#F70505") : undefined
+          return (
+            <Card
+              key={level}
+              className={`cursor-pointer transition-all ${isSelected ? "ring-2 ring-offset-2" : "hover:border-muted-foreground/30"}`}
+              style={isSelected ? { backgroundColor: bg, borderColor: bg } : undefined}
+              onClick={() => setFormData((prev) => ({ ...prev, priority: level }))}
+            >
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2">
+                  {level === "low" && <CheckCircle2 className={cn("h-4 w-4", isSelected ? "text-white" : "text-green-600")} />}
+                  {level === "medium" && <AlertTriangle className={cn("h-4 w-4", isSelected ? "text-white" : "text-yellow-600")} />}
+                  {level === "high" && <AlertTriangle className={cn("h-4 w-4", isSelected ? "text-white" : "text-red-600")} />}
+                  <span className={cn("capitalize font-medium", isSelected && "text-white")}>{t(`priority.${level}` as any)}</span>
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -208,34 +237,71 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
           </FormField>
 
           <div className="grid grid-cols-2 gap-4">
-            <FormField
-              label={t("field.type")}
-              error={errors.type}
-              required
-            >
-              <Select value={formData.type} onValueChange={(value) => setFormData((prev) => ({ ...prev, type: value }))}>
+            <FormField label={t("field.type")} error={errors.type} required>
+              <ObservationTypeCrudCombobox
+                value={formData.type}
+                onChange={(value) => setFormData((prev) => ({ ...prev, type: value }))}
+                placeholder={t("inspection.selectType")}
+              />
+            </FormField>
+
+            <FormField label={t("form.status")}>
+              <Select value={formData.status} onValueChange={(value) => setFormData((prev) => ({ ...prev, status: value }))}>
                 <SelectTrigger>
-                  <SelectValue placeholder={t("inspection.selectType")} />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {observationTypes?.map((type) => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {t(`observation.type.${type.id}` as any)}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="draft">{t("status.draft")}</SelectItem>
+                  <SelectItem value="in-progress">{t("status.inProgress")}</SelectItem>
+                  <SelectItem value="open">{t("status.open")}</SelectItem>
+                  <SelectItem value="closed">{t("status.closed")}</SelectItem>
+                  <SelectItem value="submitted">{t("status.submitted")}</SelectItem>
                 </SelectContent>
               </Select>
             </FormField>
+          </div>
 
-            <FormField
-              label={t("form.project")}
-              error={errors.projectId}
-              required
-            >
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label={t("form.project")} error={errors.projectId} required>
               <Input
                 value={formData.projectId}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, projectId: e.target.value }))}
                 placeholder={t("form.project")}
+              />
+            </FormField>
+            <FormField label={t("observation.projectNumber")}>
+              <ProjectNoCombobox
+                projects={projects}
+                value={projects?.find((p) => p.code === formData.projectNumber)?.id ?? null}
+                onChange={(projectId) => {
+                  const p = projects?.find((x) => x.id === projectId)
+                  setFormData((prev) => ({ ...prev, projectNumber: p?.code ?? "" }))
+                }}
+                placeholder={t("observation.projectNumber")}
+              />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <FormField label={t("field.date")}>
+              <Input
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData((prev) => ({ ...prev, date: e.target.value }))}
+              />
+            </FormField>
+            <FormField label={t("observation.dueDateMeasure")}>
+              <Input
+                type="date"
+                value={formData.dueDate}
+                onChange={(e) => setFormData((prev) => ({ ...prev, dueDate: e.target.value }))}
+              />
+            </FormField>
+            <FormField label={t("observation.correctionDateLabel")}>
+              <Input
+                type="date"
+                value={formData.completionDate}
+                onChange={(e) => setFormData((prev) => ({ ...prev, completionDate: e.target.value }))}
               />
             </FormField>
           </div>
@@ -338,6 +404,14 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
               rows={3}
             />
           </FormField>
+        </FormSection>
+
+        {/* Attachments */}
+        <FormSection title={t("form.attachments")} defaultOpen>
+          <AttachmentUpload
+            attachments={formData.attachments}
+            onChange={(attachments) => setFormData((prev) => ({ ...prev, attachments }))}
+          />
         </FormSection>
 
         {/* Distribution - Assign Users & Groups */}

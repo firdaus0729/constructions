@@ -370,10 +370,17 @@ export const inspectionSections: InspectionSection[] = rawInspectionSections.fil
   return true
 })
 
+/** Session duration: 1 hour. User stays logged in across refresh until this expires or they click Logout. */
+export const SESSION_DURATION_MS = 60 * 60 * 1000
+
 interface AppState {
   // Auth data
   authUsers: AuthUser[]
   currentAuthUserId: string | null
+  /** Timestamp (ms) when the session expires. Null if not logged in. */
+  sessionExpiresAt: number | null
+  /** True after persisted state has been rehydrated (avoids redirect-to-login on refresh). */
+  _hasHydrated: boolean
   userGroups: UserGroup[]
   formAssignments: FormAssignment[]
   azureAdGroupConfigs: AzureADGroupConfig[] // Configuration for 3 role-based Azure AD Groups
@@ -396,6 +403,12 @@ interface AppState {
   inspectionOptionLists: {
     types: { id: string; label: string }[]
   }
+
+  // Observation option lists (editable dropdown options)
+  observationOptionLists: {
+    types: { id: string; label: string }[]
+  }
+
   // Livrable option lists (editable dropdown options)
   livrableOptionLists: {
     types: { id: string; label: string }[]
@@ -414,6 +427,8 @@ interface AppState {
   updateAuthUser: (id: string, updates: Partial<AuthUser>) => void
   deleteAuthUser: (id: string) => void
   setCurrentAuthUserId: (id: string | null) => void
+  setSessionExpiresAt: (v: number | null) => void
+  setHasHydrated: () => void
   getCurrentAuthUser: () => AuthUser | null
 
   // Group actions
@@ -483,6 +498,11 @@ interface AppState {
   updateInspectionTypeOption: (id: string, updates: Partial<{ label: string }>) => void
   deleteInspectionTypeOption: (id: string) => void
 
+  // Observation option lists CRUD
+  addObservationTypeOption: (item: { id: string; label: string }) => void
+  updateObservationTypeOption: (id: string, updates: Partial<{ label: string }>) => void
+  deleteObservationTypeOption: (id: string) => void
+
   // Computed
   getRecentDrafts: () => FormListItem[]
   getRecentSubmissions: () => FormListItem[]
@@ -494,6 +514,8 @@ export const useAppStore = create<AppState>()(
       // Auth data
       authUsers: [],
       currentAuthUserId: null,
+      sessionExpiresAt: null,
+      _hasHydrated: false,
       userGroups: [],
       formAssignments: [],
       azureAdGroupConfigs: [
@@ -527,6 +549,19 @@ export const useAppStore = create<AppState>()(
           { id: "compliance", label: "Vérification de conformité" },
           { id: "incident-follow-up", label: "Suivi d'incident" },
           { id: "routine", label: "Contrôle routinier" },
+        ],
+      },
+
+      observationOptionLists: {
+        types: [
+          { id: "unsafe-condition", label: "Condition dangereuse" },
+          { id: "unsafe-behavior", label: "Comportement dangereux" },
+          { id: "near-miss", label: "Quasi-accident" },
+          { id: "good-practice", label: "Bonne pratique" },
+          { id: "hazard-awareness", label: "Sensibilisation aux dangers" },
+          { id: "ppe-non-compliance", label: "Non-conformité ÉPI" },
+          { id: "housekeeping", label: "Problème d'entretien" },
+          { id: "tool-equipment", label: "Problème d'outil/équipement" },
         ],
       },
 
@@ -581,6 +616,8 @@ export const useAppStore = create<AppState>()(
         })),
       deleteAuthUser: (id) => set((state) => ({ authUsers: state.authUsers.filter((u) => u.id !== id) })),
       setCurrentAuthUserId: (id) => set({ currentAuthUserId: id }),
+      setSessionExpiresAt: (v) => set({ sessionExpiresAt: v }),
+      setHasHydrated: () => set({ _hasHydrated: true }),
       getCurrentAuthUser: () => {
         const state = get()
         return state.authUsers.find((u) => u.id === state.currentAuthUserId) || null
@@ -780,6 +817,29 @@ export const useAppStore = create<AppState>()(
           },
         })),
 
+      // Observation option lists
+      addObservationTypeOption: (item) =>
+        set((state) => ({
+          observationOptionLists: {
+            ...state.observationOptionLists,
+            types: [...state.observationOptionLists.types, item],
+          },
+        })),
+      updateObservationTypeOption: (id, updates) =>
+        set((state) => ({
+          observationOptionLists: {
+            ...state.observationOptionLists,
+            types: state.observationOptionLists.types.map((it) => (it.id === id ? { ...it, ...updates } : it)),
+          },
+        })),
+      deleteObservationTypeOption: (id) =>
+        set((state) => ({
+          observationOptionLists: {
+            ...state.observationOptionLists,
+            types: state.observationOptionLists.types.filter((it) => it.id !== id),
+          },
+        })),
+
       // Computed
       getRecentDrafts: () => {
         const state = get()
@@ -903,11 +963,13 @@ export const useAppStore = create<AppState>()(
         projects: state.projects,
         incidentOptionLists: state.incidentOptionLists,
         inspectionOptionLists: state.inspectionOptionLists,
+        observationOptionLists: state.observationOptionLists,
         livrableOptionLists: state.livrableOptionLists,
         // Auth data - persist for offline use
         authUsers: state.authUsers,
         userGroups: state.userGroups,
         currentAuthUserId: state.currentAuthUserId,
+        sessionExpiresAt: state.sessionExpiresAt,
         formAssignments: state.formAssignments,
       }),
     },

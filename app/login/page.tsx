@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic'
 export default function LoginPage() {
   const router = useRouter()
   const { t } = useLocale()
-  const { authUsers, setCurrentAuthUserId } = useAppStore()
+  const { authUsers, setCurrentAuthUserId, setSessionExpiresAt } = useAppStore()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
@@ -43,6 +43,7 @@ export default function LoginPage() {
       }
 
       setCurrentAuthUserId(user.id)
+      setSessionExpiresAt(Date.now() + SESSION_DURATION_MS)
       router.push("/")
     } catch (err) {
       setError(t("loginError"))
