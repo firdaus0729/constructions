@@ -19,11 +19,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertTriangle, CheckCircle2, Clock, Mail, Save } from "lucide-react"
 import { useLocale } from "@/lib/locale-context"
 import { useAppStore } from "@/lib/store"
-import { getAccidentTypes, getInjuryTypes, getBodyParts } from "@/lib/reference-data-loader"
+import { getInjuryTypes, getBodyParts } from "@/lib/reference-data-loader"
 import type { Incident, Attachment, FormStatus } from "@/lib/types"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { DistributionSelector } from "@/components/forms"
+import { ProjectNoCombobox } from "@/components/project-no-combobox"
+import { IncidentAccidentTypeCrudCombobox } from "@/components/incident-crud-combobox"
 
 export default function EditIncidentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -33,7 +35,6 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
   const { projects = [], currentUser, updateIncident, incidents, authUsers = [], userGroups = [] } = store || {}
   
   // Load reference data on client side only
-  const [accidentTypes, setAccidentTypes] = useState<any[]>([])
   const [injuryTypes, setInjuryTypes] = useState<any[]>([])
   const [bodyParts, setBodyParts] = useState<any[]>([])
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
@@ -41,7 +42,6 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
   const [sendNotifications, setSendNotifications] = useState(true)
   
   useEffect(() => {
-    setAccidentTypes(getAccidentTypes())
     setInjuryTypes(getInjuryTypes())
     setBodyParts(getBodyParts())
   }, [])
@@ -57,6 +57,7 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
   const [formData, setFormData] = useState<{
     title: string
     projectId: string
+    projectNumber: string
     location: string
     eventDate: string
     eventTime: string
@@ -81,6 +82,7 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
   }>(() => ({
     title: incident?.title || "",
     projectId: incident?.projectId || (projects && Array.isArray(projects) && projects.length > 0 ? projects[0]?.id : ""),
+    projectNumber: (incident as any)?.projectNumber || "",
     location: incident?.location || "",
     eventDate: incident?.eventDate ? new Date(incident.eventDate).toISOString().split("T")[0] : "",
     eventTime: incident?.eventTime || "",
@@ -167,6 +169,7 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
           ...incident!,
           title: formData.title,
           projectId: formData.projectId,
+          projectNumber: formData.projectNumber || undefined,
           location: formData.location,
           eventDate: new Date(formData.eventDate),
           eventTime: formData.eventTime,
@@ -228,10 +231,6 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
     )
   }
 
-  const getAccidentTypeDescription = (typeId: string) => {
-    return accidentTypes?.find((t) => t.id === typeId)?.description || ""
-  }
-
   const getInjuryTypeSeverity = (typeId: string) => {
     const injury = injuryTypes?.find((i) => i.id === typeId)
     return injury?.severity
@@ -245,7 +244,7 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
       {formData.accidentType && (
         <Alert className="bg-red-50 border-red-200 dark:bg-red-950">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>{getAccidentTypeDescription(formData.accidentType) || ""}</AlertDescription>
+          <AlertDescription>{t("incident.accidentType")}</AlertDescription>
         </Alert>
       )}
 
@@ -261,19 +260,12 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
           </FormField>
 
           <div className="grid grid-cols-2 gap-4">
-            <FormField label={t("field.type")} error={errors.accidentType} required>
-              <Select value={formData.accidentType} onValueChange={(value) => setFormData((prev) => ({ ...prev, accidentType: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t("inspection.selectType")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {accidentTypes?.map((type) => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <FormField label={t("incident.accidentType")} error={errors.accidentType} required>
+              <IncidentAccidentTypeCrudCombobox
+                value={formData.accidentType}
+                onChange={(value) => setFormData((prev) => ({ ...prev, accidentType: value }))}
+                placeholder={t("incident.selectAccidentType")}
+              />
             </FormField>
 
             <FormField label={t("form.project")} error={errors.projectId} required>
@@ -282,6 +274,18 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
                 onChange={(e) => setFormData((prev) => ({ ...prev, projectId: e.target.value }))}
                 placeholder={t("form.project")}
                 className="h-12"
+              />
+            </FormField>
+
+            <FormField label={t("observation.projectNumber")}>
+              <ProjectNoCombobox
+                projects={projects}
+                value={projects.find((p) => p.code === formData.projectNumber)?.id || ""}
+                onChange={(projectId) => {
+                  const p = projects.find((pp) => pp.id === projectId)
+                  setFormData((prev) => ({ ...prev, projectNumber: p?.code || "" }))
+                }}
+                placeholder={t("observation.projectNumber")}
               />
             </FormField>
           </div>
@@ -320,7 +324,7 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
               />
             </FormField>
 
-            <FormField label={t("field.time")}> 
+            <FormField label={t("incident.eventTime")}> 
               <Input
                 type="time"
                 value={formData.eventTime}

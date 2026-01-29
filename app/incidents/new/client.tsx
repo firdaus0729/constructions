@@ -24,11 +24,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertTriangle, CheckCircle2, Clock, Mail, Save } from "lucide-react"
 import { useLocale } from "@/lib/locale-context"
 import { useAppStore } from "@/lib/store"
-import { getAccidentTypes, getInjuryTypes, getBodyParts } from "@/lib/reference-data-loader"
+import { getInjuryTypes, getBodyParts } from "@/lib/reference-data-loader"
 import type { Incident, Attachment, FormStatus } from "@/lib/types"
 import { Card, CardContent } from "@/components/ui/card"
 import { DistributionSelector } from "@/components/forms"
 import { sendFormNotificationEmails, collectEmailAddresses } from "@/lib/email-service"
+import { ProjectNoCombobox } from "@/components/project-no-combobox"
+import { IncidentAccidentTypeCrudCombobox } from "@/components/incident-crud-combobox"
 
 export default function NewIncidentPage() {
   const router = useRouter()
@@ -37,7 +39,6 @@ export default function NewIncidentPage() {
   const { projects = [], currentUser, addIncident, authUsers = [], userGroups = [] } = store || {}
   
   // Load reference data on client side only
-  const [accidentTypes, setAccidentTypes] = useState<any[]>([])
   const [injuryTypes, setInjuryTypes] = useState<any[]>([])
   const [bodyParts, setBodyParts] = useState<any[]>([])
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
@@ -45,7 +46,6 @@ export default function NewIncidentPage() {
   const [sendNotifications, setSendNotifications] = useState(true)
   
   useEffect(() => {
-    setAccidentTypes(getAccidentTypes())
     setInjuryTypes(getInjuryTypes())
     setBodyParts(getBodyParts())
   }, [])
@@ -62,6 +62,7 @@ export default function NewIncidentPage() {
     // Basic Info
     title: "",
     projectId: "",
+    projectNumber: "",
     creatorId: currentUser?.id || "",
     status: "draft" as "draft" | "in-progress" | "submitted",
     location: "",
@@ -189,6 +190,7 @@ export default function NewIncidentPage() {
         number: generateIncidentNumber(),
         title: formData.title,
         projectId: formData.projectId,
+        projectNumber: formData.projectNumber || undefined,
         creatorId: currentUser?.id || "",
         location: formData.location,
         eventDate: new Date(formData.eventDate),
@@ -336,10 +338,6 @@ export default function NewIncidentPage() {
     })
   }
 
-  const getAccidentTypeDescription = (typeId: string) => {
-    return accidentTypes?.find((t) => t.id === typeId)?.description || ""
-  }
-
   const getInjuryTypeSeverity = (typeId: string) => {
     const injury = injuryTypes?.find((i) => i.id === typeId)
     return injury?.severity
@@ -351,15 +349,14 @@ export default function NewIncidentPage() {
 
       <div className="max-w-4xl mx-auto space-y-6 p-4 md:p-6 lg:p-8">
         {/* Critical Incident Alert */}
-        {formData.accidentType &&
-          accidentTypes?.find((t) => t.id === formData.accidentType)?.riskLevel === "critical" && (
-            <Alert className="border-destructive/50 bg-destructive/10">
-              <AlertTriangle className="h-4 w-4 text-destructive" />
-              <AlertDescription className="text-destructive ml-2">
-                {t("incident.criticalAlert")}
-              </AlertDescription>
-            </Alert>
-          )}
+        {formData.accidentType && (
+          <Alert className="border-destructive/50 bg-destructive/10">
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+            <AlertDescription className="text-destructive ml-2">
+              {t("incident.criticalAlert")}
+            </AlertDescription>
+          </Alert>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <FormSection
@@ -390,6 +387,19 @@ export default function NewIncidentPage() {
                   onChange={(e) => handleFieldChange("projectId", e.target.value)}
                   placeholder={t("incident.selectProject")}
                   className={`h-12 ${errors.projectId ? "border-destructive" : ""}`}
+                />
+              </FormField>
+
+              {/* Numéro de Projet */}
+              <FormField label={t("observation.projectNumber")}>
+                <ProjectNoCombobox
+                  projects={projects}
+                  value={projects.find((p) => p.code === formData.projectNumber)?.id || ""}
+                  onChange={(projectId) => {
+                    const p = projects.find((pp) => pp.id === projectId)
+                    handleFieldChange("projectNumber", p?.code || "")
+                  }}
+                  placeholder={t("observation.projectNumber")}
                 />
               </FormField>
 
@@ -458,26 +468,11 @@ export default function NewIncidentPage() {
 
               {/* Accident Type */}
               <FormField label={t("incident.accidentType")} required error={errors.accidentType}>
-                <Select value={formData.accidentType} onValueChange={(value) => handleFieldChange("accidentType", value)}>
-                  <SelectTrigger className={`h-12 ${errors.accidentType ? "border-destructive" : ""}`}>
-                    <SelectValue placeholder={t("incident.selectAccidentType")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {accidentTypes?.map((type) => (
-                      <SelectItem key={type.id} value={type.id}>
-                        <div className="flex items-center gap-2">
-                          <span>{type.label}</span>
-                          {type.riskLevel === "critical" && (
-                            <span className="text-xs bg-destructive/20 text-destructive px-2 py-1 rounded">{t("incident.critical")}</span>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {formData.accidentType && (
-                  <p className="text-sm text-muted-foreground mt-1">{getAccidentTypeDescription(formData.accidentType)}</p>
-                )}
+                <IncidentAccidentTypeCrudCombobox
+                  value={formData.accidentType}
+                  onChange={(value) => handleFieldChange("accidentType", value)}
+                  placeholder={t("incident.selectAccidentType")}
+                />
               </FormField>
 
               {/* Concerned Company */}

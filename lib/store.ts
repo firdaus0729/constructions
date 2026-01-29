@@ -387,6 +387,10 @@ interface AppState {
   users: User[]
   currentUser: User | null
 
+  // Incident option lists (editable dropdown options)
+  incidentOptionLists: {
+    accidentTypes: { id: string; label: string }[]
+  }
   // Livrable option lists (editable dropdown options)
   livrableOptionLists: {
     types: { id: string; label: string }[]
@@ -464,6 +468,11 @@ interface AppState {
   ) => void
   deleteLivrableOption: (list: keyof AppState["livrableOptionLists"], id: string) => void
 
+  // Incident option lists CRUD
+  addIncidentOption: (item: { id: string; label: string }) => void
+  updateIncidentOption: (id: string, updates: Partial<{ label: string }>) => void
+  deleteIncidentOption: (id: string) => void
+
   // Computed
   getRecentDrafts: () => FormListItem[]
   getRecentSubmissions: () => FormListItem[]
@@ -491,6 +500,16 @@ export const useAppStore = create<AppState>()(
       projects: mockProjects,
       users: mockUsers,
       currentUser: mockUsers[0],
+
+      incidentOptionLists: {
+        accidentTypes: [
+          { id: "struck-by", label: "Frappé par" },
+          { id: "fall", label: "Chute" },
+          { id: "caught-in-between", label: "Coincé entre" },
+          { id: "electrical", label: "Électrique" },
+          { id: "other", label: "Autre" },
+        ],
+      },
 
       livrableOptionLists: {
         types: [
@@ -696,6 +715,29 @@ export const useAppStore = create<AppState>()(
           } as AppState["livrableOptionLists"],
         })),
 
+      // Incident option lists
+      addIncidentOption: (item) =>
+        set((state) => ({
+          incidentOptionLists: {
+            ...state.incidentOptionLists,
+            accidentTypes: [...state.incidentOptionLists.accidentTypes, item],
+          },
+        })),
+      updateIncidentOption: (id, updates) =>
+        set((state) => ({
+          incidentOptionLists: {
+            ...state.incidentOptionLists,
+            accidentTypes: state.incidentOptionLists.accidentTypes.map((it) => (it.id === id ? { ...it, ...updates } : it)),
+          },
+        })),
+      deleteIncidentOption: (id) =>
+        set((state) => ({
+          incidentOptionLists: {
+            ...state.incidentOptionLists,
+            accidentTypes: state.incidentOptionLists.accidentTypes.filter((it) => it.id !== id),
+          },
+        })),
+
       // Computed
       getRecentDrafts: () => {
         const state = get()
@@ -817,6 +859,7 @@ export const useAppStore = create<AppState>()(
         inspections: state.inspections,
         livrables: state.livrables,
         projects: state.projects,
+        incidentOptionLists: state.incidentOptionLists,
         livrableOptionLists: state.livrableOptionLists,
         // Auth data - persist for offline use
         authUsers: state.authUsers,

@@ -108,6 +108,7 @@ export interface Incident {
   number: string
   title: string
   projectId: string
+  projectNumber?: string
   creatorId: string
   location: string
   date: string // new field for form/report date

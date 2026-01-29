@@ -166,7 +166,7 @@ export default function IncidentsPage() {
           <div className="space-y-4">
             {filtered.map((incident) => {
               const project = projects.find((p) => p.id === incident.projectId)
-              const projectNumber = project?.code || "-"
+              const projectNumber = (incident as any).projectNumber || project?.code || "-"
               const projectDisplay = (incident.projectId || "").trim() || project?.name || "-"
               const priority = (incident as any).priority as string | undefined
               return (

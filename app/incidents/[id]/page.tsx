@@ -25,12 +25,23 @@ import { toast } from "sonner"
 import { useAppStore } from "@/lib/store"
 import { cn, distanceToNowLocalized, formatLocalized } from "@/lib/utils"
 
-const statusVariants = {
-  draft: "bg-muted text-muted-foreground",
-  submitted: "bg-primary/10 text-primary",
-  open: "bg-warning/10 text-warning-foreground",
-  closed: "bg-accent/10 text-accent",
-  "in-progress": "bg-info/10 text-info",
+const STATUS_BADGE: Record<string, string> = {
+  submitted: "bg-[#1865E6] text-white",
+  draft: "bg-[#F28705] text-white",
+  "in-progress": "bg-[#F28705] text-white",
+  open: "bg-[#051DF7] text-white",
+  closed: "bg-[#05F719] text-white",
+}
+
+const getStatusTranslationKey = (status: string): string => {
+  const statusMap: Record<string, string> = {
+    "draft": "status.draft",
+    "open": "status.open",
+    "in-progress": "status.inProgress",
+    "closed": "status.closed",
+    "submitted": "status.submitted",
+  }
+  return statusMap[status] || `status.${status}`
 }
 
 export default function IncidentDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -74,14 +85,14 @@ export default function IncidentDetailPage({ params }: { params: Promise<{ id: s
       <div id="form-detail" className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto space-y-6">
         {/* Header info */}
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-destructive/10">
-            <AlertTriangle className="h-6 w-6 text-destructive" />
+          <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-[#F70505]">
+            <AlertTriangle className="h-6 w-6 text-white" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="font-mono text-sm text-muted-foreground">{incident.number}</span>
-              <Badge variant="secondary" className={cn(statusVariants[incident.status])}>
-                {t(`status.${incident.status}` as any)}
+              <Badge variant="secondary" className={cn("text-xs", STATUS_BADGE[incident.status] || "bg-[#F28705] text-white")}>
+                {t(getStatusTranslationKey(incident.status) as any)}
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
@@ -97,7 +108,15 @@ export default function IncidentDetailPage({ params }: { params: Promise<{ id: s
               <Building className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-xs text-muted-foreground">{t("form.project")}</p>
-                <p className="font-medium">{project?.name || "-"}</p>
+                <p className="font-medium">{incident.projectId || "-"}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+              <Building className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-xs text-muted-foreground">{t("observation.projectNumber")}</p>
+                <p className="font-medium">{(incident as any).projectNumber || project?.code || "-"}</p>
               </div>
             </div>
 
