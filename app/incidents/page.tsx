@@ -17,11 +17,20 @@ import { cn } from "@/lib/utils"
 import { AppShell } from "@/components/app-shell"
 import { toast } from "sonner"
 
-const statusVariants: Record<string, string> = {
-  draft: "bg-blue-500 text-white",
-  open: "bg-red-500 text-white",
-  "in-progress": "bg-yellow-500 text-white",
-  closed: "bg-green-600 text-white",
+// Exact badge colors requested (see reference screenshot)
+const STATUS_BADGE: Record<string, string> = {
+  submitted: "bg-[#1865E6] text-white",
+  draft: "bg-[#F28705] text-white",
+  "in-progress": "bg-[#F28705] text-white",
+  open: "bg-[#051DF7] text-white",
+  closed: "bg-[#05F719] text-white",
+}
+
+const PRIORITY_BADGE: Record<string, string> = {
+  low: "bg-[#05F719] text-white",
+  medium: "bg-[#F28705] text-white",
+  high: "bg-[#F28705] text-white",
+  critical: "bg-[#F70505] text-white",
 }
 
 // Helper function to convert status key to translation key
@@ -60,6 +69,14 @@ export default function IncidentsPage() {
       console.error("PDF export error:", error)
       toast.error("Failed to export incident as PDF")
     }
+  }
+
+  const formatIncidentEventDate = (incident: any) => {
+    const raw = incident?.eventDate
+    if (!raw) return "-"
+    const d = new Date(raw)
+    if (Number.isNaN(d.getTime())) return "-"
+    return format(d, "MMM d")
   }
 
   return (
@@ -149,19 +166,27 @@ export default function IncidentsPage() {
           <div className="space-y-4">
             {filtered.map((incident) => {
               const project = projects.find((p) => p.id === incident.projectId)
+              const projectNumber = project?.code || "-"
+              const projectDisplay = (incident.projectId || "").trim() || project?.name || "-"
+              const priority = (incident as any).priority as string | undefined
               return (
                 <Card key={incident.id} className="hover:shadow-lg transition-shadow">
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4 mb-4">
-                      <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-destructive/10 shrink-0">
-                        <AlertTriangle className="h-6 w-6 text-destructive" />
+                      <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-[#F70505] shrink-0">
+                        <AlertTriangle className="h-6 w-6 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="font-semibold">{incident.title || incident.number}</span>
-                          <Badge variant="secondary" className={cn("text-xs", statusVariants[incident.status])}>
+                          <Badge variant="secondary" className={cn("text-xs", STATUS_BADGE[incident.status] || "bg-[#F28705] text-white")}>
                             {t(getStatusTranslationKey(incident.status) as any)}
                           </Badge>
+                          {priority && (
+                            <Badge variant="secondary" className={cn("text-xs", PRIORITY_BADGE[priority] || "bg-[#F28705] text-white")}>
+                              {t(`priority.${priority}` as any)}
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground">{incident.number}</p>
                         {project && <p className="text-xs text-muted-foreground mt-1">{project.name}</p>}
@@ -170,18 +195,22 @@ export default function IncidentsPage() {
 
                     <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{incident.description}</p>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4 text-xs">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4 text-xs">
                       <div>
-                        <span className="text-muted-foreground">{t("field.type")}</span>
+                        <span className="text-muted-foreground">{t("observation.projectNumber")}</span>
+                        <p className="font-medium">{projectNumber}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">{t("incident.accidentType")}</span>
                         <p className="font-medium">{incident.accidentType}</p>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">{t("field.eventDate")}</span>
-                        <p className="font-medium">{format(new Date(incident.eventDate), "MMM d")}</p>
+                        <span className="text-muted-foreground">{t("incident.eventDate")}</span>
+                        <p className="font-medium">{formatIncidentEventDate(incident)}</p>
                       </div>
                       <div>
                         <span className="text-muted-foreground">{t("form.project")}</span>
-                        <p className="font-medium">{project?.name || "-"}</p>
+                        <p className="font-medium">{projectDisplay}</p>
                       </div>
                     </div>
 

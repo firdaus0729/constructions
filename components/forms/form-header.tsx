@@ -9,12 +9,13 @@ interface FormHeaderProps {
   title: string
   backHref?: string
   onSaveDraft?: () => void
+  saveDraftLabel?: string
   onExportPdf?: () => void
   onEdit?: () => void
   isSaving?: boolean
 }
 
-export function FormHeader({ title, backHref, onSaveDraft, onExportPdf, onEdit, isSaving }: FormHeaderProps) {
+export function FormHeader({ title, backHref, onSaveDraft, saveDraftLabel, onExportPdf, onEdit, isSaving }: FormHeaderProps) {
   const { t } = useLocale()
   const resolvedBackHref = backHref ?? "/"
 
@@ -46,7 +47,7 @@ export function FormHeader({ title, backHref, onSaveDraft, onExportPdf, onEdit, 
           {onSaveDraft && (
             <Button variant="outline" size="sm" onClick={onSaveDraft} disabled={isSaving}>
               <Save className="h-4 w-4 mr-2" />
-              {t("form.saveDraft")}
+              {saveDraftLabel ?? t("form.saveDraft")}
             </Button>
           )}
         </div>

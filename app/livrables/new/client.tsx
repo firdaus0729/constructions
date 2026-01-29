@@ -316,8 +316,9 @@ export default function NewLivrablePage() {
   }, [formData.linkedDrawings])
 
   const addDrawingLink = useCallback(() => {
-    const url = newDrawingLink.trim()
-    if (!url) return
+    const raw = newDrawingLink.trim()
+    if (!raw) return
+    const url = raw.includes("://") ? raw : `https://${raw}`
     try {
       // Accept http(s) URLs only
       const parsed = new URL(url)

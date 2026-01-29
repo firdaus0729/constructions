@@ -18,11 +18,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useLocale } from "@/lib/locale-context"
 import { useAppStore } from "@/lib/store"
 import type { Attachment, FormStatus, LivrableWorkflowStep } from "@/lib/types"
 import { collectEmailAddresses, sendFormNotificationEmails } from "@/lib/email-service"
-import { Mail, X } from "lucide-react"
+import { GripVertical, Mail, X } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 const toDateInput = (d: any) => {
@@ -43,8 +44,14 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
 
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>(() => {
     if (!livrable?.distribution) return []
-    // distribution is stored as AuthUser IDs
-    return livrable.distribution.filter((uid) => authUsers.some((u) => u.id === uid))
+    // distribution may be stored as AuthUser IDs (preferred) or legacy emails
+    return livrable.distribution
+      .map((v) => {
+        if (!v) return null
+        if (v.includes("@")) return authUsers.find((u) => u.email === v)?.id || null
+        return authUsers.some((u) => u.id === v) ? v : null
+      })
+      .filter(Boolean) as string[]
   })
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([])
   const [sendNotifications, setSendNotifications] = useState(true)
@@ -99,6 +106,27 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
 
   const [errors, setErrors] = useState<Record<string, string>>({})
 
+  const addWorkflowStep = () => {
+    const newStep: LivrableWorkflowStep = {
+      id: `step-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      step: workflowSteps.length + 1,
+      name: "",
+      role: "",
+      dueDate: null,
+    }
+    setWorkflowSteps((prev) => [...prev, newStep])
+  }
+
+  const removeWorkflowStep = (stepId: string) => {
+    setWorkflowSteps((prev) =>
+      prev.filter((s) => s.id !== stepId).map((s, idx) => ({ ...s, step: idx + 1 })),
+    )
+  }
+
+  const updateWorkflowStep = (stepId: string, updates: Partial<LivrableWorkflowStep>) => {
+    setWorkflowSteps((prev) => prev.map((s) => (s.id === stepId ? { ...s, ...updates } : s)))
+  }
+
   const handleFieldChange = useCallback(
     (field: string, value: any) => {
       setFormData((prev) => ({ ...prev, [field]: value }))
@@ -120,8 +148,9 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
   }, [formData.linkedDrawings])
 
   const addDrawingLink = useCallback(() => {
-    const url = newDrawingLink.trim()
-    if (!url) return
+    const raw = newDrawingLink.trim()
+    if (!raw) return
+    const url = raw.includes("://") ? raw : `https://${raw}`
     try {
       const parsed = new URL(url)
       if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return
@@ -276,7 +305,8 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
       <FormHeader
         title={t("form.edit")}
         backHref={`/livrables/${id}`}
-        onSaveDraft={() => onSave("draft")}
+        onSaveDraft={() => onSave(formData.status)}
+        saveDraftLabel={t("action.save")}
         isSaving={isSaving}
       />
 
@@ -293,6 +323,39 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField label={t("form.title")} required className="md:col-span-2" error={errors.title}>
                 <Input value={formData.title} onChange={(e) => handleFieldChange("title", e.target.value)} className="h-12" />
+              </FormField>
+
+              {/* Spec Section */}
+              <FormField label={t("submittal.specSection")}>
+                <Select value={formData.specSection} onValueChange={(v) => handleFieldChange("specSection", v)}>
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder={t("submittal.selectSpecSection")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="section1">Section 1</SelectItem>
+                    <SelectItem value="section2">Section 2</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormField>
+
+              {/* Number & Revision */}
+              <FormField
+                label={`${t("livrable.number")} & ${t("livrable.revision")} *`}
+                required
+                error={errors.numberValue || errors.revision}
+              >
+                <div className="flex gap-2">
+                  <Input
+                    value={formData.numberValue}
+                    onChange={(e) => handleFieldChange("numberValue", e.target.value)}
+                    className={`h-12 flex-1 ${errors.numberValue ? "border-destructive" : ""}`}
+                  />
+                  <Input
+                    value={formData.revision}
+                    onChange={(e) => handleFieldChange("revision", e.target.value)}
+                    className={`h-12 w-24 ${errors.revision ? "border-destructive" : ""}`}
+                  />
+                </div>
               </FormField>
 
               <FormField label={t("form.project")} required error={errors.projectId}>
@@ -341,6 +404,79 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
                   onChange={(v) => handleFieldChange("submittalPackage", v)}
                   placeholder={t("livrable.selectLivrablePackage")}
                 />
+              </FormField>
+
+              {/* Responsible Contractor */}
+              <FormField label={t("submittal.responsibleContractor")}>
+                <Select value={formData.responsibleContractor} onValueChange={(v) => handleFieldChange("responsibleContractor", v)}>
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder={t("submittal.selectContractor")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {authUsers.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+
+              {/* Received From */}
+              <FormField label={t("livrable.receivedFrom")}>
+                <Select value={formData.receivedFrom} onValueChange={(v) => handleFieldChange("receivedFrom", v)}>
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder={t("livrable.selectReceivedFrom")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {authUsers.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+
+              {/* Livrable Manager */}
+              <FormField label={`${t("livrable.livrableManager")} *`} required error={errors.submittalManager}>
+                <Select value={formData.submittalManager} onValueChange={(v) => handleFieldChange("submittalManager", v)}>
+                  <SelectTrigger className={`h-12 ${errors.submittalManager ? "border-destructive" : ""}`}>
+                    <SelectValue placeholder={t("livrable.selectLivrableManager")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {authUsers.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+
+              {/* Created By */}
+              <FormField label={t("form.createdBy")}>
+                <Input value={authUsers.find((u) => u.id === formData.creatorId)?.name || currentUser?.name || ""} disabled className="h-12 bg-muted" />
+              </FormField>
+
+              {/* Submit By */}
+              <FormField label={t("livrable.submitBy")}>
+                <Input type="date" value={formData.submitBy} onChange={(e) => handleFieldChange("submitBy", e.target.value)} className="h-12" />
+              </FormField>
+
+              {/* Received Date */}
+              <FormField label={t("submittal.receivedDate")}>
+                <Input type="date" value={formData.receivedDate} onChange={(e) => handleFieldChange("receivedDate", e.target.value)} className="h-12" />
+              </FormField>
+
+              {/* Issue Date */}
+              <FormField label={t("livrable.issueDate")}>
+                <Input type="date" value={formData.issueDate} onChange={(e) => handleFieldChange("issueDate", e.target.value)} className="h-12" />
+              </FormField>
+
+              {/* Final Due Date */}
+              <FormField label={t("submittal.finalDueDate")}>
+                <Input type="date" value={formData.finalDueDate} onChange={(e) => handleFieldChange("finalDueDate", e.target.value)} className="h-12" />
               </FormField>
 
               <FormField label={t("livrable.costCode")}>
@@ -393,20 +529,224 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
                 </div>
               </FormField>
 
-              <div className="md:col-span-2">
-                <FormField label={t("form.description")}>
-                  <Textarea value={formData.description} onChange={(e) => handleFieldChange("description", e.target.value)} rows={6} />
-                </FormField>
-              </div>
-
-              <div className="md:col-span-2">
-                <AttachmentUpload attachments={formData.attachments} onChange={(atts) => handleFieldChange("attachments", atts)} />
-              </div>
+              {/* Ball In Court */}
+              <FormField label={t("livrable.ballInCourt")} className="md:col-span-2">
+                <Input value={formData.ballInCourt} onChange={(e) => handleFieldChange("ballInCourt", e.target.value)} className="h-12" />
+              </FormField>
 
               <div className="md:col-span-2 flex items-center gap-2 p-4 bg-muted/50 rounded-lg">
                 <Switch checked={formData.isPrivate} onCheckedChange={(checked) => handleFieldChange("isPrivate", checked)} />
                 <Label className="cursor-pointer">{t("livrable.isPrivate")}</Label>
                 <span className="text-sm text-muted-foreground">{t("livrable.isPrivateDesc")}</span>
+              </div>
+            </div>
+          </FormSection>
+
+          {/* Informations sur le calendrier de livrable */}
+          <FormSection title={t("submittal.scheduleInfo")} collapsible={true} defaultOpen={false}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField label={t("livrable.scheduleTask")} className="md:col-span-2">
+                <LivrableCrudCombobox
+                  listKey="scheduleTasks"
+                  value={formData.scheduleTask}
+                  onChange={(v) => handleFieldChange("scheduleTask", v)}
+                  placeholder={t("livrable.selectScheduleTask")}
+                />
+              </FormField>
+
+              <FormField label={t("submittal.requiredOnSiteDate")}>
+                <Input
+                  type="date"
+                  value={formData.requiredOnSiteDate}
+                  onChange={(e) => handleFieldChange("requiredOnSiteDate", e.target.value)}
+                  className="h-12"
+                />
+              </FormField>
+
+              <FormField label={t("livrable.leadTime")}>
+                <div className="flex gap-2 items-center">
+                  <Input
+                    type="number"
+                    value={formData.leadTime}
+                    onChange={(e) => handleFieldChange("leadTime", Number.parseInt(e.target.value) || 0)}
+                    className="h-12"
+                  />
+                  <span className="text-sm text-muted-foreground">{t("livrable.leadTimeDays")}</span>
+                </div>
+              </FormField>
+
+              <FormField label={t("submittal.plannedReturnDate")}>
+                <Input
+                  type="date"
+                  value={formData.plannedReturnDate}
+                  onChange={(e) => handleFieldChange("plannedReturnDate", e.target.value)}
+                  className="h-12"
+                />
+              </FormField>
+
+              <FormField label={t("livrable.designTeamReviewTime")}>
+                <div className="flex gap-2 items-center">
+                  <Input
+                    type="number"
+                    value={formData.designTeamReviewTime}
+                    onChange={(e) => handleFieldChange("designTeamReviewTime", Number.parseInt(e.target.value) || 0)}
+                    className="h-12"
+                  />
+                  <span className="text-sm text-muted-foreground">{t("livrable.designTeamReviewTimeDays")}</span>
+                </div>
+              </FormField>
+
+              <FormField label={t("submittal.plannedInternalReviewCompletedDate")}>
+                <Input
+                  type="date"
+                  value={formData.plannedInternalReviewCompletedDate}
+                  onChange={(e) => handleFieldChange("plannedInternalReviewCompletedDate", e.target.value)}
+                  className="h-12"
+                />
+              </FormField>
+
+              <FormField label={t("livrable.internalReviewTime")}>
+                <div className="flex gap-2 items-center">
+                  <Input
+                    type="number"
+                    value={formData.internalReviewTime}
+                    onChange={(e) => handleFieldChange("internalReviewTime", Number.parseInt(e.target.value) || 0)}
+                    className="h-12"
+                  />
+                  <span className="text-sm text-muted-foreground">{t("livrable.internalReviewTimeDays")}</span>
+                </div>
+              </FormField>
+
+              <FormField label={t("submittal.plannedSubmitByDate")}>
+                <Input
+                  type="date"
+                  value={formData.plannedSubmitByDate}
+                  onChange={(e) => handleFieldChange("plannedSubmitByDate", e.target.value)}
+                  className="h-12"
+                />
+              </FormField>
+            </div>
+          </FormSection>
+
+          {/* Delivery Information */}
+          <FormSection title={t("livrable.deliveryInfo")} collapsible={true} defaultOpen={false}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField label={t("submittal.anticipatedDeliveryDate")}>
+                <Input
+                  type="date"
+                  value={formData.anticipatedDeliveryDate}
+                  onChange={(e) => handleFieldChange("anticipatedDeliveryDate", e.target.value)}
+                  className="h-12"
+                />
+              </FormField>
+              <FormField label={t("livrable.confirmedDeliveryDate")}>
+                <Input
+                  type="date"
+                  value={formData.confirmedDeliveryDate}
+                  onChange={(e) => handleFieldChange("confirmedDeliveryDate", e.target.value)}
+                  className="h-12"
+                />
+              </FormField>
+              <FormField label={t("submittal.actualDeliveryDate")}>
+                <Input
+                  type="date"
+                  value={formData.actualDeliveryDate}
+                  onChange={(e) => handleFieldChange("actualDeliveryDate", e.target.value)}
+                  className="h-12"
+                />
+              </FormField>
+            </div>
+          </FormSection>
+
+          {/* Workflow */}
+          <FormSection title={t("livrable.workflow")} collapsible={true} defaultOpen={false}>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">{t("submittal.workflowDescription")}</p>
+
+              <FormField label={t("submittal.workflowTemplate")}>
+                <Select value={formData.workflowTemplate} onValueChange={(v) => handleFieldChange("workflowTemplate", v)}>
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder={t("submittal.selectWorkflowTemplate")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="template1">Template 1</SelectItem>
+                    <SelectItem value="template2">Template 2</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormField>
+
+              {workflowSteps.length > 0 && (
+                <div className="border rounded-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-12" />
+                        <TableHead>{t("livrable.step")}</TableHead>
+                        <TableHead>{t("livrable.stepName")}</TableHead>
+                        <TableHead>{t("livrable.stepRole")}</TableHead>
+                        <TableHead>{t("livrable.stepDueDate")}</TableHead>
+                        <TableHead className="w-12" />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {workflowSteps.map((step) => (
+                        <TableRow key={step.id}>
+                          <TableCell>
+                            <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
+                          </TableCell>
+                          <TableCell>{step.step}</TableCell>
+                          <TableCell>
+                            <Input
+                              value={step.name}
+                              onChange={(e) => updateWorkflowStep(step.id, { name: e.target.value })}
+                              placeholder={t("livrable.stepName")}
+                              className="h-9"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={step.role}
+                              onChange={(e) => updateWorkflowStep(step.id, { role: e.target.value })}
+                              placeholder={t("livrable.stepRole")}
+                              className="h-9"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="date"
+                              value={step.dueDate ? new Date(step.dueDate).toISOString().split("T")[0] : ""}
+                              onChange={(e) =>
+                                updateWorkflowStep(step.id, { dueDate: e.target.value ? new Date(e.target.value) : null })
+                              }
+                              className="h-9"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Button type="button" variant="ghost" size="icon" onClick={() => removeWorkflowStep(step.id)} className="h-9 w-9">
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              <Button type="button" variant="outline" onClick={addWorkflowStep} className="w-full">
+                {t("submittal.addStep")}
+              </Button>
+            </div>
+          </FormSection>
+
+          {/* Description + Attachments */}
+          <FormSection title={t("form.description")} collapsible={true} defaultOpen={true}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField label={t("form.description")} className="col-span-1">
+                <Textarea value={formData.description} onChange={(e) => handleFieldChange("description", e.target.value)} rows={8} className="min-h-50" />
+              </FormField>
+              <div className="col-span-1 flex flex-col gap-2">
+                <AttachmentUpload attachments={formData.attachments} onChange={(atts) => handleFieldChange("attachments", atts)} />
               </div>
             </div>
           </FormSection>

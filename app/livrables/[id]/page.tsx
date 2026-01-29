@@ -22,11 +22,22 @@ const statusVariants = {
   "in-progress": "bg-info/10 text-info",
 }
 
+const getStatusTranslationKey = (status: string): string => {
+  const statusMap: Record<string, string> = {
+    "draft": "status.draft",
+    "open": "status.open",
+    "in-progress": "status.inProgress",
+    "closed": "status.closed",
+    "submitted": "status.submitted",
+  }
+  return statusMap[status] || `status.${status}`
+}
+
 export default function LivrableDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
   const { t, locale } = useLocale()
-  const { livrables, projects, users } = useAppStore()
+  const { livrables, projects, users, authUsers } = useAppStore()
 
   const livrable = livrables.find((s) => s.id === id)
 
@@ -42,6 +53,25 @@ export default function LivrableDetailPage({ params }: { params: Promise<{ id: s
 
   const project = projects.find((p) => p.id === livrable.projectId)
   const creator = users.find((u) => u.id === livrable.creatorId)
+  const userNameById = (idOrEmail: string | undefined) => {
+    if (!idOrEmail) return "-"
+    if (idOrEmail.includes("@")) return idOrEmail
+    return authUsers.find((u) => u.id === idOrEmail)?.name || idOrEmail
+  }
+  const distributionNames =
+    (livrable.distribution || [])
+      .map((v: string) => {
+        if (!v) return null
+        if (v.includes("@")) return v
+        return userNameById(v)
+      })
+      .filter(Boolean) as string[]
+
+  const linkLines =
+    String(livrable.linkedDrawings || "")
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean)
 
   return (
     <AppShell>
@@ -70,7 +100,7 @@ export default function LivrableDetailPage({ params }: { params: Promise<{ id: s
             <div className="flex items-center gap-2">
               <span className="font-mono text-sm text-muted-foreground">{livrable.number}</span>
               <Badge variant="secondary" className={cn(statusVariants[livrable.status])}>
-                {t(`status.${livrable.status}` as any)}
+                {t(getStatusTranslationKey(livrable.status) as any)}
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
@@ -108,6 +138,16 @@ export default function LivrableDetailPage({ params }: { params: Promise<{ id: s
               </div>
             )}
 
+            {livrable.submittalPackage && (
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                <FileText className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">{t("livrable.livrablePackage")}</p>
+                  <p className="font-medium">{livrable.submittalPackage || "-"}</p>
+                </div>
+              </div>
+            )}
+
             {livrable.receivedDate && (
               <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
                 <Calendar className="h-5 w-5 text-muted-foreground" />
@@ -117,7 +157,167 @@ export default function LivrableDetailPage({ params }: { params: Promise<{ id: s
                 </div>
               </div>
             )}
+
+            {livrable.costCode && (
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                <FileText className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">{t("livrable.costCode")}</p>
+                  <p className="font-medium">{livrable.costCode}</p>
+                </div>
+              </div>
+            )}
+
+            {livrable.location && (
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                <FileText className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">{t("livrable.location")}</p>
+                  <p className="font-medium">{livrable.location}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+              <FileText className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-xs text-muted-foreground">{t("livrable.number")} / {t("livrable.revision")}</p>
+                <p className="font-medium">{livrable.numberValue || "-"} / {livrable.revision || "-"}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+              <User className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-xs text-muted-foreground">{t("livrable.livrableManager")}</p>
+                <p className="font-medium">{userNameById(livrable.submittalManager)}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+              <User className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-xs text-muted-foreground">{t("submittal.responsibleContractor")}</p>
+                <p className="font-medium">{userNameById(livrable.responsibleContractor)}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+              <User className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-xs text-muted-foreground">{t("livrable.receivedFrom")}</p>
+                <p className="font-medium">{userNameById(livrable.receivedFrom)}</p>
+              </div>
+            </div>
+
+            {livrable.ballInCourt && (
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg md:col-span-2">
+                <FileText className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">{t("livrable.ballInCourt")}</p>
+                  <p className="font-medium">{livrable.ballInCourt}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+              <FileText className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-xs text-muted-foreground">{t("livrable.isPrivate")}</p>
+                <p className="font-medium">{livrable.isPrivate ? t("action.yes") : t("action.no")}</p>
+              </div>
+            </div>
           </div>
+        </FormSection>
+
+        {/* Dates */}
+        <FormSection title={t("section.details")}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="text-xs text-muted-foreground">{t("livrable.submitBy")}</p>
+              <p className="font-medium">{livrable.submitBy ? formatLocalized(new Date(livrable.submitBy), "MMMM d, yyyy", locale) : "-"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">{t("submittal.finalDueDate")}</p>
+              <p className="font-medium">{livrable.finalDueDate ? formatLocalized(new Date(livrable.finalDueDate), "MMMM d, yyyy", locale) : "-"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">{t("livrable.issueDate")}</p>
+              <p className="font-medium">{livrable.issueDate ? formatLocalized(new Date(livrable.issueDate), "MMMM d, yyyy", locale) : "-"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">{t("submittal.receivedDate")}</p>
+              <p className="font-medium">{livrable.receivedDate ? formatLocalized(new Date(livrable.receivedDate), "MMMM d, yyyy", locale) : "-"}</p>
+            </div>
+          </div>
+        </FormSection>
+
+        {/* Schedule */}
+        <FormSection title={t("submittal.scheduleInfo")}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="text-xs text-muted-foreground">{t("livrable.scheduleTask")}</p>
+              <p className="font-medium">{livrable.scheduleTask || "-"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">{t("submittal.requiredOnSiteDate")}</p>
+              <p className="font-medium">{livrable.requiredOnSiteDate ? formatLocalized(new Date(livrable.requiredOnSiteDate), "MMMM d, yyyy", locale) : "-"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">{t("livrable.leadTime")}</p>
+              <p className="font-medium">{typeof livrable.leadTime === "number" ? `${livrable.leadTime}` : "-"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">{t("submittal.plannedReturnDate")}</p>
+              <p className="font-medium">{livrable.plannedReturnDate ? formatLocalized(new Date(livrable.plannedReturnDate), "MMMM d, yyyy", locale) : "-"}</p>
+            </div>
+          </div>
+        </FormSection>
+
+        {/* Delivery */}
+        <FormSection title={t("livrable.deliveryInfo")}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="text-xs text-muted-foreground">{t("submittal.anticipatedDeliveryDate")}</p>
+              <p className="font-medium">{livrable.anticipatedDeliveryDate ? formatLocalized(new Date(livrable.anticipatedDeliveryDate), "MMMM d, yyyy", locale) : "-"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">{t("livrable.confirmedDeliveryDate")}</p>
+              <p className="font-medium">{livrable.confirmedDeliveryDate ? formatLocalized(new Date(livrable.confirmedDeliveryDate), "MMMM d, yyyy", locale) : "-"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">{t("submittal.actualDeliveryDate")}</p>
+              <p className="font-medium">{livrable.actualDeliveryDate ? formatLocalized(new Date(livrable.actualDeliveryDate), "MMMM d, yyyy", locale) : "-"}</p>
+            </div>
+          </div>
+        </FormSection>
+
+        {/* Linked Drawings */}
+        <FormSection title={t("livrable.linkedDrawings")}>
+          {linkLines.length > 0 ? (
+            <div className="space-y-2">
+              {linkLines.map((u) => (
+                <a key={u} href={u} target="_blank" rel="noreferrer" className="block text-sm text-primary underline break-all">
+                  {u}
+                </a>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">-</p>
+          )}
+        </FormSection>
+
+        {/* Distribution */}
+        <FormSection title={t("form.distribution")}>
+          {distributionNames.length > 0 ? (
+            <ul className="list-disc pl-5 space-y-1 text-sm">
+              {distributionNames.map((n) => (
+                <li key={n}>{n}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">-</p>
+          )}
         </FormSection>
 
         {/* Description */}
