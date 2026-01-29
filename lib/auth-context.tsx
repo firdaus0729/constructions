@@ -48,10 +48,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push("/login")
   }, [_hasHydrated, currentAuthUserId, sessionExpiresAt, setCurrentAuthUserId, setSessionExpiresAt, router])
 
-  // Redirect to login only when not authenticated, and only after hydration (so refresh keeps you logged in)
+  // Redirect logic:
+  // - If on /login and already authenticated, send to dashboard
+  // - Otherwise, if not authenticated, send to /login
   useEffect(() => {
     if (!_hasHydrated) return
-    if (pathname?.startsWith("/login") || pathname?.startsWith("/api")) return
+    if (pathname?.startsWith("/api")) return
+
+    if (pathname?.startsWith("/login")) {
+      if (isAuthenticated) {
+        router.replace("/")
+      }
+      return
+    }
+
     if (!isAuthenticated) {
       router.push("/login")
     }

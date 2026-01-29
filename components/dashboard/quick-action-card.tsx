@@ -10,9 +10,17 @@ interface QuickActionCardProps {
   href: string
   icon: LucideIcon
   variant?: "primary" | "secondary" | "accent" | "warning"
+  iconClassName?: string
 }
 
-export function QuickActionCard({ title, description, href, icon: Icon, variant = "primary" }: QuickActionCardProps) {
+export function QuickActionCard({
+  title,
+  description,
+  href,
+  icon: Icon,
+  variant = "primary",
+  iconClassName,
+}: QuickActionCardProps) {
   return (
     <Link
       href={href}
@@ -37,6 +45,7 @@ export function QuickActionCard({ title, description, href, icon: Icon, variant 
           variant === "accent" && "bg-accent/10 text-accent group-hover:bg-accent group-hover:text-accent-foreground",
           variant === "warning" &&
             "bg-destructive/10 text-destructive group-hover:bg-destructive group-hover:text-destructive-foreground",
+          iconClassName,
         )}
       >
         <Icon className="h-7 w-7" />

@@ -638,6 +638,7 @@ const translations = {
     "password": "Password",
     "passwordPlaceholder": "••••••••",
     "loggingIn": "Logging in...",
+    "loginSuccess": "Login successful. Redirecting...",
     "logout": "Logout",
     "demoCredentials": "Demo Credentials",
     "demoCredentialsDescription": "Try these accounts to explore the application",
@@ -712,8 +713,9 @@ const translations = {
 
     // Dashboard
     "dashboard.title": "INTERLAG",
-    "dashboard.subtitle": "Gérer les inspections, observations, incidents et soumissions",
+    "dashboard.subtitle": "Gérer les inspections, observations, incidents et livrables",
     "dashboard.newSubmittal": "Nouvelle soumission",
+    "dashboard.newLivrable": "Nouveau livrable",
     "dashboard.newInspection": "Nouvelle inspection",
     "dashboard.newObservation": "Nouvelle observation",
     "dashboard.newIncident": "Nouvel incident",
@@ -1339,6 +1341,7 @@ const translations = {
     "password": "Mot de passe",
     "passwordPlaceholder": "••••••••",
     "loggingIn": "Connexion en cours...",
+    "loginSuccess": "Connexion réussie. Redirection...",
     "logout": "Déconnexion",
     "demoCredentials": "Identifiants de démonstration",
     "demoCredentialsDescription": "Essayez ces comptes pour explorer l'application",

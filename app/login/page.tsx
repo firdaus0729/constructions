@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useLocale } from "@/lib/locale-context"
-import { Lock, Mail, AlertCircle, Info } from "lucide-react"
+import { Lock, Mail } from "lucide-react"
+import { toast } from "sonner"
 
 export const dynamic = 'force-dynamic'
 
@@ -35,7 +36,10 @@ export default function LoginPage() {
       }
 
       // Hash password for comparison (simple base64 for demo)
-      const passwordHash = Buffer.from(password).toString("base64")
+      const passwordHash =
+        typeof window !== "undefined" && typeof window.btoa === "function"
+          ? window.btoa(password)
+          : password
       if (user.passwordHash !== passwordHash) {
         setError(t("invalidCredentials"))
         setIsLoading(false)
@@ -44,6 +48,7 @@ export default function LoginPage() {
 
       setCurrentAuthUserId(user.id)
       setSessionExpiresAt(Date.now() + SESSION_DURATION_MS)
+      toast.success(t("loginSuccess" as any))
       router.push("/")
     } catch (err) {
       setError(t("loginError"))

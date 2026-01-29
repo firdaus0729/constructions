@@ -85,17 +85,6 @@ export function SyncStatusBanner() {
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
-        {isOnline && pendingChanges > 0 && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={syncNow}
-            disabled={isSyncing}
-            className="whitespace-nowrap shrink-0"
-          >
-            {isSyncing ? t("sync.syncing") : t("sync.syncNow")}
-          </Button>
-        )}
         <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setDismissed(true)}>
           <X className="h-4 w-4" />
         </Button>

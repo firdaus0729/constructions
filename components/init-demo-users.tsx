@@ -19,8 +19,13 @@ export function InitDemoUsers() {
     initialized.current = true
     
     // Simple hash function for demo purposes (NOT production-grade)
+    // Uses browser btoa for a stable base64 encoding
     const simpleHash = (password: string) => {
-      return Buffer.from(password).toString("base64")
+      if (typeof window !== "undefined" && typeof window.btoa === "function") {
+        return window.btoa(password)
+      }
+      // Fallback (shouldn't happen in client components)
+      return password
     }
 
     // Define demo users with .app email domain

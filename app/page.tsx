@@ -36,13 +36,21 @@ export default function DashboardPage() {
             href="/inspections/new"
             icon={ClipboardCheck}
             variant="primary"
+            iconClassName="bg-[#051DF7] text-white"
           />
-          <QuickActionCard title={t("dashboard.newObservation")} href="/observations/new" icon={Eye} variant="accent" />
+          <QuickActionCard
+            title={t("dashboard.newObservation")}
+            href="/observations/new"
+            icon={Eye}
+            variant="accent"
+            iconClassName="bg-[#051DF7] text-white"
+          />
           <QuickActionCard
             title={t("dashboard.newIncident")}
             href="/incidents/new"
             icon={AlertTriangle}
             variant="warning"
+            iconClassName="bg-[#F70505] text-white"
           />
           <QuickActionCard
             title={t("dashboard.newLivrable")}

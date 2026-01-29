@@ -15,17 +15,17 @@ const typeIcons = {
 }
 
 const typeColors = {
-  inspection: "text-primary",
-  observation: "text-info",
-  incident: "text-destructive",
+  inspection: "bg-[#051DF7] text-white",
+  observation: "bg-[#051DF7] text-white",
+  incident: "bg-[#F70505] text-white",
 }
 
 const statusVariants = {
-  draft: "bg-muted text-white",
-  submitted: "bg-primary/10 text-white",
-  open: "bg-warning/10 text-warning-foreground",
-  closed: "bg-accent/10 text-accent",
-  "in-progress": "bg-orange-500 text-white",
+  submitted: "bg-[#1865E6] text-white",
+  draft: "bg-[#F28705] text-white",
+  "in-progress": "bg-[#F28705] text-white",
+  open: "bg-[#051DF7] text-white",
+  closed: "bg-[#05F719] text-white",
 }
 
 interface FormListProps {
@@ -61,7 +61,7 @@ export function FormList({ items, emptyMessage }: FormListProps) {
           >
             <div
               className={cn(
-                "flex items-center justify-center w-10 h-10 rounded-lg bg-muted shrink-0",
+                "flex items-center justify-center w-10 h-10 rounded-lg shrink-0",
                 typeColors[item.type],
               )}
             >
