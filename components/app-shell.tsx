@@ -78,7 +78,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <div className="ml-4 mt-1 flex flex-col gap-1">
                   {item.children.map((child) => {
                     const isChildActive = pathname === child.href || (child.href !== "/" && pathname.startsWith(child.href))
-                    const isObservations = child.href === "/observations"
                     return (
                       <Link
                         key={child.href}
@@ -86,9 +85,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         onClick={onClick}
                         className={cn(
                           "flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
-                          isChildActive && isObservations && "!bg-[#051DF7] text-white hover:!bg-[#051DF7]/90",
-                          isChildActive && !isObservations && "bg-sidebar-accent text-sidebar-accent-foreground",
-                          !isChildActive && "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                          isChildActive
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                         )}
                       >
                         <child.icon className="h-4 w-4 shrink-0" />
