@@ -11,9 +11,12 @@ export function InitDemoUsers() {
   const authUsers = useAppStore((state) => state.authUsers)
   const addAuthUser = useAppStore((state) => state.addAuthUser)
   const deleteAuthUser = useAppStore((state) => state.deleteAuthUser)
+  const hasHydrated = useAppStore((state) => state._hasHydrated)
   const initialized = useRef(false)
 
   useEffect(() => {
+    // Wait for persisted state rehydration; avoids duplicate add attempts and warnings on refresh.
+    if (!hasHydrated) return
     // Prevent double initialization in development (React StrictMode)
     if (initialized.current) return
     initialized.current = true
@@ -76,7 +79,7 @@ export function InitDemoUsers() {
       
       console.log("Demo users initialized/reset successfully")
     }
-  }, []) // Remove dependencies to only run once
+  }, [hasHydrated]) // Run once after hydration
 
   return null
 }

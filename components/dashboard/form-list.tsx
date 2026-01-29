@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
-import { ClipboardCheck, Eye, AlertTriangle, Cloud, CloudOff, ChevronRight } from "lucide-react"
+import { ClipboardCheck, Eye, AlertTriangle, FileText, Cloud, CloudOff, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import type { FormListItem } from "@/lib/types"
@@ -12,12 +12,14 @@ const typeIcons = {
   inspection: ClipboardCheck,
   observation: Eye,
   incident: AlertTriangle,
+  livrable: FileText,
 }
 
 const typeColors = {
   inspection: "bg-[#051DF7] text-white",
   observation: "bg-[#051DF7] text-white",
   incident: "bg-[#F70505] text-white",
+  livrable: "bg-muted text-muted-foreground",
 }
 
 const statusVariants = {
@@ -50,7 +52,7 @@ export function FormList({ items, emptyMessage }: FormListProps) {
   return (
     <div className="divide-y divide-border">
       {items.map((item) => {
-        const Icon = typeIcons[item.type]
+        const Icon = (typeIcons as any)[item.type] || FileText
         const href = `/${item.type}s/${item.id}`
 
         return (
@@ -62,7 +64,7 @@ export function FormList({ items, emptyMessage }: FormListProps) {
             <div
               className={cn(
                 "flex items-center justify-center w-10 h-10 rounded-lg shrink-0",
-                typeColors[item.type],
+                (typeColors as any)[item.type] || "bg-muted text-muted-foreground",
               )}
             >
               <Icon className="h-5 w-5" />
