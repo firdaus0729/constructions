@@ -14,12 +14,23 @@ import { exportInspectionAsPdf } from "@/lib/pdf"
 import { useAppStore, inspectionSections } from "@/lib/store"
 import { cn, distanceToNowLocalized, formatLocalized } from "@/lib/utils"
 
-const statusVariants = {
-  draft: "bg-muted text-muted-foreground",
-  submitted: "bg-primary/10 text-primary",
-  open: "bg-warning/10 text-warning-foreground",
-  closed: "bg-accent/10 text-accent",
-  "in-progress": "bg-info/10 text-info",
+const STATUS_BADGE: Record<string, string> = {
+  submitted: "bg-[#1865E6] text-white",
+  draft: "bg-[#F28705] text-white",
+  "in-progress": "bg-[#F28705] text-white",
+  open: "bg-[#051DF7] text-white",
+  closed: "bg-[#05F719] text-white",
+}
+
+const getStatusTranslationKey = (status: string): string => {
+  const statusMap: Record<string, string> = {
+    draft: "status.draft",
+    "in-progress": "status.inProgress",
+    open: "status.open",
+    closed: "status.closed",
+    submitted: "status.submitted",
+  }
+  return statusMap[status] || `status.${status}`
 }
 
 export default function InspectionDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -82,14 +93,21 @@ export default function InspectionDetailPage({ params }: { params: Promise<{ id:
       <div id="form-detail" className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto space-y-6">
         {/* Header info */}
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10">
-            <ClipboardCheck className="h-6 w-6 text-primary" />
+          <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-[#051DF7]">
+            <ClipboardCheck className="h-6 w-6 text-white" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-mono text-sm text-muted-foreground">{inspection.id.slice(-6).toUpperCase()}</span>
-              <Badge variant="secondary" className={cn(statusVariants[inspection.status])}>
-                {t(`status.${inspection.status}` as any)}
+              <span className="font-mono text-sm text-muted-foreground">
+                {inspection.id.startsWith("INS-")
+                  ? inspection.id
+                  : `INS-${inspection.id.slice(-7).toUpperCase()}`}
+              </span>
+              <Badge
+                variant="secondary"
+                className={cn("text-xs", STATUS_BADGE[inspection.status] || "bg-[#F28705] text-white")}
+              >
+                {t(getStatusTranslationKey(inspection.status) as any)}
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
@@ -108,7 +126,11 @@ export default function InspectionDetailPage({ params }: { params: Promise<{ id:
               <FileText className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-xs text-muted-foreground">{t("inspection.number")}</p>
-                <p className="font-medium font-mono">{inspection.id.slice(0, 8).toUpperCase()}</p>
+                <p className="font-medium font-mono">
+                  {inspection.id.startsWith("INS-")
+                    ? inspection.id
+                    : `INS-${inspection.id.slice(-7).toUpperCase()}`}
+                </p>
               </div>
             </div>
 
@@ -116,7 +138,7 @@ export default function InspectionDetailPage({ params }: { params: Promise<{ id:
               <Building className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-xs text-muted-foreground">{t("observation.projectNumber")}</p>
-                <p className="font-medium">{project?.number || project?.name || "-"}</p>
+                <p className="font-medium">{(inspection as any).projectNumber || project?.code || "-"}</p>
               </div>
             </div>
 

@@ -361,6 +361,7 @@ const translations = {
     "inspection.notApplicable": "N/A",
     "inspection.unanswered": "Unanswered",
     "inspection.notAsked": "Not answered",
+    "inspection.progressLabel": "{percent}% complete",
     "inspection.sections": "Inspection Sections",
     "inspection.instruction": "If not applicable, select N/A for each item",
     "inspection.progress": "Inspection Progress",
@@ -1071,6 +1072,7 @@ const translations = {
     "inspection.projectSelect": "Sélectionner le projet...",
     "inspection.descriptionNotes": "Description/Notes",
     "inspection.itemsChecked": "{checked}/{total} éléments vérifiés",
+    "inspection.progressLabel": "{percent}% complété",
     "inspection.addComment": "Ajouter une action corrective ou des notes...",
 
     // Inspection sections

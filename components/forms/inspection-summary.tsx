@@ -40,7 +40,9 @@ export function InspectionSummary({ sections, responses }: InspectionSummaryProp
         <div className="h-2 bg-muted rounded-full overflow-hidden">
           <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progressPercentage}%` }} />
         </div>
-        <p className="text-xs text-muted-foreground mt-1 text-right">{progressPercentage}% complete</p>
+        <p className="text-xs text-muted-foreground mt-1 text-right">
+          {t("inspection.progressLabel" as any, { percent: progressPercentage })}
+        </p>
       </div>
 
       {/* Stats */}

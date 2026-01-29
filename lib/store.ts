@@ -391,6 +391,11 @@ interface AppState {
   incidentOptionLists: {
     accidentTypes: { id: string; label: string }[]
   }
+
+  // Inspection option lists (editable dropdown options)
+  inspectionOptionLists: {
+    types: { id: string; label: string }[]
+  }
   // Livrable option lists (editable dropdown options)
   livrableOptionLists: {
     types: { id: string; label: string }[]
@@ -473,6 +478,11 @@ interface AppState {
   updateIncidentOption: (id: string, updates: Partial<{ label: string }>) => void
   deleteIncidentOption: (id: string) => void
 
+  // Inspection option lists CRUD
+  addInspectionTypeOption: (item: { id: string; label: string }) => void
+  updateInspectionTypeOption: (id: string, updates: Partial<{ label: string }>) => void
+  deleteInspectionTypeOption: (id: string) => void
+
   // Computed
   getRecentDrafts: () => FormListItem[]
   getRecentSubmissions: () => FormListItem[]
@@ -508,6 +518,15 @@ export const useAppStore = create<AppState>()(
           { id: "caught-in-between", label: "Coincé entre" },
           { id: "electrical", label: "Électrique" },
           { id: "other", label: "Autre" },
+        ],
+      },
+
+      inspectionOptionLists: {
+        types: [
+          { id: "safety", label: "Inspection de sécurité" },
+          { id: "compliance", label: "Vérification de conformité" },
+          { id: "incident-follow-up", label: "Suivi d'incident" },
+          { id: "routine", label: "Contrôle routinier" },
         ],
       },
 
@@ -738,6 +757,29 @@ export const useAppStore = create<AppState>()(
           },
         })),
 
+      // Inspection option lists
+      addInspectionTypeOption: (item) =>
+        set((state) => ({
+          inspectionOptionLists: {
+            ...state.inspectionOptionLists,
+            types: [...state.inspectionOptionLists.types, item],
+          },
+        })),
+      updateInspectionTypeOption: (id, updates) =>
+        set((state) => ({
+          inspectionOptionLists: {
+            ...state.inspectionOptionLists,
+            types: state.inspectionOptionLists.types.map((it) => (it.id === id ? { ...it, ...updates } : it)),
+          },
+        })),
+      deleteInspectionTypeOption: (id) =>
+        set((state) => ({
+          inspectionOptionLists: {
+            ...state.inspectionOptionLists,
+            types: state.inspectionOptionLists.types.filter((it) => it.id !== id),
+          },
+        })),
+
       // Computed
       getRecentDrafts: () => {
         const state = get()
@@ -860,6 +902,7 @@ export const useAppStore = create<AppState>()(
         livrables: state.livrables,
         projects: state.projects,
         incidentOptionLists: state.incidentOptionLists,
+        inspectionOptionLists: state.inspectionOptionLists,
         livrableOptionLists: state.livrableOptionLists,
         // Auth data - persist for offline use
         authUsers: state.authUsers,

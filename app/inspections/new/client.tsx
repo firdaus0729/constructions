@@ -25,6 +25,7 @@ import { useLocale } from "@/lib/locale-context"
 import { sendFormNotificationEmails, collectEmailAddresses } from "@/lib/email-service"
 import { toast } from "sonner"
 import { ProjectNoCombobox } from "@/components/project-no-combobox"
+import { InspectionTypeCrudCombobox } from "@/components/inspection-type-crud-combobox"
 
 export default function NewInspection() {
   const router = useRouter()
@@ -119,8 +120,13 @@ export default function NewInspection() {
           }
         })
 
+        const generateInspectionNumber = () => {
+          const stamp = Date.now().toString(36).toUpperCase()
+          return `INS-${stamp.slice(-7)}`
+        }
+
         const inspection: Inspection = {
-          id: crypto.randomUUID(),
+          id: generateInspectionNumber(),
           documentTitle: formData.documentTitle,
           type: formData.type,
           projectId: formData.projectId,
@@ -361,17 +367,11 @@ export default function NewInspection() {
               required
               error={errors.type}
             >
-              <select
+              <InspectionTypeCrudCombobox
                 value={formData.type}
-                onChange={(e) => setFormData((prev) => ({ ...prev, type: e.target.value }))}
-                className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
-              >
-                <option value="">{t("inspection.selectType")}</option>
-                <option value="safety">{t("inspection.type.safety")}</option>
-                <option value="compliance">{t("inspection.type.compliance")}</option>
-                <option value="incident-follow-up">{t("inspection.type.incidentFollowUp")}</option>
-                <option value="routine">{t("inspection.type.routine")}</option>
-              </select>
+                onChange={(value) => setFormData((prev) => ({ ...prev, type: value }))}
+                placeholder={t("inspection.selectType")}
+              />
             </FormField>
 
             <FormField

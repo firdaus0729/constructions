@@ -17,10 +17,12 @@ import { AppShell } from "@/components/app-shell"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
-const statusVariants: Record<string, string> = {
-  draft: "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
-  "in-progress": "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
-  closed: "bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-200 dark:border-orange-800",
+const STATUS_BADGE: Record<string, string> = {
+  submitted: "bg-[#1865E6] text-white",
+  draft: "bg-[#F28705] text-white",
+  "in-progress": "bg-[#F28705] text-white",
+  open: "bg-[#051DF7] text-white",
+  closed: "bg-[#05F719] text-white",
 }
 
 // Helper function to convert status key to translation key
@@ -105,6 +107,7 @@ export default function InspectionsPage() {
               {[
                 { key: "draft", label: "status.draft" },
                 { key: "in-progress", label: "status.inProgress" },
+                { key: "open", label: "status.open" },
                 { key: "closed", label: "status.closed" }
               ].map((status) => (
                 <Button
@@ -159,20 +162,24 @@ export default function InspectionsPage() {
                   <Card key={inspection.id} className="hover:shadow-lg transition-shadow">
                     <CardContent className="p-6">
                       <div className="flex items-start gap-4 mb-4">
-                        <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-orange-100 dark:bg-orange-900/30 shrink-0">
-                          <ClipboardCheck className="h-6 w-6 text-orange-700 dark:text-orange-200" />
+                        <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-[#051DF7] shrink-0">
+                          <ClipboardCheck className="h-6 w-6 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <h3 className="font-semibold text-base">{inspection.documentTitle}</h3>
                             <Badge
                               variant="secondary"
-                              className={cn("text-xs", statusVariants[inspection.status])}
+                              className={cn("text-xs", STATUS_BADGE[inspection.status] || "bg-[#F28705] text-white")}
                             >
                               {t(getStatusTranslationKey(inspection.status) as any)}
                             </Badge>
                           </div>
-                          <p className="text-xs text-muted-foreground">{inspection.id}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {inspection.id.startsWith("INS-")
+                              ? inspection.id
+                              : `INS-${inspection.id.slice(-7).toUpperCase()}`}
+                          </p>
                           <p className="text-xs text-muted-foreground mt-1">{project?.name || inspection.projectId}</p>
                         </div>
                       </div>

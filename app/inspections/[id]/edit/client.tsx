@@ -26,6 +26,8 @@ import { useAppStore, inspectionSections } from "@/lib/store"
 import type { Inspection, InspectionItemResponse, Attachment } from "@/lib/types"
 import { DistributionSelector } from "@/components/forms"
 import { ProjectNoCombobox } from "@/components/project-no-combobox"
+import { InspectionTypeCrudCombobox } from "@/components/inspection-type-crud-combobox"
+import { sendFormNotificationEmails, collectEmailAddresses } from "@/lib/email-service"
 
 export default function EditInspectionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -130,7 +132,6 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
     if (!formData.documentTitle.trim()) newErrors.documentTitle = t("error.titleRequired")
     if (!formData.type) newErrors.type = t("error.inspectionTypeRequired")
     if (!formData.projectId) newErrors.projectId = t("error.projectRequired")
-    if (completionPercentage < 50) newErrors.completion = t("error.minimumCompletion")
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -141,7 +142,7 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
       e.preventDefault()
 
       if (!validateForm()) {
-        alert(t("alert.completeBeforeSubmit"))
+        toast.error(t("alert.fixErrors"))
         return
       }
 
@@ -197,7 +198,7 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
           createdBy: formData.createdBy || (inspection as any)?.createdBy,
           description: formData.description,
           status: formData.status,
-          distribution: distributionList,
+          distribution: distributionList.map((d) => d.email || "").filter(Boolean),
           responses: responsesArray,
           attachments: formData.attachments,
           updatedAt: new Date(),
@@ -206,14 +207,49 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
 
         updateInspection(id, updatedInspection)
 
-        if (sendNotifications && distributionList.length > 0) {
-          console.log("📧 Email notifications would be sent to:")
-          distributionList.forEach(({ email }) => {
-            if (email) console.log(`   → ${email}`)
-          })
-        }
+        if (sendNotifications) {
+          const recipientEmails = collectEmailAddresses(
+            selectedUserIds,
+            selectedGroupIds,
+            authUsers,
+            userGroups
+          )
 
-        toast.success(t("alert.saveSuccess.inspection"))
+          if (recipientEmails.length > 0) {
+            const project = projects?.find((p) => p.id === formData.projectId)
+
+            const emailResult = await sendFormNotificationEmails(
+              {
+                formType: "inspection",
+                formNumber: updatedInspection.id,
+                formTitle: updatedInspection.documentTitle,
+                projectName: project?.name,
+                creatorName: currentUser?.name || "Unknown",
+                creatorEmail: currentUser?.email || "",
+                status: updatedInspection.status,
+                description: updatedInspection.description,
+                assignedTo: recipientEmails.map((email) => {
+                  const user = authUsers.find((u) => u.email === email)
+                  return { name: user?.name || email, email }
+                }),
+              },
+              recipientEmails,
+              sendNotifications
+            )
+
+            if (emailResult.success && emailResult.sent > 0) {
+              toast.success(`Inspection mise à jour et ${emailResult.sent} email(s) envoyé(s)`)
+            } else if (emailResult.failed > 0) {
+              toast.warning(`Inspection mise à jour mais ${emailResult.failed} email(s) ont échoué`)
+            } else {
+              toast.success(t("alert.saveSuccess.inspection"))
+            }
+          } else {
+            toast.success(t("alert.saveSuccess.inspection"))
+          }
+        } else {
+          toast.success(t("alert.saveSuccess.inspection"))
+        }
         router.push(`/inspections/${id}`)
       } catch (error) {
         console.error("Error updating inspection:", error)
@@ -345,17 +381,11 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
               error={errors.type}
               required
             >
-              <Select value={formData.type} onValueChange={(value) => setFormData((prev) => ({ ...prev, type: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t("inspection.selectType")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="safety">{t("inspection.type.safety")}</SelectItem>
-                  <SelectItem value="compliance">{t("inspection.type.compliance")}</SelectItem>
-                  <SelectItem value="incident-follow-up">{t("inspection.type.incidentFollowUp")}</SelectItem>
-                  <SelectItem value="routine">{t("inspection.type.routine")}</SelectItem>
-                </SelectContent>
-              </Select>
+              <InspectionTypeCrudCombobox
+                value={formData.type}
+                onChange={(value) => setFormData((prev) => ({ ...prev, type: value }))}
+                placeholder={t("inspection.selectType")}
+              />
             </FormField>
 
             <FormField
@@ -499,12 +529,12 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
             </div>
           </div>
 
-          {errors.completion && (
-            <Alert className="border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{errors.completion}</AlertDescription>
-            </Alert>
-          )}
+        {errors.completion && (
+          <Alert className="border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-950">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{errors.completion}</AlertDescription>
+          </Alert>
+        )}
         </FormSection>
 
         {/* Inspection Sections */}
@@ -625,15 +655,6 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
             </FormSection>
           )
         })}
-
-        {/* Attachments */}
-        <FormSection title={t("field.attachments")} defaultOpen>
-          <AttachmentUpload
-            attachments={formData.attachments}
-            onAttachmentsChange={(attachments) => setFormData((prev) => ({ ...prev, attachments }))}
-            readOnly={false}
-          />
-        </FormSection>
 
         {/* Distribution / Assignment */}
         <FormSection title={t("form.distribution")} defaultOpen>
