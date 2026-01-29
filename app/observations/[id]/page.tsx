@@ -93,7 +93,7 @@ function ObservationDetailHeader({ observation, id, locale }: { observation: any
   const handleExportPdf = async () => {
     try {
       setIsExporting(true)
-      await exportObservationAsPdf(observation, "Exemple Procore Observation.pdf")
+      await exportObservationAsPdf(observation, undefined)
     } catch (error) {
       console.error("Export error:", error)
       alert(t("toast.pdfExportError.generic" as any))

@@ -483,6 +483,7 @@ const translations = {
     "settings.projectNo.placeholders.code": "e.g. 21-5866",
     "settings.projectNo.placeholders.name": "e.g. MTQ_2503-21-0202",
     "settings.projectNo.placeholders.location": "e.g. Île-aux-Tourtes (Vaudreuil-Dorion)",
+    "settings.projectNo.searchPlaceholder": "Search projects...",
 
     "settings.livrableOptions.title": "Livrable dropdown options",
     "settings.livrableOptions.desc": "Create, edit, delete and search the option lists used by the Livrable form.",
@@ -1183,6 +1184,7 @@ const translations = {
     "settings.projectNo.placeholders.code": "ex. 21-5866",
     "settings.projectNo.placeholders.name": "ex. MTQ_2503-21-0202",
     "settings.projectNo.placeholders.location": "ex. Île-aux-Tourtes (Vaudreuil-Dorion)",
+    "settings.projectNo.searchPlaceholder": "Rechercher des projets...",
 
     "settings.livrableOptions.title": "Options de liste (Livrable)",
     "settings.livrableOptions.desc": "Créer, modifier, supprimer et rechercher les listes d’options utilisées par le formulaire Livrable.",

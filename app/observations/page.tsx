@@ -62,7 +62,7 @@ export default function ObservationsPage() {
 
   const handleExportPDF = async (observation: (typeof observations)[0]) => {
     try {
-      await exportObservationAsPdf(observation, "Exemple Procore Observation.pdf")
+      await exportObservationAsPdf(observation, undefined)
       toast.success(t("toast.pdfExportSuccess.observation" as any))
     } catch (error) {
       console.error("PDF export error:", error)

@@ -63,7 +63,7 @@ export default function IncidentsPage() {
 
   const handleExportPDF = async (incident: (typeof incidents)[0]) => {
     try {
-      await exportIncidentAsPdf(incident, "Example Procore Incident.pdf", { projects, users })
+      await exportIncidentAsPdf(incident, undefined, { projects, users })
       toast.success("Incident exported as PDF successfully")
     } catch (error) {
       console.error("PDF export error:", error)

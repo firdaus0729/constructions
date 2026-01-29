@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Globe, Sun, Database, Bell, Hash, ListChecks, Plus, Pencil, Trash2 } from "lucide-react"
+import { Globe, Sun, Database, Bell, Hash, ListChecks, Plus, Pencil, Trash2, Search } from "lucide-react"
 import { useTheme } from "next-themes"
 
 export const dynamic = 'force-dynamic'
@@ -26,6 +26,17 @@ export default function SettingsPage() {
   const [projectDialogOpen, setProjectDialogOpen] = React.useState(false)
   const [editingProjectId, setEditingProjectId] = React.useState<string | null>(null)
   const [projectForm, setProjectForm] = React.useState({ code: "", name: "", location: "" })
+  const [projectSearchQuery, setProjectSearchQuery] = React.useState("")
+
+  const projectSearchLower = projectSearchQuery.trim().toLowerCase()
+  const filteredProjects = projectSearchLower
+    ? projects.filter(
+        (p) =>
+          p.code.toLowerCase().includes(projectSearchLower) ||
+          p.name.toLowerCase().includes(projectSearchLower) ||
+          (p.location || "").toLowerCase().includes(projectSearchLower)
+      )
+    : projects
 
   const [livrableOptsOpen, setLivrableOptsOpen] = React.useState(false)
   const [livrableOptsKey, setLivrableOptsKey] = React.useState<
@@ -181,6 +192,17 @@ export default function SettingsPage() {
                 </Button>
               </div>
 
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder={t("settings.projectNo.searchPlaceholder" as any)}
+                  value={projectSearchQuery}
+                  onChange={(e) => setProjectSearchQuery(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -191,7 +213,7 @@ export default function SettingsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {projects.map((p) => (
+                  {filteredProjects.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell className="font-mono">{p.code}</TableCell>
                       <TableCell>{p.name}</TableCell>

@@ -60,7 +60,7 @@ export default function InspectionsPage() {
 
   const handleExportPDF = async (inspection: (typeof inspections)[0]) => {
     try {
-      await exportInspectionAsPdf(inspection, "Example Procore Inspection.pdf", { projects, users })
+      await exportInspectionAsPdf(inspection, undefined, { projects, users })
       toast.success(t("toast.pdfExportSuccess.inspection" as any))
     } catch (error) {
       console.error("PDF export error:", error)
