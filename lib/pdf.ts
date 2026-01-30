@@ -58,7 +58,7 @@ export async function generateProfessionalPDF(data: {
   doc.text("926 av Simard, #201", margin + 25, yPosition + 4)
   doc.text("Chambly, Quebec J3L 4X2", margin + 25, yPosition + 7)
   doc.text("Téléphone : 514-323-6710", margin + 25, yPosition + 10)
-  doc.text("Télécopieur : 514-323-3682", margin + 25, yPosition + 13)
+  doc.text("Télécopieur : 514-323-3882", margin + 25, yPosition + 13)
 
   // Project info on the right side
   if (data.projectInfo) {
@@ -262,7 +262,7 @@ export async function exportLivrableAsPdf(livrable: any, filename: string = "Liv
   doc.text("926 av Simard, #201", margin + 25, y + 8)
   doc.text("Chambly, Quebec J3L 4X2", margin + 25, y + 11.5)
   doc.text("Téléphone : 514-323-6710", margin + 25, y + 15)
-  doc.text("Télécopieur : 514-323-3682", margin + 25, y + 18.5)
+  doc.text("Télécopieur : 514-323-3882", margin + 25, y + 18.5)
 
   y += 25
   doc.setDrawColor(150, 150, 150)
@@ -1389,19 +1389,63 @@ export async function exportInspectionAsPdf(
   doc.save(finalFilename)
 }
 
-// Resolve project/creator for incident PDF when opts provided
+// Resolve project/creator for incident PDF when opts provided; fallback to store (localStorage) for creator
 function resolveIncidentContext(
   incident: any,
   opts?: { projects?: { id: string; name?: string; code?: string; location?: string }[]; users?: { id: string; name?: string }[] }
 ) {
   const project = opts?.projects?.find((p) => p.id === incident.projectId)
-  const creator = opts?.users?.find((u) => u.id === incident.creatorId)
+  let creatorName = incident.creatorName ?? opts?.users?.find((u) => u.id === incident.creatorId)?.name ?? ""
+  if (!creatorName && typeof window !== "undefined") {
+    try {
+      const raw = localStorage.getItem("construction-forms-storage")
+      if (raw) {
+        const state = JSON.parse(raw)?.state
+        const users = state?.authUsers || state?.users || []
+        const creator = users.find((u: any) => u.id === incident.creatorId)
+        if (creator?.name) creatorName = creator.name
+      }
+    } catch {}
+  }
   return {
     projectName: incident.projectName ?? project?.name ?? "",
     projectNumber: incident.projectNumber ?? project?.code ?? "",
     projectLocation: incident.projectLocation ?? project?.location ?? "",
-    creatorName: incident.creatorName ?? creator?.name ?? "",
+    creatorName,
   }
+}
+
+// Get incident option lists from store (localStorage) for resolving IDs to labels in PDF
+function getIncidentOptionLists(): {
+  danger: { id: string; label: string }[]
+  contributingCondition: { id: string; label: string }[]
+  accidentTypes: { id: string; label: string }[]
+} {
+  if (typeof window === "undefined") return { danger: [], contributingCondition: [], accidentTypes: [] }
+  try {
+    const raw = localStorage.getItem("construction-forms-storage")
+    if (!raw) return { danger: [], contributingCondition: [], accidentTypes: [] }
+    const parsed = JSON.parse(raw)
+    const lists = parsed?.state?.incidentOptionLists || {}
+    return {
+      danger: lists.danger || [],
+      contributingCondition: lists.contributingCondition || [],
+      accidentTypes: lists.accidentTypes || [],
+    }
+  } catch {
+    return { danger: [], contributingCondition: [], accidentTypes: [] }
+  }
+}
+
+function resolveIncidentOptionLabel(
+  list: { id: string; label: string }[],
+  value: string | undefined
+): string {
+  if (!value) return ""
+  const option = list?.find((o: { id: string; label: string }) => o.id === value)
+  if (option) return option.label
+  // Value might already be a custom label (free text from combobox)
+  return String(value).trim()
 }
 
 // Export incident PDF — Excel Perfect style: clean grid, thin solid separators, centered title.
@@ -1420,6 +1464,7 @@ export async function exportIncidentAsPdf(
   const margin = 12
   const contentWidth = pageWidth - 2 * margin
   const { projectName, projectNumber, projectLocation, creatorName } = resolveIncidentContext(incident, opts)
+  const optionLists = getIncidentOptionLists()
 
   let y = margin
 
@@ -1740,28 +1785,33 @@ export async function exportIncidentAsPdf(
   const invLabelW = 40
   const invRowH = 6
   
+  // Resolve investigation option IDs to labels (danger, contributingCondition are from dropdowns; contributingBehavior is free text)
+  const dangerLabel = resolveIncidentOptionLabel(optionLists.danger, incident.investigation?.danger)
+  const contributingConditionLabel = resolveIncidentOptionLabel(optionLists.contributingCondition, incident.investigation?.contributingCondition)
+  const contributingBehaviorText = String(incident.investigation?.contributingBehavior ?? "").trim()
+
   // Left column: Danger, Condition contributive
   let leftInvY = y
   doc.setFont("helvetica", "bold")
   doc.text("Danger", leftColX, leftInvY)
   doc.setFont("helvetica", "normal")
-  const dangerLines = doc.splitTextToSize(String(incident.investigation?.danger ?? ""), invW - invLabelW - 2)
-  doc.text(dangerLines[0] || "", leftColX + invLabelW, leftInvY)
+  const dangerLines = doc.splitTextToSize(dangerLabel || "-", invW - invLabelW - 2)
+  doc.text(dangerLines[0] || "-", leftColX + invLabelW, leftInvY)
   leftInvY += invRowH
   
   doc.setFont("helvetica", "bold")
   doc.text("Condition contributive", leftColX, leftInvY)
   doc.setFont("helvetica", "normal")
-  const condLines = doc.splitTextToSize(String(incident.investigation?.contributingCondition ?? ""), invW - invLabelW - 2)
-  doc.text(condLines[0] || "", leftColX + invLabelW, leftInvY)
+  const condLines = doc.splitTextToSize(contributingConditionLabel || "-", invW - invLabelW - 2)
+  doc.text(condLines[0] || "-", leftColX + invLabelW, leftInvY)
   
   // Right column: Comportement contributif
   let rightInvY = y
   doc.setFont("helvetica", "bold")
   doc.text("Comportement contributif", rightColX, rightInvY)
   doc.setFont("helvetica", "normal")
-  const behaviorLines = doc.splitTextToSize(String(incident.investigation?.contributingBehavior ?? ""), invW - invLabelW - 2)
-  doc.text(behaviorLines[0] || "", rightColX + invLabelW, rightInvY)
+  const behaviorLines = doc.splitTextToSize(contributingBehaviorText || "-", invW - invLabelW - 2)
+  doc.text(behaviorLines[0] || "-", rightColX + invLabelW, rightInvY)
   
   y = Math.max(leftInvY + invRowH, rightInvY + invRowH) + 6
 

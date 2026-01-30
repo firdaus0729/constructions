@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Globe, Sun, Database, Bell, Hash, ListChecks, Plus, Pencil, Trash2, Search } from "lucide-react"
+import { Globe, Sun, Database, Bell, Hash, ListChecks, Plus, Pencil, Trash2, Search, Lock } from "lucide-react"
 import { useTheme } from "next-themes"
 
 export const dynamic = 'force-dynamic'
@@ -18,11 +18,12 @@ import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { LivrableOptionsDialog } from "@/components/livrable-options-dialog"
+import { SESSION_DURATION_OPTIONS } from "@/lib/store"
 
 export default function SettingsPage() {
   const { locale, setLocale, t } = useLocale()
   const { theme, setTheme } = useTheme()
-  const { observations, incidents, inspections, projects, addProject, updateProject, deleteProject } = useAppStore()
+  const { observations, incidents, inspections, projects, addProject, updateProject, deleteProject, sessionDurationMinutes, setSessionDurationMinutes } = useAppStore()
   const [projectDialogOpen, setProjectDialogOpen] = React.useState(false)
   const [editingProjectId, setEditingProjectId] = React.useState<string | null>(null)
   const [projectForm, setProjectForm] = React.useState({ code: "", name: "", location: "" })
@@ -77,6 +78,37 @@ export default function SettingsPage() {
                   <p className="text-2xl font-bold">{pendingSync}</p>
                   <p className="text-sm text-muted-foreground">{t("settings.pendingSync")}</p>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Session */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lock className="h-5 w-5" />
+                {t("settings.session")}
+              </CardTitle>
+              <CardDescription>{t("settings.session.desc")}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between gap-4">
+                <Label htmlFor="session-duration">{t("settings.session.logoutAfter")}</Label>
+                <Select
+                  value={String(sessionDurationMinutes ?? 60)}
+                  onValueChange={(v) => setSessionDurationMinutes(Number(v))}
+                >
+                  <SelectTrigger id="session-duration" className="w-48">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SESSION_DURATION_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={String(opt.value)}>
+                        {t(opt.labelKey as any)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>

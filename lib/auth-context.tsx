@@ -3,8 +3,13 @@
 import { createContext, useContext, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useAppStore } from "@/lib/store"
-import { SESSION_DURATION_MS } from "@/lib/store"
 import type { AuthUser } from "@/lib/types"
+
+/** Session duration in ms. 0 = until browser close (use 10 years so timeout never fires). */
+function getSessionDurationMs(minutes: number): number {
+  if (minutes <= 0) return 10 * 365 * 24 * 60 * 60 * 1000
+  return minutes * 60 * 1000
+}
 
 interface AuthContextType {
   currentUser: AuthUser | null
@@ -24,19 +29,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setCurrentAuthUserId,
     setSessionExpiresAt,
     sessionExpiresAt,
+    sessionDurationMinutes,
     _hasHydrated,
   } = useAppStore()
 
   const currentUser = authUsers?.find((u) => u.id === currentAuthUserId) || null
   const isAuthenticated = !!currentUser
 
-  // After hydration: give existing sessions without expiry a fresh 1-hour window (e.g. after deploy)
+  // After hydration: give existing sessions without expiry a fresh window using user's session duration (e.g. after deploy/refresh)
   useEffect(() => {
     if (!_hasHydrated) return
     if (currentAuthUserId && (sessionExpiresAt == null || sessionExpiresAt === undefined)) {
-      setSessionExpiresAt(Date.now() + SESSION_DURATION_MS)
+      const durationMs = getSessionDurationMs(sessionDurationMinutes ?? 60)
+      setSessionExpiresAt(Date.now() + durationMs)
     }
-  }, [_hasHydrated, currentAuthUserId, sessionExpiresAt, setSessionExpiresAt])
+  }, [_hasHydrated, currentAuthUserId, sessionExpiresAt, sessionDurationMinutes, setSessionExpiresAt])
 
   // Session expired: clear auth and redirect to login
   useEffect(() => {

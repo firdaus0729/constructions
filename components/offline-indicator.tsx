@@ -3,7 +3,6 @@
 import { Wifi, WifiOff, RefreshCw, Cloud, CloudOff } from "lucide-react"
 import { useOffline } from "@/lib/offline-provider"
 import { useLocale } from "@/lib/locale-context"
-import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
 
@@ -13,7 +12,7 @@ interface OfflineIndicatorProps {
 }
 
 export function OfflineIndicator({ variant = "minimal", className }: OfflineIndicatorProps) {
-  const { isOnline, isSyncing, pendingChanges, lastSyncTime, syncNow } = useOffline()
+  const { isOnline, isSyncing, lastSyncTime } = useOffline()
   const { t } = useLocale()
 
   if (variant === "minimal") {
@@ -60,11 +59,6 @@ export function OfflineIndicator({ variant = "minimal", className }: OfflineIndi
             : "En attente de synchronisation"}
         </p>
       </div>
-      {isOnline && pendingChanges > 0 && (
-        <Button variant="outline" size="sm" onClick={syncNow} disabled={isSyncing} className="shrink-0 whitespace-nowrap">
-          {isSyncing ? t("sync.syncing") : t("sync.syncNow")}
-        </Button>
-      )}
     </div>
   )
 }

@@ -713,8 +713,20 @@ export const inspectionSections: InspectionSection[] = rawInspectionSections.fil
   return true
 })
 
-/** Session duration: 1 hour. User stays logged in across refresh until this expires or they click Logout. */
-export const SESSION_DURATION_MS = 60 * 60 * 1000
+/** Default session duration: 1 hour. Can be overridden by user setting sessionDurationMinutes. */
+export const DEFAULT_SESSION_DURATION_MINUTES = 60
+export const SESSION_DURATION_MS = DEFAULT_SESSION_DURATION_MINUTES * 60 * 1000
+
+/** Session duration options (minutes). 0 = until browser/tab close (use very long expiry). */
+export const SESSION_DURATION_OPTIONS = [
+  { value: 15, labelKey: "settings.session.15min" },
+  { value: 30, labelKey: "settings.session.30min" },
+  { value: 60, labelKey: "settings.session.1h" },
+  { value: 120, labelKey: "settings.session.2h" },
+  { value: 240, labelKey: "settings.session.4h" },
+  { value: 480, labelKey: "settings.session.8h" },
+  { value: 0, labelKey: "settings.session.untilClose" },
+] as const
 
 interface AppState {
   // Auth data
@@ -722,6 +734,8 @@ interface AppState {
   currentAuthUserId: string | null
   /** Timestamp (ms) when the session expires. Null if not logged in. */
   sessionExpiresAt: number | null
+  /** User preference: session duration in minutes. 0 = until browser close. Persisted. */
+  sessionDurationMinutes: number
   /** True after persisted state has been rehydrated (avoids redirect-to-login on refresh). */
   _hasHydrated: boolean
   userGroups: UserGroup[]
@@ -778,6 +792,7 @@ interface AppState {
   deleteAuthUser: (id: string) => void
   setCurrentAuthUserId: (id: string | null) => void
   setSessionExpiresAt: (v: number | null) => void
+  setSessionDurationMinutes: (minutes: number) => void
   setHasHydrated: () => void
   getCurrentAuthUser: () => AuthUser | null
 
@@ -874,6 +889,7 @@ export const useAppStore = create<AppState>()(
       authUsers: [],
       currentAuthUserId: null,
       sessionExpiresAt: null,
+      sessionDurationMinutes: DEFAULT_SESSION_DURATION_MINUTES,
       _hasHydrated: false,
       userGroups: [],
       formAssignments: [],
@@ -1483,6 +1499,7 @@ export const useAppStore = create<AppState>()(
         userGroups: state.userGroups,
         currentAuthUserId: state.currentAuthUserId,
         sessionExpiresAt: state.sessionExpiresAt,
+        sessionDurationMinutes: state.sessionDurationMinutes,
         formAssignments: state.formAssignments,
       }),
     },

@@ -16,7 +16,7 @@ export const dynamic = 'force-dynamic'
 export default function LoginPage() {
   const router = useRouter()
   const { t } = useLocale()
-  const { authUsers, setCurrentAuthUserId, setSessionExpiresAt } = useAppStore()
+  const { authUsers, setCurrentAuthUserId, setSessionExpiresAt, sessionDurationMinutes } = useAppStore()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
@@ -47,7 +47,9 @@ export default function LoginPage() {
       }
 
       setCurrentAuthUserId(user.id)
-      setSessionExpiresAt(Date.now() + SESSION_DURATION_MS)
+      const durationMinutes = sessionDurationMinutes ?? 60
+      const durationMs = durationMinutes <= 0 ? 10 * 365 * 24 * 60 * 60 * 1000 : durationMinutes * 60 * 1000
+      setSessionExpiresAt(Date.now() + durationMs)
       toast.success(t("loginSuccess" as any))
       router.push("/")
     } catch (err) {
