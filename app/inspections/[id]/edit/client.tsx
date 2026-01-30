@@ -34,7 +34,7 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
   const router = useRouter()
   const { t } = useLocale()
   const store = useAppStore()
-  const { projects = [], currentUser, updateInspection, inspections, authUsers = [], userGroups = [] } = store || {}
+  const { projects = [], currentUser, updateInspection, inspections, authUsers = [], userGroups = [], users = [] } = store || {}
   
   const inspection = inspections?.find((i) => i.id === id)
 
@@ -60,6 +60,7 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
     contactPoint: string
     contractor: string
     createdBy: string
+    creatorId: string
     description: string
     status: string
     responses: Record<string, InspectionItemResponse>
@@ -79,6 +80,7 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
     contactPoint: (inspection as any)?.contactPoint || "",
     contractor: (inspection as any)?.contractor || "",
     createdBy: (inspection as any)?.createdBy || currentUser?.name || "Unknown",
+    creatorId: inspection?.creatorId || currentUser?.id || "",
     description: inspection?.description || "",
     status: (inspection?.status as string) || "draft",
     responses: inspection?.responses?.reduce((acc, resp) => {
@@ -106,6 +108,7 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
         contactPoint: (inspection as any)?.contactPoint || "",
         contractor: (inspection as any)?.contractor || "",
         createdBy: (inspection as any)?.createdBy || currentUser?.name || "Unknown",
+        creatorId: inspection?.creatorId || currentUser?.id || "",
         description: inspection.description,
         status: (inspection.status as string),
         responses: inspection.responses?.reduce((acc, resp) => {
@@ -196,6 +199,7 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
           contactPoint: formData.contactPoint,
           contractor: formData.contractor,
           createdBy: formData.createdBy || (inspection as any)?.createdBy,
+          creatorId: formData.creatorId || inspection?.creatorId || currentUser?.id || "",
           description: formData.description,
           status: formData.status,
           distribution: distributionList.map((d) => d.email || "").filter(Boolean),
@@ -505,7 +509,32 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
             </FormField>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label={t("form.createdBy")}>
+              <Select 
+                value={formData.creatorId} 
+                onValueChange={(value: string) => {
+                  const selectedUser = authUsers?.find((u) => u.id === value) || users?.find((u) => u.id === value)
+                  setFormData((prev) => ({ 
+                    ...prev, 
+                    creatorId: value,
+                    createdBy: selectedUser?.name || prev.createdBy
+                  }))
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t("form.createdBy")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {(authUsers && authUsers.length > 0 ? authUsers : users || []).map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+
             <FormField
               label={t("form.status")}
               required
@@ -516,16 +545,18 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="draft">{t("status.draft")}</SelectItem>
+                  <SelectItem value="open">{t("status.open")}</SelectItem>
                   <SelectItem value="in-progress">{t("status.inProgress")}</SelectItem>
+                  <SelectItem value="submitted">{t("status.submitted")}</SelectItem>
                   <SelectItem value="closed">{t("status.closed")}</SelectItem>
                 </SelectContent>
               </Select>
             </FormField>
+          </div>
 
-            <div className="flex items-end">
-              <div className="text-sm text-muted-foreground italic">
-                Completion: {completionPercentage}%
-              </div>
+          <div className="flex items-end">
+            <div className="text-sm text-muted-foreground italic">
+              Completion: {completionPercentage}%
             </div>
           </div>
 

@@ -93,7 +93,7 @@ function ObservationDetailHeader({ observation, id, locale }: { observation: any
   const handleExportPdf = async () => {
     try {
       setIsExporting(true)
-      await exportObservationAsPdf(observation, undefined)
+      await exportObservationAsPdf(observation, undefined, { projects, users: authUsers?.length ? authUsers : users })
     } catch (error) {
       console.error("Export error:", error)
       alert(t("toast.pdfExportError.generic" as any))
@@ -118,7 +118,7 @@ export default function ObservationDetailPage({ params }: { params: Promise<{ id
   const { id } = use(params)
   const router = useRouter()
   const { t, locale } = useLocale()
-  const { observations, projects, users } = useAppStore()
+  const { observations, projects, users, authUsers } = useAppStore()
 
   const observation = observations.find((o) => o.id === id)
 

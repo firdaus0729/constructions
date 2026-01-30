@@ -424,7 +424,11 @@ export async function exportElementAsPdf(options?: {
 }
 
 // Export observation — Excel Perfect style: clean layout, thin lines, continuation header, Plans liés section, Activité with status box.
-export async function exportObservationAsPdf(observation: any, filename?: string) {
+export async function exportObservationAsPdf(
+  observation: any,
+  filename?: string,
+  opts?: { projects?: { id: string; name?: string; code?: string; location?: string }[]; users?: { id: string; name?: string }[] }
+) {
   if (typeof window === "undefined") return
   const observationNumber = observation.number ?? observation.id?.slice(-6) ?? ""
   const finalFilename = filename ?? `Formulaire Observation ${observationNumber}.pdf`
@@ -436,23 +440,72 @@ export async function exportObservationAsPdf(observation: any, filename?: string
   const margin = 12
   const contentWidth = pageWidth - margin * 2
 
+  // Get store data for resolving labels and project info
+  const getStoreData = () => {
+    if (typeof window === "undefined") return null
+    try {
+      const raw = localStorage.getItem("construction-forms-storage")
+      if (!raw) return null
+      return JSON.parse(raw).state
+    } catch {
+      return null
+    }
+  }
+
+  const state = getStoreData()
+  const observationOptionLists = state?.observationOptionLists || { types: [], danger: [], contributingCondition: [], contributingBehavior: [] }
+  
+  // Resolve project info
   let projectName = observation.projectName || ""
   let projectLocation = observation.projectLocation || ""
-  if (typeof window !== "undefined" && observation.projectId) {
-    try {
-      const storeData = localStorage.getItem("construction-forms-storage")
-      if (storeData) {
-        const state = JSON.parse(storeData).state
-        const project = state?.projects?.find((p: any) => p.id === observation.projectId)
-        if (project) {
-          projectName = project.name || projectName
-          projectLocation = project.location || projectLocation
-        }
-      }
-    } catch {}
+  const project = opts?.projects?.find((p) => p.id === observation.projectId) || state?.projects?.find((p: any) => p.id === observation.projectId)
+  if (project) {
+    projectName = project.name || projectName
+    projectLocation = project.location || projectLocation
   }
+  
+  // Resolve observation type label
+  const getObservationTypeLabel = (typeId: string): string => {
+    if (!typeId) return "MES-COR"
+    const typeOption = observationOptionLists.types?.find((t: any) => t.id === typeId)
+    return typeOption?.label || typeId
+  }
+
+  // Resolve danger/condition/behavior labels
+  const getDangerLabel = (dangerId: string): string => {
+    if (!dangerId) return "-"
+    const dangerOption = observationOptionLists.danger?.find((d: any) => d.id === dangerId)
+    return dangerOption?.label || dangerId
+  }
+
+  const getContributingConditionLabel = (conditionId: string): string => {
+    if (!conditionId) return "-"
+    const conditionOption = observationOptionLists.contributingCondition?.find((c: any) => c.id === conditionId)
+    return conditionOption?.label || conditionId
+  }
+
+  const getContributingBehaviorLabel = (behaviorId: string): string => {
+    if (!behaviorId) return "-"
+    const behaviorOption = observationOptionLists.contributingBehavior?.find((b: any) => b.id === behaviorId)
+    return behaviorOption?.label || behaviorId
+  }
+
+  // Format title with date suffix (e.g., "_20250929")
+  const getTitleDateSuffix = (): string => {
+    const dateField = observation.date || observation.createdAt
+    if (!dateField) return ""
+    const d = new Date(dateField)
+    if (isNaN(d.getTime())) return ""
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const day = String(d.getDate()).padStart(2, "0")
+    return `_${year}${month}${day}`
+  }
+
   const projectLine = [observation.projectNumber, projectName].filter(Boolean).join(" ").trim()
-  const observationTitle = `Observation Risque de sécurité N°${observationNumber} : ${observation.type || "MES-COR"}: ${observation.title || ""}`
+  const typeLabel = getObservationTypeLabel(observation.type)
+  const titleDateSuffix = getTitleDateSuffix()
+  const observationTitle = `Observation Risque de sécurité N°${observationNumber} : ${typeLabel}: ${observation.title || ""}${titleDateSuffix}`
 
   const thinLine = () => {
     doc.setDrawColor(0, 0, 0)
@@ -470,6 +523,7 @@ export async function exportObservationAsPdf(observation: any, filename?: string
     doc.setFontSize(9)
     doc.text(observationTitle, margin, y)
     doc.setFontSize(7)
+    doc.setFont("helvetica", "normal")
     const projText = projectLine ? `Projet : ${projectLine}` : ""
     const projLines = doc.splitTextToSize(projText, 95)
     let py = y - 3
@@ -477,7 +531,6 @@ export async function exportObservationAsPdf(observation: any, filename?: string
       doc.text(ln, pageWidth - margin, py, { align: "right" })
       py += 3.5
     })
-    doc.setFont("helvetica", "normal")
     y += 6
   }
 
@@ -499,8 +552,8 @@ export async function exportObservationAsPdf(observation: any, filename?: string
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
   }
 
-  // Helper function to format date/time as "DD/MM/YYYY à HH h MM EDT"
-  const formatDateTime = (date: Date | string | null | undefined): string => {
+  // Helper function to format date/time as "DD/MM/YYYY à HH h MM EDT" or "FDT"
+  const formatDateTime = (date: Date | string | null | undefined, useFDT: boolean = false): string => {
     if (!date) return ""
     const d = new Date(date)
     const day = String(d.getDate()).padStart(2, "0")
@@ -508,7 +561,8 @@ export async function exportObservationAsPdf(observation: any, filename?: string
     const year = d.getFullYear()
     const hours = String(d.getHours()).padStart(2, "0")
     const minutes = String(d.getMinutes()).padStart(2, "0")
-    return `${day}/${month}/${year} à ${hours} h ${minutes} EDT`
+    const timezone = useFDT ? "FDT" : "EDT"
+    return `${day}/${month}/${year} à ${hours} h ${minutes} ${timezone}`
   }
 
   // Header: logo left + company info, project info right (no outer frame for observations)
@@ -526,17 +580,17 @@ export async function exportObservationAsPdf(observation: any, filename?: string
   doc.text("926 av Simard, #201", margin + 30, y + 10)
   doc.text("Chambly, Quebec J3L 4X2", margin + 30, y + 14)
   doc.text("Téléphone : 514-323-6710", margin + 30, y + 18)
-  doc.text("Télécopieur : 514-323-3682", margin + 30, y + 22)
+  doc.text("Télécopieur : 514-323-3882", margin + 30, y + 22)
 
   doc.setFontSize(8)
   let ry = y + 5
   if (projectLine) {
-    doc.splitTextToSize(`Projet : ${projectLine}`, 80).forEach((ln: string) => {
+    const fullProjectText = projectLocation ? `${projectLine}\n${projectLocation}` : projectLine
+    doc.splitTextToSize(`Projet : ${fullProjectText}`, 80).forEach((ln: string) => {
       doc.text(ln, pageWidth - margin, ry, { align: "right" })
       ry += 4
     })
-  }
-  if (projectLocation) {
+  } else if (projectLocation) {
     doc.splitTextToSize(projectLocation, 80).forEach((ln: string) => {
       doc.text(ln, pageWidth - margin, ry, { align: "right" })
       ry += 4
@@ -559,6 +613,7 @@ export async function exportObservationAsPdf(observation: any, filename?: string
   doc.setFont("helvetica", "normal")
 
   const getStoreUsers = (): any[] => {
+    if (opts?.users && opts.users.length > 0) return opts.users
     if (typeof window === "undefined") return []
     try {
       const raw = localStorage.getItem("construction-forms-storage")
@@ -624,7 +679,7 @@ export async function exportObservationAsPdf(observation: any, filename?: string
   let leftY = y
   let rightY = y
 
-  // Left column fields (exact order from image)
+  // Left column fields (exact order from original PDF)
   const leftFields: Array<[string, string]> = [
     ["Origine", observation.origin || "-"],
     ["Créé par", `${getCreatorName()} (Construction Interlag)`],
@@ -632,20 +687,22 @@ export async function exportObservationAsPdf(observation: any, filename?: string
     ["Date de notification", (observation.date ? formatDate(observation.date) : observation.notificationDate ? formatDate(observation.notificationDate) : observation.createdAt ? formatDate(observation.createdAt) : "-")],
     ["Lieu", observation.location || observation.projectLocation || (observation as any).lieu || "-"],
     ["Date d'échéance", observation.dueDate ? formatDate(observation.dueDate) : "-"],
-    ["Condition contributive", observation.safetyAnalysis?.contributingCondition || "-"],
-    ["Danger", observation.safetyAnalysis?.danger || "-"],
+    ["Condition contributive", getContributingConditionLabel(observation.safetyAnalysis?.contributingCondition || "")],
+    ["Danger", getDangerLabel(observation.safetyAnalysis?.danger || "")],
     ["Section du devis", observation.cnsstSection || "SSE - SANTÉ SÉCURITÉ ENVIRONNEMENT"],
   ]
 
-  // Right column fields (Plans liés is its own section later)
+  // Right column fields (including Plans liés in right column per original)
+  const plansLiesValue = (observation as any).plansLies || observation.linkedDrawings || "-"
   const rightFields: Array<[string, string]> = [
     ["Statut", statusText],
     ["Date de création", observation.createdAt ? formatDate(observation.createdAt) : "-"],
     ["Distribution", formatDistribution()],
     ["Priorité", priorityText],
     ["Métier", observation.trade || "Charge de projet"],
-    ["Privé(e)", (observation as any).private ? "Oui" : "Non"],
-    ["Comportement contributif", observation.safetyAnalysis?.contributingBehavior || "-"],
+    ["Privé(e)", (observation as any).private || (observation as any).isPrivate ? "Oui" : "Non"],
+    ["Comportement contributif", getContributingBehaviorLabel(observation.safetyAnalysis?.contributingBehavior || "")],
+    ["Plans liés", plansLiesValue],
   ]
 
   // Draw left column
@@ -674,7 +731,7 @@ export async function exportObservationAsPdf(observation: any, filename?: string
 
   y = Math.max(leftY, rightY) + 6
 
-  // Description section with date headings
+  // Description section - show full description text
   if (observation.description) {
     checkPageBreak(30)
     doc.setFont("helvetica", "bold")
@@ -688,16 +745,16 @@ export async function exportObservationAsPdf(observation: any, filename?: string
     const descLines = observation.description.split("\n")
     descLines.forEach((line: string) => {
       checkPageBreak(5)
-      // Check if line starts with date pattern
+      // Check if line starts with date pattern (e.g., "2025-09-29 à 13h30:")
       const dateMatch = line.match(/^(\d{4}-\d{2}-\d{2})(\s+à\s+(\d{1,2})h(\d{2}))?\s*:/)
       if (dateMatch) {
-        // Format date heading
+        // Format date heading (e.g., "29 sept. 2025 à 13h30 :")
         const datePart = dateMatch[1]
         const [year, month, day] = datePart.split("-")
         const months = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."]
         const monthName = months[parseInt(month) - 1] || month
         let dateHeading = `${day} ${monthName} ${year}`
-        if (dateMatch[2]) {
+        if (dateMatch[2] && dateMatch[3] && dateMatch[4]) {
           dateHeading += ` à ${dateMatch[3]}h${dateMatch[4]}`
         }
         dateHeading += " :"
@@ -716,13 +773,24 @@ export async function exportObservationAsPdf(observation: any, filename?: string
           })
         }
       } else {
-        // Regular line
-        const textLines = doc.splitTextToSize(line, contentWidth)
-        textLines.forEach((ln: string) => {
-          checkPageBreak(4)
-          doc.text(ln, margin, y)
-          y += 4
-        })
+        // Regular line - check for "Mesures correctives:" pattern
+        if (line.trim().toLowerCase().startsWith("mesures correctives")) {
+          doc.setFont("helvetica", "bold")
+          const textLines = doc.splitTextToSize(line, contentWidth)
+          textLines.forEach((ln: string) => {
+            checkPageBreak(4)
+            doc.text(ln, margin, y)
+            y += 4
+          })
+          doc.setFont("helvetica", "normal")
+        } else {
+          const textLines = doc.splitTextToSize(line, contentWidth)
+          textLines.forEach((ln: string) => {
+            checkPageBreak(4)
+            doc.text(ln, margin, y)
+            y += 4
+          })
+        }
       }
     })
     y += 4
@@ -746,8 +814,11 @@ export async function exportObservationAsPdf(observation: any, filename?: string
     y += 4
   }
 
-  // Mesures correctives (bold; sample shows bold and underlined)
-  if (observation.correctiveMeasures) {
+  // Mesures correctives - check if it's a separate field or embedded in description
+  // If it's embedded, it's already handled in the description section above
+  // If it's a separate field, display it here
+  const correctiveMeasures = (observation as any).correctiveMeasures || (observation as any).mesuresCorrectives
+  if (correctiveMeasures && !observation.description?.includes("Mesures correctives")) {
     checkPageBreak(15)
     doc.setFont("helvetica", "bold")
     doc.setFontSize(9)
@@ -755,7 +826,7 @@ export async function exportObservationAsPdf(observation: any, filename?: string
     y += 6
     doc.setFont("helvetica", "normal")
     doc.setFontSize(8)
-    const mLines = doc.splitTextToSize(observation.correctiveMeasures, contentWidth)
+    const mLines = doc.splitTextToSize(correctiveMeasures, contentWidth)
     mLines.forEach((ln: string) => {
       checkPageBreak(4)
       doc.text(ln, margin, y)
@@ -764,24 +835,7 @@ export async function exportObservationAsPdf(observation: any, filename?: string
     y += 4
   }
 
-  // Plans liés (separate section per sample)
-  checkPageBreak(10)
-  doc.setFont("helvetica", "bold")
-  doc.setFontSize(9)
-  doc.text("Plans liés", margin, y)
-  y += 5
-  doc.setFont("helvetica", "normal")
-  const plansContent = (observation as any).plansLies || observation.linkedDrawings || ""
-  if (plansContent) {
-    doc.setFontSize(8)
-    doc.splitTextToSize(plansContent, contentWidth).forEach((ln: string) => {
-      doc.text(ln, margin, y)
-      y += 4
-    })
-    y += 2
-  } else {
-    y += 2
-  }
+  // Plans liés is now in right column, so no separate section needed here
 
   // Pièces jointes (on continuation page: thin line under title, 2x2 grid, thin border per image, blue underlined filename)
   const images = observation.attachments?.filter((a: any) => a.type?.startsWith("image/")) || []
@@ -834,44 +888,55 @@ export async function exportObservationAsPdf(observation: any, filename?: string
   }
 
   // Activité (1): thin line above, thin line under title, name+date left, status box right
-  checkPageBreak(28)
-  doc.setDrawColor(100, 100, 100)
-  doc.setLineWidth(0.2)
-  doc.line(margin, y, pageWidth - margin, y)
-  y += 5
-  doc.setDrawColor(0, 0, 0)
-  doc.setFont("helvetica", "bold")
-  doc.setFontSize(9)
-  doc.text("Activité (1)", margin, y)
-  y += 5
-  doc.setDrawColor(180, 180, 180)
-  doc.setLineWidth(0.2)
-  doc.line(margin, y, pageWidth - margin, y)
-  y += 6
-  doc.setDrawColor(0, 0, 0)
-  doc.setFont("helvetica", "normal")
-  doc.setFontSize(8)
-  const activityName = getCreatorName()
-  const activityDate = observation.updatedAt || observation.createdAt
-  const activityDateStr = activityDate ? formatDateTime(activityDate) : ""
-  doc.text(activityName, margin, y)
-  if (activityDateStr) doc.text(activityDateStr, margin, y + 4)
-  const boxX = pageWidth - margin - 58
-  const boxW = 56
-  const boxY = y - 2
-  const boxH = 12
-  doc.setFillColor(245, 245, 245)
-  doc.setDrawColor(200, 200, 200)
-  doc.rect(boxX, boxY, boxW, boxH, "FD")
-  doc.setFontSize(8)
-  doc.setTextColor(0, 0, 0)
-  doc.text(`Statut modifié : ${statusText}`, boxX + 3, boxY + 7)
-  y += 18
+  // Only show on continuation pages (page 2+) - check page count before adding
+  const pageCountBeforeActivity = (doc as any).internal.getNumberOfPages()
+  const willNeedNewPage = y + 28 > pageHeight - margin - 15
+  
+  if (pageCountBeforeActivity > 1 || willNeedNewPage) {
+    // If we need a new page, add it first
+    if (willNeedNewPage) {
+      checkPageBreak(28)
+    }
+    
+    doc.setDrawColor(100, 100, 100)
+    doc.setLineWidth(0.2)
+    doc.line(margin, y, pageWidth - margin, y)
+    y += 5
+    doc.setDrawColor(0, 0, 0)
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(9)
+    doc.text("Activité (1)", margin, y)
+    y += 5
+    doc.setDrawColor(180, 180, 180)
+    doc.setLineWidth(0.2)
+    doc.line(margin, y, pageWidth - margin, y)
+    y += 6
+    doc.setDrawColor(0, 0, 0)
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(8)
+    const activityName = getCreatorName()
+    const activityDate = observation.updatedAt || observation.createdAt
+    // Use FDT for activity date on page 2+ (per original PDF)
+    const finalPageCount = (doc as any).internal.getNumberOfPages()
+    const activityDateStr = activityDate ? formatDateTime(activityDate, finalPageCount > 1) : ""
+    doc.text(activityName, margin, y)
+    if (activityDateStr) doc.text(activityDateStr, margin, y + 4)
+    const boxX = pageWidth - margin - 58
+    const boxW = 56
+    const boxY = y - 2
+    const boxH = 12
+    doc.setFillColor(245, 245, 245)
+    doc.setDrawColor(200, 200, 200)
+    doc.rect(boxX, boxY, boxW, boxH, "FD")
+    doc.setFontSize(8)
+    doc.setTextColor(0, 0, 0)
+    doc.text(`Statut modifié : ${statusText}`, boxX + 3, boxY + 7)
+    y += 18
+  }
 
   // Footer: thin dark line above, then company | Page X sur Y | Imprimé le
   const pageCount = (doc as any).internal.getNumberOfPages()
   const footerY = pageHeight - 8
-  const printDateStr = formatDateTime(new Date())
 
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i)
@@ -883,6 +948,8 @@ export async function exportObservationAsPdf(observation: any, filename?: string
     doc.setTextColor(100, 100, 100)
     doc.text("Construction Interlag", margin, footerY + 2)
     doc.text(`Page ${i} sur ${pageCount}`, pageWidth / 2, footerY + 2, { align: "center" })
+    // Use FDT for page 2+, EDT for page 1 (matching original PDF)
+    const printDateStr = formatDateTime(new Date(), i > 1)
     doc.text(`Imprimé le : ${printDateStr}`, pageWidth - margin, footerY + 2, { align: "right" })
     doc.setTextColor(0, 0, 0)
   }

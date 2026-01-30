@@ -30,6 +30,8 @@ const getStatusTranslationKey = (status: string): string => {
   const statusMap: Record<string, string> = {
     "draft": "status.draft",
     "in-progress": "status.inProgress",
+    "open": "status.open",
+    "submitted": "status.submitted",
     "closed": "status.closed"
   }
   return statusMap[status] || `status.${status}`
@@ -106,8 +108,9 @@ export default function InspectionsPage() {
             <div className="flex gap-2 flex-wrap">
               {[
                 { key: "draft", label: "status.draft" },
-                { key: "in-progress", label: "status.inProgress" },
                 { key: "open", label: "status.open" },
+                { key: "in-progress", label: "status.inProgress" },
+                { key: "submitted", label: "status.submitted" },
                 { key: "closed", label: "status.closed" }
               ].map((status) => (
                 <Button

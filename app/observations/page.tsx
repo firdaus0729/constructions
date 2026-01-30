@@ -42,7 +42,7 @@ const getStatusTranslationKey = (status: string): string => {
 }
 
 export default function ObservationsPage() {
-  const { observations, deleteObservation, projects } = useAppStore()
+  const { observations, deleteObservation, projects, users, authUsers } = useAppStore()
   const { t } = useLocale()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<string | null>(null)
@@ -60,7 +60,7 @@ export default function ObservationsPage() {
 
   const handleExportPDF = async (observation: (typeof observations)[0]) => {
     try {
-      await exportObservationAsPdf(observation, undefined)
+      await exportObservationAsPdf(observation, undefined, { projects, users: authUsers?.length ? authUsers : users })
       toast.success(t("toast.pdfExportSuccess.observation" as any))
     } catch (error) {
       console.error("PDF export error:", error)

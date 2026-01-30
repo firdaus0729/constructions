@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AttachmentUpload } from "@/components/forms/attachment-upload"
 import { useAppStore, inspectionSections } from "@/lib/store"
 import { Check, X, AlertCircle, Mail } from "lucide-react"
@@ -30,7 +31,7 @@ import { InspectionTypeCrudCombobox } from "@/components/inspection-type-crud-co
 export default function NewInspection() {
   const router = useRouter()
   const store = useAppStore()
-  const { addInspection, projects = [], currentUser, authUsers = [], userGroups = [] } = store || {}
+  const { addInspection, projects = [], currentUser, authUsers = [], userGroups = [], users = [] } = store || {}
   const { t } = useLocale()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -53,6 +54,7 @@ export default function NewInspection() {
     contactPoint: "",
     contractor: "",
     createdBy: currentUser?.name || "Unknown",
+    creatorId: currentUser?.id || "",
     description: "",
     status: "draft" as string,
     responses: {} as Record<string, InspectionItemResponse>,
@@ -143,7 +145,7 @@ export default function NewInspection() {
           contractor: formData.contractor,
           createdBy: formData.createdBy || currentUser?.name || "Unknown",
           description: formData.description,
-          creatorId: currentUser?.id || "unknown",
+          creatorId: formData.creatorId || currentUser?.id || "unknown",
           distribution: distributionList.map((d) => d.email || "").filter(Boolean),
           closedById: null,
           status: formData.status,
@@ -293,6 +295,7 @@ export default function NewInspection() {
         closedBy: null,
         syncStatus: "pending",
         createdBy: formData.createdBy || currentUser?.name || "Unknown",
+        creatorId: formData.creatorId || currentUser?.id || "",
       }
       addInspection(inspection)
       alert(t("status.savedLocally"))

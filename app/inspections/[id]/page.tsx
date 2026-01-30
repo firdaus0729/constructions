@@ -52,7 +52,8 @@ export default function InspectionDetailPage({ params }: { params: Promise<{ id:
   }
 
   const project = projects.find((p) => p.id === inspection.projectId)
-  const creator = users.find((u) => u.id === inspection.creatorId)
+  const creator = inspection.creatorId ? users.find((u) => u.id === inspection.creatorId) : null
+  const creatorName = creator?.name || (inspection as any)?.createdBy || "-"
 
   const getResponseIcon = (response: string | null) => {
     switch (response) {
@@ -192,7 +193,7 @@ export default function InspectionDetailPage({ params }: { params: Promise<{ id:
               <User className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-xs text-muted-foreground">{t("form.createdBy")}</p>
-                <p className="font-medium">{creator?.name || "-"}</p>
+                <p className="font-medium">{creatorName}</p>
               </div>
             </div>
 
@@ -244,7 +245,7 @@ export default function InspectionDetailPage({ params }: { params: Promise<{ id:
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-mono text-muted-foreground">{item.number}</span>
-                          <p className="text-sm">{t(`inspection.item.${item.id}` as any)}</p>
+                          <p className="text-sm">{item.label || t(`inspection.item.${item.id}` as any)}</p>
                         </div>
                         {response?.comment && (
                           <div className="flex items-start gap-2 mt-2 text-sm text-muted-foreground">

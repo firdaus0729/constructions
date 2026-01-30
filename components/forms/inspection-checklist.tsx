@@ -89,7 +89,7 @@ export function InspectionChecklist({
                       <span className="text-sm font-mono text-muted-foreground shrink-0 w-10">{item.number}</span>
 
                       {/* Label */}
-                      <p className="flex-1 text-sm text-foreground min-w-0">{t(`inspection.item.${item.id}` as any)}</p>
+                      <p className="flex-1 text-sm text-foreground min-w-0">{item.label || t(`inspection.item.${item.id}` as any)}</p>
 
                       {/* Response buttons */}
                       <div className="flex items-center gap-1 shrink-0">
