@@ -18,12 +18,82 @@ import type {
   UserRole
 } from "./types"
 
-// Create a custom storage that checks for window availability
+// Default Type d'accident options (50 items) – used for initial state and rehydration merge
+const DEFAULT_ACCIDENT_TYPES: { id: string; label: string }[] = [
+  { id: "amputation", label: "Amputation" },
+  { id: "amiantose", label: "Amiantose" },
+  { id: "asphyxie", label: "Asphyxie" },
+  { id: "morsure", label: "Morsure" },
+  { id: "ecchymose", label: "Ecchymose (contusion)" },
+  { id: "brulure-chimique", label: "Brûlure (chimique)" },
+  { id: "brulure-chaleur", label: "Brûlure (chaleur)" },
+  { id: "cancer", label: "Cancer" },
+  { id: "canal-carpien", label: "Syndrome du canal carpien" },
+  { id: "douleur-thoracique", label: "Douleur thoracique (angine de poitrine)" },
+  { id: "commotion", label: "Commotion" },
+  { id: "maladie-contagieuse", label: "Maladie contagieuse" },
+  { id: "ecrasement", label: "Écrasement" },
+  { id: "coupure", label: "Coupure (lacération)" },
+  { id: "dislocation", label: "Dislocation" },
+  { id: "maladie-poussiere", label: "Maladie de la poussière" },
+  { id: "choc-electrique", label: "Choc électrique" },
+  { id: "perte-oculaire", label: "Perte oculaire (énucléation)" },
+  { id: "corps-etranger", label: "Corps étranger" },
+  { id: "fracture", label: "Fracture" },
+  { id: "congelation", label: "Congélation" },
+  { id: "deficience-auditive", label: "Déficience auditive" },
+  { id: "perte-auditive", label: "Perte auditive" },
+  { id: "crise-cardiaque", label: "Crise cardiaque (infarctus du myocarde)" },
+  { id: "epuisement-chaleur", label: "Épuisement dû la chaleur (prostration)" },
+  { id: "coup-chaleur", label: "Coup de chaleur" },
+  { id: "hernie", label: "Hernie" },
+  { id: "hypothermie", label: "Hypothermie" },
+  { id: "infection", label: "Infection" },
+  { id: "inflammation", label: "Inflammation" },
+  { id: "perte-conscience", label: "Perte de conscience (syncope)" },
+  { id: "trouble-mental", label: "Trouble mental" },
+  { id: "stress-mental", label: "Stress mental" },
+  { id: "empoisonnement-chimique", label: "Empoisonnement (chimique)" },
+  { id: "empoisonnement-general", label: "Empoisonnement (général)" },
+  { id: "empoisonnement-metal", label: "Empoisonnement (métal)" },
+  { id: "ponction", label: "Ponction" },
+  { id: "radiation", label: "Radiation" },
+  { id: "eruption-cutanee", label: "Éruption cutanée/plaies/ampoules (dermatite)" },
+  { id: "troubles-respiratoires", label: "Troubles respiratoires" },
+  { id: "rupture", label: "Rupture" },
+  { id: "egratignure", label: "Égratignure (abrasion)" },
+  { id: "demembrement", label: "Démembrement" },
+  { id: "silicose", label: "Silicose" },
+  { id: "entorse", label: "Entorse" },
+  { id: "piqure", label: "Piqûre" },
+  { id: "foulure", label: "Foulure" },
+  { id: "dechirure", label: "Déchirure" },
+  { id: "vasculaire", label: "Vasculaire" },
+  { id: "perte-vision", label: "Perte de vision" },
+]
+
+// Create a custom storage that checks for window availability and merges full accident types on rehydration
 const customStorage = {
   getItem: (name: string) => {
     if (typeof window === 'undefined') return null
     const value = localStorage.getItem(name)
-    return value
+    if (!value) return value
+    try {
+      const parsed = JSON.parse(value)
+      // If persisted incidentOptionLists has too few accident types (e.g. old 5-option list), restore full 50
+      if (parsed?.state?.incidentOptionLists?.accidentTypes) {
+        const current = parsed.state.incidentOptionLists.accidentTypes
+        if (!Array.isArray(current) || current.length < DEFAULT_ACCIDENT_TYPES.length) {
+          parsed.state.incidentOptionLists = {
+            ...parsed.state.incidentOptionLists,
+            accidentTypes: DEFAULT_ACCIDENT_TYPES,
+          }
+        }
+      }
+      return JSON.stringify(parsed)
+    } catch {
+      return value
+    }
   },
   setItem: (name: string, value: string) => {
     if (typeof window === 'undefined') return
@@ -565,57 +635,7 @@ export const useAppStore = create<AppState>()(
       currentUser: mockUsers[0],
 
       incidentOptionLists: {
-        accidentTypes: [
-          { id: "amputation", label: "Amputation" },
-          { id: "amiantose", label: "Amiantose" },
-          { id: "asphyxie", label: "Asphyxie" },
-          { id: "morsure", label: "Morsure" },
-          { id: "ecchymose", label: "Ecchymose (contusion)" },
-          { id: "brulure-chimique", label: "Brûlure (chimique)" },
-          { id: "brulure-chaleur", label: "Brûlure (chaleur)" },
-          { id: "cancer", label: "Cancer" },
-          { id: "canal-carpien", label: "Syndrome du canal carpien" },
-          { id: "douleur-thoracique", label: "Douleur thoracique (angine de poitrine)" },
-          { id: "commotion", label: "Commotion" },
-          { id: "maladie-contagieuse", label: "Maladie contagieuse" },
-          { id: "ecrasement", label: "Écrasement" },
-          { id: "coupure", label: "Coupure (lacération)" },
-          { id: "dislocation", label: "Dislocation" },
-          { id: "maladie-poussiere", label: "Maladie de la poussière" },
-          { id: "choc-electrique", label: "Choc électrique" },
-          { id: "perte-oculaire", label: "Perte oculaire (énucléation)" },
-          { id: "corps-etranger", label: "Corps étranger" },
-          { id: "fracture", label: "Fracture" },
-          { id: "congelation", label: "Congélation" },
-          { id: "deficience-auditive", label: "Déficience auditive" },
-          { id: "perte-auditive", label: "Perte auditive" },
-          { id: "crise-cardiaque", label: "Crise cardiaque (infarctus du myocarde)" },
-          { id: "epuisement-chaleur", label: "Épuisement dû la chaleur (prostration)" },
-          { id: "coup-chaleur", label: "Coup de chaleur" },
-          { id: "hernie", label: "Hernie" },
-          { id: "hypothermie", label: "Hypothermie" },
-          { id: "infection", label: "Infection" },
-          { id: "inflammation", label: "Inflammation" },
-          { id: "perte-conscience", label: "Perte de conscience (syncope)" },
-          { id: "trouble-mental", label: "Trouble mental" },
-          { id: "stress-mental", label: "Stress mental" },
-          { id: "empoisonnement-chimique", label: "Empoisonnement (chimique)" },
-          { id: "empoisonnement-general", label: "Empoisonnement (général)" },
-          { id: "empoisonnement-metal", label: "Empoisonnement (métal)" },
-          { id: "ponction", label: "Ponction" },
-          { id: "radiation", label: "Radiation" },
-          { id: "eruption-cutanee", label: "Éruption cutanée/plaies/ampoules (dermatite)" },
-          { id: "troubles-respiratoires", label: "Troubles respiratoires" },
-          { id: "rupture", label: "Rupture" },
-          { id: "egratignure", label: "Égratignure (abrasion)" },
-          { id: "demembrement", label: "Démembrement" },
-          { id: "silicose", label: "Silicose" },
-          { id: "entorse", label: "Entorse" },
-          { id: "piqure", label: "Piqûre" },
-          { id: "foulure", label: "Foulure" },
-          { id: "dechirure", label: "Déchirure" },
-          { id: "vasculaire", label: "Vasculaire" },
-        ],
+        accidentTypes: DEFAULT_ACCIDENT_TYPES,
         danger: [
           { id: "danger-amputation", label: "Amputation" },
           { id: "danger-asphyxie", label: "Asphyxie" },
