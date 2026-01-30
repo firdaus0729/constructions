@@ -115,8 +115,10 @@ export default function ObservationsPage() {
                   variant={filterStatus === s.key ? "default" : "outline"}
                   size="sm"
                   onClick={() => setFilterStatus(filterStatus === s.key ? null : s.key)}
-                  className={cn("text-xs text-white", filterStatus === s.key && STATUS_BADGE[s.key])}
-                  style={filterStatus === s.key ? { backgroundColor: s.key === "draft" || s.key === "in-progress" ? "#F28705" : s.key === "open" ? "#051DF7" : s.key === "closed" ? "#05F719" : undefined } : undefined}
+                  className={cn(
+                    "text-xs",
+                    filterStatus === s.key ? "bg-black text-white hover:bg-black/90" : ""
+                  )}
                 >
                   {t(s.label as any)}
                 </Button>

@@ -85,9 +85,10 @@ function ImagePreviewButton({ attachment }: { attachment: any }) {
   )
 }
 
-function ObservationDetailHeader({ observation, id, locale }: { observation: any; id: string; locale: string }) {
+function ObservationDetailHeader({ observation, id }: { observation: any; id: string }) {
   const router = useRouter()
   const { t } = useLocale()
+  const { projects, users, authUsers } = useAppStore()
   const [isExporting, setIsExporting] = useState(false)
 
   const handleExportPdf = async () => {
@@ -141,7 +142,6 @@ export default function ObservationDetailPage({ params }: { params: Promise<{ id
       <ObservationDetailHeader 
         observation={observation}
         id={id}
-        locale={locale}
       />
 
       <div id="form-detail" className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto space-y-6">
@@ -153,10 +153,10 @@ export default function ObservationDetailPage({ params }: { params: Promise<{ id
           <div>
             <div className="flex items-center gap-2">
               <span className="font-mono text-sm text-muted-foreground">{observation.number}</span>
-              <Badge variant="secondary" className={cn(statusVariants[observation.status])}>
+              <Badge variant="secondary" className={cn(STATUS_BADGE[observation.status])}>
                 {t(observation.status === "in-progress" ? ("status.inProgress" as any) : (`status.${observation.status}` as any))}
               </Badge>
-              <Badge variant="secondary" className={cn(priorityVariants[observation.priority])}>
+              <Badge variant="secondary" className={cn(PRIORITY_BADGE[observation.priority])}>
                 {t(`priority.${observation.priority}` as any)}
               </Badge>
             </div>

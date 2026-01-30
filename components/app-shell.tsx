@@ -70,7 +70,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                 )}
               >
-                <item.icon className="h-5 w-5 shrink-0" />
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                <item.icon className="h-5 w-5" aria-hidden />
+              </span>
                 <span className="flex-1 text-left">{t(item.key as any)}</span>
                 <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
               </CollapsibleTrigger>
@@ -90,7 +92,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                         )}
                       >
-                        <child.icon className="h-5 w-5 shrink-0" />
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                          <child.icon className="h-5 w-5" aria-hidden />
+                        </span>
                         <span>{t(child.key as any)}</span>
                       </Link>
                     )
@@ -116,7 +120,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
             )}
           >
-            <item.icon className="h-5 w-5 shrink-0" />
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+            <item.icon className="h-5 w-5" aria-hidden />
+          </span>
             <span>{t(item.key as any)}</span>
           </Link>
         )
@@ -144,7 +150,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
                 )}
               >
-                <item.icon className="h-5 w-5 shrink-0" />
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                <item.icon className="h-5 w-5" aria-hidden />
+              </span>
                 <span>{item.label}</span>
               </Link>
             )

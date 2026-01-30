@@ -277,7 +277,7 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
               formNumber: livrable.number,
               formTitle: formData.title,
               projectName: project?.name,
-              creatorName: currentUser?.name || "Unknown",
+              creatorName: currentUser?.name || t("common.unknown"),
               creatorEmail: (currentUser as any)?.email || "",
               priority: "medium",
               status,

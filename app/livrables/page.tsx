@@ -3,10 +3,10 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useAppStore } from "@/lib/store"
-import { format } from "date-fns"
 
 export const dynamic = 'force-dynamic'
 import { useLocale } from "@/lib/locale-context"
+import { formatLocalized } from "@/lib/utils"
 import { FileText, Plus, Edit2, Trash2, Search, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -180,7 +180,7 @@ export default function LivrablesPage() {
                       </div>
                       <div>
                         <span className="text-muted-foreground">{t("livrable.receivedDate")}</span>
-                        <p className="font-medium">{livrable.receivedDate ? format(new Date(livrable.receivedDate), "MMM d") : "-"}</p>
+                        <p className="font-medium">{livrable.receivedDate ? formatLocalized(new Date(livrable.receivedDate), "MMM d", locale) : "-"}</p>
                       </div>
                       <div>
                         <span className="text-muted-foreground">{t("form.project")}</span>

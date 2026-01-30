@@ -256,7 +256,7 @@ export default function NewLivrablePage() {
                 formNumber: livrable.number,
                 formTitle: livrable.title,
                 projectName: project?.name,
-                creatorName: currentUser?.name || "Unknown",
+                creatorName: currentUser?.name || t("common.unknown"),
                 creatorEmail: currentUser?.email || "",
                 priority: "medium",
                 status: livrable.status,
@@ -271,9 +271,9 @@ export default function NewLivrablePage() {
             )
 
             if (emailResult.success && emailResult.sent > 0) {
-              toast.success(`Livrable créé et ${emailResult.sent} email(s) envoyé(s)`)
+              toast.success(t("toast.livrableCreatedWithEmails" as any, { count: emailResult.sent }))
             } else if (emailResult.failed > 0) {
-              toast.warning(`Livrable créé mais ${emailResult.failed} email(s) ont échoué`)
+              toast.warning(t("toast.livrableCreatedEmailsFailed" as any, { count: emailResult.failed }))
             }
           }
         } else {

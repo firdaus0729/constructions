@@ -55,6 +55,7 @@ const translations = {
 
     // Generic
     "common.updated": "Updated {distance}",
+    "common.unknown": "Unknown",
     "units.days": "{count} days",
 
     // Empty / not found
@@ -794,6 +795,7 @@ const translations = {
 
     // Generic
     "common.updated": "Mis à jour {distance}",
+    "common.unknown": "Inconnu",
     "units.days": "{count} jours",
 
     // Not found
