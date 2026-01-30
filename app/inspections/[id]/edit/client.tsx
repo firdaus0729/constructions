@@ -138,7 +138,7 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
-  }, [formData, completionPercentage, t])
+  }, [formData, t])
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -722,7 +722,7 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
           <Button
             type="submit"
             className="flex-1"
-            disabled={isSubmitting || completionPercentage < 50}
+            disabled={isSubmitting}
           >
             <Save className="h-4 w-4 mr-2" />
             {isSubmitting ? t("action.saving") : t("action.saveInspection", { percent: completionPercentage })}

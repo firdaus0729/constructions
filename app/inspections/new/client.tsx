@@ -62,9 +62,11 @@ export default function NewInspection() {
 
   // Calculate completion percentage
   const completionPercentage = useMemo(() => {
-    // Only count the first 127 items for completion
+    // Only count the first 127 items for completion (purely informational)
     const allItems = (inspectionSections || []).flatMap((s) => s?.items || []).slice(0, 127)
-    const answered = Object.values(formData.responses).filter((r) => r.response !== null && allItems.find(i => i.id === r.itemId)).length
+    const answered = Object.values(formData.responses).filter(
+      (r) => r.response !== null && allItems.find((i) => i.id === r.itemId),
+    ).length
     return allItems.length > 0 ? Math.round((answered / allItems.length) * 100) : 0
   }, [formData.responses])
   const validateForm = useCallback(() => {
@@ -73,19 +75,17 @@ export default function NewInspection() {
     if (!formData.documentTitle.trim()) newErrors.documentTitle = t("error.titleRequired")
     if (!formData.type) newErrors.type = t("error.inspectionTypeRequired")
     if (!formData.projectId) newErrors.projectId = t("error.projectRequired")
-    if (completionPercentage < 50)
-      newErrors.completion = t("error.minimumCompletion")
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
-  }, [formData, completionPercentage])
+  }, [formData, t])
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
 
       if (!validateForm()) {
-        alert(t("alert.completeBeforeSubmit"))
+        alert(t("alert.fixErrors"))
         return
       }
 
@@ -494,7 +494,33 @@ export default function NewInspection() {
             </FormField>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label={t("form.createdBy")}>
+              <Select
+                value={formData.creatorId}
+                onValueChange={(value: string) => {
+                  const selectedUser =
+                    authUsers?.find((u) => u.id === value) || users?.find((u) => u.id === value)
+                  setFormData((prev) => ({
+                    ...prev,
+                    creatorId: value,
+                    createdBy: selectedUser?.name || prev.createdBy,
+                  }))
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t("form.createdBy")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {(authUsers && authUsers.length > 0 ? authUsers : users || []).map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+
             <FormField
               label={t("form.status")}
               required
@@ -505,12 +531,12 @@ export default function NewInspection() {
                 className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
               >
                 <option value="draft">{t("status.draft")}</option>
+                <option value="open">{t("status.open")}</option>
                 <option value="in-progress">{t("status.inProgress")}</option>
+                <option value="submitted">{t("status.submitted")}</option>
                 <option value="closed">{t("status.closed")}</option>
               </select>
             </FormField>
-
-            <div></div>
           </div>
 
           <FormField
@@ -524,12 +550,7 @@ export default function NewInspection() {
             />
           </FormField>
 
-          {errors.completion && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{errors.completion}</AlertDescription>
-            </Alert>
-          )}
+          {/* No hard completion requirement – progress is informational only */}
         </FormSection>
 
         {/* Inspection Sections */}
@@ -686,7 +707,7 @@ export default function NewInspection() {
           <Button
             type="submit"
             className="flex-1"
-            disabled={isSubmitting || completionPercentage < 50}
+            disabled={isSubmitting}
           >
             {isSubmitting ? t("action.saving") : t("action.saveInspection", { percent: completionPercentage })}
           </Button>

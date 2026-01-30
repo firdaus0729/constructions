@@ -37,9 +37,24 @@ const customStorage = {
 
 // Mock data for demonstration
 const mockProjects: Project[] = [
-  { id: "1", name: "Downtown Tower Construction", code: "DTC-2024", location: "123 Main St" },
-  { id: "2", name: "Highway Bridge Renovation", code: "HBR-2024", location: "Highway 401" },
-  { id: "3", name: "Industrial Complex Phase 2", code: "ICP2-2024", location: "500 Industrial Blvd" },
+  {
+    id: "1",
+    code: "DTC-2024",
+    name: "Construction de la tour centre-ville",
+    location: "123, rue Principale, Montréal",
+  },
+  {
+    id: "2",
+    code: "HBR-2024",
+    name: "Réfection du pont routier",
+    location: "Autoroute 401, sortie 23",
+  },
+  {
+    id: "3",
+    code: "ICP2-2024",
+    name: "Complexe industriel – Phase 2",
+    location: "500, boul. Industriel, Laval",
+  },
 ]
 
 const mockUsers: User[] = [
