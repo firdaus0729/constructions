@@ -1,26 +1,30 @@
  "use client"
  
- import * as React from "react"
- import { ChevronsUpDown, Check } from "lucide-react"
- 
- import { cn } from "@/lib/utils"
- import type { Project } from "@/lib/types"
-import { useLocale } from "@/lib/locale-context"
- import { Button } from "@/components/ui/button"
- import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
- import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import * as React from "react"
+import { ChevronsUpDown, Check } from "lucide-react"
+
+import { cn } from "@/lib/utils"
+import type { Project } from "@/lib/types"
+import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
  
  type Props = {
    projects: Project[]
    value: string | null | undefined
    onChange: (projectId: string) => void
-   placeholder?: string
+  placeholder?: string
  }
  
- export function ProjectNoCombobox({ projects, value, onChange, placeholder = "Select project no..." }: Props) {
-   const [open, setOpen] = React.useState(false)
-   const selected = projects.find((p) => p.id === value) || null
-  const { t } = useLocale()
+export function ProjectNoCombobox({
+  projects,
+  value,
+  onChange,
+  // Always use a French default placeholder for Project No
+  placeholder = "Sélectionner un numéro de projet...",
+}: Props) {
+  const [open, setOpen] = React.useState(false)
+  const selected = projects.find((p) => p.id === value) || null
  
    return (
      <Popover open={open} onOpenChange={setOpen}>
@@ -40,9 +44,11 @@ import { useLocale } from "@/lib/locale-context"
        </PopoverTrigger>
        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
          <Command>
-          <CommandInput placeholder={t("action.search" as any)} />
+          {/* Always show French UI text for search */}
+          <CommandInput placeholder="Rechercher..." />
            <CommandList>
-            <CommandEmpty>{t("empty.noProjects" as any)}</CommandEmpty>
+            {/* Always show French UI text when there are no projects */}
+            <CommandEmpty>Aucun projet trouvé</CommandEmpty>
              <CommandGroup>
                {projects.map((p) => (
                  <CommandItem
