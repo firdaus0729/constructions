@@ -48,9 +48,11 @@ export default function IncidentDetailPage({ params }: { params: Promise<{ id: s
   const { id } = use(params)
   const router = useRouter()
   const { t, locale } = useLocale()
-  const { incidents, projects, users } = useAppStore()
+  const { incidents, projects, users, authUsers = [], incidentOptionLists } = useAppStore()
 
   const incident = incidents.find((i) => i.id === id)
+  const creator = (authUsers?.find((u: any) => u.id === incident?.creatorId) || users?.find((u) => u.id === incident?.creatorId)) as { name: string } | undefined
+  const accidentTypeLabel = incidentOptionLists?.accidentTypes?.find((t: { id: string; label: string }) => t.id === incident?.accidentType)?.label || incident?.accidentType
 
   if (!incident) {
     return (
@@ -63,7 +65,6 @@ export default function IncidentDetailPage({ params }: { params: Promise<{ id: s
   }
 
   const project = projects.find((p) => p.id === incident.projectId)
-  const creator = users.find((u) => u.id === incident.creatorId)
 
   return (
     <AppShell>
@@ -148,7 +149,7 @@ export default function IncidentDetailPage({ params }: { params: Promise<{ id: s
               <AlertCircle className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-xs text-muted-foreground">{t("incident.accidentType")}</p>
-                <p className="font-medium">{incident.accidentType || "-"}</p>
+                <p className="font-medium">{accidentTypeLabel || "-"}</p>
               </div>
             </div>
 
@@ -157,6 +158,14 @@ export default function IncidentDetailPage({ params }: { params: Promise<{ id: s
               <div>
                 <p className="text-xs text-muted-foreground">{t("form.createdBy")}</p>
                 <p className="font-medium">{creator?.name || "-"}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+              <Activity className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-xs text-muted-foreground">{t("form.status")}</p>
+                <p className="font-medium">{t(getStatusTranslationKey(incident.status) as any)}</p>
               </div>
             </div>
           </div>

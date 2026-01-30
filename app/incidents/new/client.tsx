@@ -36,19 +36,28 @@ export default function NewIncidentPage() {
   const router = useRouter()
   const { t } = useLocale()
   const store = useAppStore()
-  const { projects = [], currentUser, addIncident, authUsers = [], userGroups = [] } = store || {}
-  
+  const { projects = [], currentUser, addIncident, authUsers = [], userGroups = [], users = [] } = store || {}
+  const creatorOptions = (authUsers?.length ? authUsers : users) as { id: string; name: string }[]
+
   // Load reference data on client side only
   const [injuryTypes, setInjuryTypes] = useState<any[]>([])
   const [bodyParts, setBodyParts] = useState<any[]>([])
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([])
   const [sendNotifications, setSendNotifications] = useState(true)
-  
+
   useEffect(() => {
     setInjuryTypes(getInjuryTypes())
     setBodyParts(getBodyParts())
   }, [])
+
+  // Auto-fill project (Numéro de projet) when only one project exists
+  useEffect(() => {
+    if (projects?.length === 1) {
+      const p = projects[0]
+      setFormData((prev) => (prev.projectId ? prev : { ...prev, projectId: p.id, projectNumber: p.code || p.id }))
+    }
+  }, [projects])
 
   // Form state
   const [isSaving, setIsSaving] = useState(false)
@@ -64,7 +73,7 @@ export default function NewIncidentPage() {
     projectId: "",
     projectNumber: "",
     creatorId: currentUser?.id || "",
-    status: "draft" as "draft" | "in-progress" | "submitted",
+    status: "draft" as FormStatus,
     location: "",
     date: "", // <-- New date field (form creation or report date)
     eventDate: "",
@@ -191,7 +200,7 @@ export default function NewIncidentPage() {
         title: formData.title,
         projectId: formData.projectId,
         projectNumber: formData.projectNumber || undefined,
-        creatorId: currentUser?.id || "",
+        creatorId: formData.creatorId || currentUser?.id || "",
         location: formData.location,
         eventDate: new Date(formData.eventDate),
         eventTime: formData.eventTime,
@@ -380,36 +389,40 @@ export default function NewIncidentPage() {
                 />
               </FormField>
 
-              {/* Project */}
-              <FormField label={t("form.project")} required error={errors.projectId}>
-                <Input
-                  value={formData.projectId}
-                  onChange={(e) => handleFieldChange("projectId", e.target.value)}
-                  placeholder={t("incident.selectProject")}
-                  className={`h-12 ${errors.projectId ? "border-destructive" : ""}`}
-                />
-              </FormField>
-
-              {/* Numéro de Projet */}
-              <FormField label={t("observation.projectNumber")}>
+              {/* Numéro de projet (Project No) - required; auto-filled when one project */}
+              <FormField label={t("observation.projectNumber")} required error={errors.projectId}>
                 <ProjectNoCombobox
                   projects={projects}
-                  value={projects.find((p) => p.code === formData.projectNumber)?.id || ""}
+                  value={formData.projectId}
                   onChange={(projectId) => {
                     const p = projects.find((pp) => pp.id === projectId)
-                    handleFieldChange("projectNumber", p?.code || "")
+                    setFormData((prev) => ({
+                      ...prev,
+                      projectId: projectId || "",
+                      projectNumber: p?.code || "",
+                    }))
                   }}
-                  placeholder={t("observation.projectNumber")}
+                  placeholder={t("incident.selectProject")}
                 />
               </FormField>
 
-              {/* Creator */}
+              {/* Créé par (Created By) - editable */}
               <FormField label={t("form.createdBy")}>
-                <Input
-                  value={currentUser?.name || ""}
-                  disabled
-                  className="h-12 bg-muted"
-                />
+                <Select
+                  value={formData.creatorId || ""}
+                  onValueChange={(value) => handleFieldChange("creatorId", value)}
+                >
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder={t("form.createdBy")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {creatorOptions.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </FormField>
 
               {/* Date (new field) */}
@@ -432,16 +445,18 @@ export default function NewIncidentPage() {
                 />
               </FormField>
 
-              {/* Status */}
+              {/* Statut (Status) - includes Ouvert (Open) */}
               <FormField label={t("form.status")} required>
-                <Select value={formData.status} onValueChange={(value: any) => handleFieldChange("status", value)}>
+                <Select value={formData.status} onValueChange={(value: FormStatus) => handleFieldChange("status", value)}>
                   <SelectTrigger className="h-12">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="draft">{t("status.draft")}</SelectItem>
+                    <SelectItem value="open">{t("status.open")}</SelectItem>
                     <SelectItem value="in-progress">{t("status.inProgress")}</SelectItem>
                     <SelectItem value="submitted">{t("status.submitted")}</SelectItem>
+                    <SelectItem value="closed">{t("status.closed")}</SelectItem>
                   </SelectContent>
                 </Select>
               </FormField>

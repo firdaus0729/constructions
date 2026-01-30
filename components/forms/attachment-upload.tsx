@@ -11,12 +11,20 @@ import Image from "next/image"
 
 interface AttachmentUploadProps {
   attachments: Attachment[]
-  onChange: (attachments: Attachment[]) => void
+  onChange?: (attachments: Attachment[]) => void
+  onAttachmentsChange?: (attachments: Attachment[]) => void
   maxFiles?: number
   readOnly?: boolean
 }
 
-export function AttachmentUpload({ attachments, onChange, maxFiles = 10, readOnly = false }: AttachmentUploadProps) {
+export function AttachmentUpload({
+  attachments,
+  onChange,
+  onAttachmentsChange,
+  maxFiles = 10,
+  readOnly = false,
+}: AttachmentUploadProps) {
+  const handleChange = onChange ?? onAttachmentsChange
   const { t } = useLocale()
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -31,14 +39,14 @@ export function AttachmentUpload({ attachments, onChange, maxFiles = 10, readOnl
       uploadedAt: new Date(),
     }))
 
-    onChange([...attachments, ...newAttachments].slice(0, maxFiles))
+    handleChange?.([...attachments, ...newAttachments].slice(0, maxFiles))
     if (inputRef.current) {
       inputRef.current.value = ""
     }
   }
 
   const removeAttachment = (id: string) => {
-    onChange(attachments.filter((a) => a.id !== id))
+    handleChange?.(attachments.filter((a) => a.id !== id))
   }
 
   const downloadAttachment = (attachment: Attachment) => {

@@ -32,7 +32,8 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
   const router = useRouter()
   const { t } = useLocale()
   const store = useAppStore()
-  const { projects = [], currentUser, updateIncident, incidents, authUsers = [], userGroups = [] } = store || {}
+  const { projects = [], currentUser, updateIncident, incidents, authUsers = [], userGroups = [], users = [] } = store || {}
+  const creatorOptions = (authUsers?.length ? authUsers : users) as { id: string; name: string }[]
   
   // Load reference data on client side only
   const [injuryTypes, setInjuryTypes] = useState<any[]>([])
@@ -58,6 +59,8 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
     title: string
     projectId: string
     projectNumber: string
+    creatorId: string
+    status: FormStatus
     location: string
     eventDate: string
     eventTime: string
@@ -82,7 +85,9 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
   }>(() => ({
     title: incident?.title || "",
     projectId: incident?.projectId || (projects && Array.isArray(projects) && projects.length > 0 ? projects[0]?.id : ""),
-    projectNumber: (incident as any)?.projectNumber || "",
+    projectNumber: (incident as any)?.projectNumber || (projects?.find((p) => p.id === incident?.projectId)?.code) || "",
+    creatorId: incident?.creatorId || "",
+    status: (incident?.status as FormStatus) || "draft",
     location: incident?.location || "",
     eventDate: incident?.eventDate ? new Date(incident.eventDate).toISOString().split("T")[0] : "",
     eventTime: incident?.eventTime || "",
@@ -170,6 +175,8 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
           title: formData.title,
           projectId: formData.projectId,
           projectNumber: formData.projectNumber || undefined,
+          creatorId: formData.creatorId || incident!.creatorId,
+          status: formData.status,
           location: formData.location,
           eventDate: new Date(formData.eventDate),
           eventTime: formData.eventTime,
@@ -268,25 +275,53 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
               />
             </FormField>
 
-            <FormField label={t("form.project")} error={errors.projectId} required>
-              <Input
-                value={formData.projectId}
-                onChange={(e) => setFormData((prev) => ({ ...prev, projectId: e.target.value }))}
-                placeholder={t("form.project")}
-                className="h-12"
-              />
-            </FormField>
-
-            <FormField label={t("observation.projectNumber")}>
+            <FormField label={t("observation.projectNumber")} error={errors.projectId} required>
               <ProjectNoCombobox
                 projects={projects}
-                value={projects.find((p) => p.code === formData.projectNumber)?.id || ""}
+                value={formData.projectId}
                 onChange={(projectId) => {
                   const p = projects.find((pp) => pp.id === projectId)
-                  setFormData((prev) => ({ ...prev, projectNumber: p?.code || "" }))
+                  setFormData((prev) => ({ ...prev, projectId: projectId || "", projectNumber: p?.code || "" }))
                 }}
                 placeholder={t("observation.projectNumber")}
               />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label={t("form.createdBy")}>
+              <Select
+                value={formData.creatorId || ""}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, creatorId: value }))}
+              >
+                <SelectTrigger className="h-12">
+                  <SelectValue placeholder={t("form.createdBy")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {creatorOptions.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+            <FormField label={t("form.status")}>
+              <Select
+                value={formData.status}
+                onValueChange={(value: FormStatus) => setFormData((prev) => ({ ...prev, status: value }))}
+              >
+                <SelectTrigger className="h-12">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">{t("status.draft")}</SelectItem>
+                  <SelectItem value="open">{t("status.open")}</SelectItem>
+                  <SelectItem value="in-progress">{t("status.inProgress")}</SelectItem>
+                  <SelectItem value="submitted">{t("status.submitted")}</SelectItem>
+                  <SelectItem value="closed">{t("status.closed")}</SelectItem>
+                </SelectContent>
+              </Select>
             </FormField>
           </div>
 

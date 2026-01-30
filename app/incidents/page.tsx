@@ -45,7 +45,13 @@ const getStatusTranslationKey = (status: string): string => {
 }
 
 export default function IncidentsPage() {
-  const { incidents, deleteIncident, projects, users } = useAppStore()
+  const { incidents, deleteIncident, projects, users, authUsers = [] } = useAppStore()
+  const getCreatorName = (creatorId: string) =>
+    (authUsers as { id: string; name: string }[]).find((u) => u.id === creatorId)?.name ||
+    users.find((u) => u.id === creatorId)?.name ||
+    "-"
+  const getAccidentTypeLabel = (accidentTypeId: string) =>
+    incidentOptionLists?.accidentTypes?.find((t) => t.id === accidentTypeId)?.label || accidentTypeId
   const { t } = useLocale()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<string | null>(null)
@@ -195,22 +201,26 @@ export default function IncidentsPage() {
 
                     <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{incident.description}</p>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4 text-xs">
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4 text-xs">
                       <div>
                         <span className="text-muted-foreground">{t("observation.projectNumber")}</span>
                         <p className="font-medium">{projectNumber}</p>
                       </div>
                       <div>
+                        <span className="text-muted-foreground">{t("form.createdBy")}</span>
+                        <p className="font-medium">{getCreatorName(incident.creatorId)}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">{t("form.status")}</span>
+                        <p className="font-medium">{t(getStatusTranslationKey(incident.status) as any)}</p>
+                      </div>
+                      <div>
                         <span className="text-muted-foreground">{t("incident.accidentType")}</span>
-                        <p className="font-medium">{incident.accidentType}</p>
+                        <p className="font-medium">{getAccidentTypeLabel(incident.accidentType)}</p>
                       </div>
                       <div>
                         <span className="text-muted-foreground">{t("incident.eventDate")}</span>
                         <p className="font-medium">{formatIncidentEventDate(incident)}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">{t("form.project")}</span>
-                        <p className="font-medium">{projectDisplay}</p>
                       </div>
                     </div>
 
