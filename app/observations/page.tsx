@@ -46,7 +46,6 @@ export default function ObservationsPage() {
   const { t } = useLocale()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<string | null>(null)
-  const [filterPriority, setFilterPriority] = useState<string | null>(null)
 
   const filtered = observations.filter((obs) => {
     const matchesSearch =
@@ -55,9 +54,8 @@ export default function ObservationsPage() {
       obs.number.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesStatus = !filterStatus || obs.status === filterStatus
-    const matchesPriority = !filterPriority || obs.priority === filterPriority
 
-    return matchesSearch && matchesStatus && matchesPriority
+    return matchesSearch && matchesStatus
   })
 
   const handleExportPDF = async (observation: (typeof observations)[0]) => {
@@ -123,18 +121,6 @@ export default function ObservationsPage() {
                   {t(s.label as any)}
                 </Button>
               ))}
-              {["low", "medium", "high"].map((priority) => (
-                <Button
-                  key={priority}
-                  variant={filterPriority === priority ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setFilterPriority(filterPriority === priority ? null : priority)}
-                  className={cn("capitalize text-xs text-white", filterPriority === priority && PRIORITY_BADGE[priority])}
-                  style={filterPriority === priority ? { backgroundColor: priority === "low" ? "#05F719" : priority === "medium" ? "#F28705" : "#F70505" } : undefined}
-                >
-                  {t(`priority.${priority}` as any)}
-                </Button>
-              ))}
             </div>
           </div>
 
@@ -193,7 +179,7 @@ export default function ObservationsPage() {
                         </div>
                         <div>
                           <span className="text-muted-foreground">{t("form.project")}</span>
-                          <p className="font-medium">{project?.name || "-"}</p>
+                          <p className="font-medium">{project?.name || project?.code || "-"}</p>
                         </div>
                       </div>
 

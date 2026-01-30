@@ -19,6 +19,9 @@ import type { Observation, Attachment } from "@/lib/types"
 import { useLocale } from "@/lib/locale-context"
 import { ObservationTypeCrudCombobox } from "@/components/observation-type-crud-combobox"
 import { ProjectNoCombobox } from "@/components/project-no-combobox"
+import { ObservationDangerCrudCombobox } from "@/components/observation-danger-crud-combobox"
+import { ObservationContributingConditionCrudCombobox } from "@/components/observation-contributing-condition-crud-combobox"
+import { ObservationContributingBehaviorCrudCombobox } from "@/components/observation-contributing-behavior-crud-combobox"
 
 export default function EditObservation({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -37,6 +40,13 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
 
   const observation = observations.find((o) => o.id === id)
 
+  const toDateStr = (date: Date | null | undefined): string => {
+    if (!date) return ""
+    const d = new Date(date)
+    if (isNaN(d.getTime())) return ""
+    return d.toISOString().split("T")[0]
+  }
+
   // Load observation types on client side only
   useEffect(() => {
     setObservationTypes(getObservationTypes())
@@ -50,8 +60,14 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
     projectNumber: string
     description: string
     priority: "low" | "medium" | "high"
+    status: string
+    creatorId: string
     concernedCompany: string
     referenceArticle: string
+    date: string
+    dueDate: string
+    completionDate: string
+    attachments: Attachment[]
     safetyAnalysis: {
       danger: string
       contributingCondition: string
@@ -64,8 +80,14 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
     projectNumber: observation?.projectNumber || "",
     description: observation?.description || "",
     priority: (observation?.priority as any) || "medium",
+    status: (observation?.status as string) || "draft",
+    creatorId: observation?.creatorId || "",
     concernedCompany: observation?.concernedCompany || "",
     referenceArticle: observation?.referenceArticle || "",
+    date: "",
+    dueDate: "",
+    completionDate: "",
+    attachments: observation?.attachments || [],
     safetyAnalysis: observation?.safetyAnalysis || {
       danger: "",
       contributingCondition: "",
@@ -83,6 +105,7 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
         description: observation.description || "",
         priority: (observation.priority as any) || "medium",
         status: (observation.status as string) || "draft",
+        creatorId: observation.creatorId || "",
         date: toDateStr(observation.date as Date | null),
         dueDate: toDateStr(observation.dueDate),
         completionDate: toDateStr(observation.completionDate),
@@ -143,6 +166,7 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
           description: formData.description,
           priority: formData.priority,
           status: formData.status as Observation["status"],
+          creatorId: formData.creatorId || observation!.creatorId,
           date: formData.date ? new Date(formData.date) : null,
           dueDate: formData.dueDate ? new Date(formData.dueDate) : null,
           completionDate: formData.completionDate ? new Date(formData.completionDate) : null,
@@ -262,23 +286,34 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <FormField label={t("form.project")} error={errors.projectId} required>
-              <Input
-                value={formData.projectId}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, projectId: e.target.value }))}
-                placeholder={t("form.project")}
-              />
-            </FormField>
-            <FormField label={t("observation.projectNumber")}>
+            <FormField label={t("observation.projectNumber")} error={errors.projectId} required>
               <ProjectNoCombobox
                 projects={projects}
-                value={projects?.find((p) => p.code === formData.projectNumber)?.id ?? null}
+                value={formData.projectId}
                 onChange={(projectId) => {
                   const p = projects?.find((x) => x.id === projectId)
-                  setFormData((prev) => ({ ...prev, projectNumber: p?.code ?? "" }))
+                  setFormData((prev) => ({ ...prev, projectId: projectId || "", projectNumber: p?.code ?? "" }))
                 }}
                 placeholder={t("observation.projectNumber")}
               />
+            </FormField>
+
+            <FormField label={t("form.createdBy")}>
+              <Select
+                value={formData.creatorId || ""}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, creatorId: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t("form.createdBy")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {((authUsers?.length ? authUsers : []) as { id: string; name: string }[]).map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </FormField>
           </div>
 
@@ -350,16 +385,15 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
             error={errors.danger}
             required
           >
-            <Textarea
+            <ObservationDangerCrudCombobox
               value={formData.safetyAnalysis.danger}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+              onChange={(value) =>
                 setFormData((prev) => ({
                   ...prev,
-                  safetyAnalysis: { ...prev.safetyAnalysis, danger: e.target.value },
+                  safetyAnalysis: { ...prev.safetyAnalysis, danger: value },
                 }))
               }
-              placeholder={t("form.description")}
-              rows={3}
+              placeholder={t("observation.danger")}
             />
           </FormField>
 
@@ -368,19 +402,18 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
             error={errors.condition}
             required
           >
-            <Textarea
+            <ObservationContributingConditionCrudCombobox
               value={formData.safetyAnalysis.contributingCondition}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+              onChange={(value) =>
                 setFormData((prev) => ({
                   ...prev,
                   safetyAnalysis: {
                     ...prev.safetyAnalysis,
-                    contributingCondition: e.target.value,
+                    contributingCondition: value,
                   },
                 }))
               }
-              placeholder={t("form.description")}
-              rows={3}
+              placeholder={t("observation.contributingCondition")}
             />
           </FormField>
 
@@ -389,19 +422,18 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
             error={errors.behavior}
             required
           >
-            <Textarea
+            <ObservationContributingBehaviorCrudCombobox
               value={formData.safetyAnalysis.contributingBehavior}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+              onChange={(value) =>
                 setFormData((prev) => ({
                   ...prev,
                   safetyAnalysis: {
                     ...prev.safetyAnalysis,
-                    contributingBehavior: e.target.value,
+                    contributingBehavior: value,
                   },
                 }))
               }
-              placeholder={t("form.description")}
-              rows={3}
+              placeholder={t("observation.contributingBehavior")}
             />
           </FormField>
         </FormSection>

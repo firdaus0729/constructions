@@ -1428,10 +1428,21 @@ export async function exportIncidentAsPdf(
   y += 22
   thinLine()
 
-  // ----- Title: centered, bold, larger (Excel Perfect) -----
+  // ----- Title: centered, bold, larger (matching image format) -----
   doc.setFontSize(14)
   doc.setFont("helvetica", "bold")
-  const titleText = `Incident n°${incidentNumber}${incident.title ? ` : ${incident.title}` : ""}`
+  // Format: "Incident n°76 - F-1: Tristan Lavallée: Étirement épaule gauche"
+  // Construct title from incident number and title field
+  let titleText = `Incident n°${incidentNumber}`
+  if (incident.title) {
+    // If title already contains the format with colons, use it as-is with dash separator
+    if (incident.title.includes(":")) {
+      titleText = `${titleText} - ${incident.title}`
+    } else {
+      // Otherwise, just append with dash
+      titleText = `${titleText} - ${incident.title}`
+    }
+  }
   const titleLines = doc.splitTextToSize(titleText, contentWidth)
   titleLines.forEach((ln: string, i: number) => {
     doc.text(ln, pageWidth / 2, y + (i * 6), { align: "center" })
@@ -1565,19 +1576,20 @@ export async function exportIncidentAsPdf(
   y = Math.max(leftY, rightY) + 5
   thinLine()
 
-  // ----- À déclarer -----
+  // ----- Description section with À déclarer inline -----
   checkPageBreak(12)
   doc.setFont("helvetica", "bold")
   doc.setFontSize(9)
+  // À déclarer inline with Description label
+  const aDeclarerText = (incident as any).aDeclarer === true ? "Oui" : "Non"
   doc.text("À déclarer", leftColX, y)
   doc.setFont("helvetica", "normal")
-  doc.text((incident as any).aDeclarer === true ? "Oui" : "Non", leftColX + labelW, y)
-  y += 6
-
-  // ----- Description (paragraph, no box) -----
+  doc.text(aDeclarerText, leftColX + 25, y)
   doc.setFont("helvetica", "bold")
-  doc.text("Description", leftColX, y)
-  y += 5
+  doc.text("Description", leftColX + 50, y)
+  y += 6
+  
+  // Description content
   doc.setFont("helvetica", "normal")
   doc.setFontSize(8)
   const desc = incident.description || ""
@@ -1590,44 +1602,66 @@ export async function exportIncidentAsPdf(
   y += 4
   thinLine()
 
-  // ----- Pièces jointes: thumbnail + blue underlined filename -----
+  // ----- Pièces jointes: large embedded image/document box + filename below -----
   const attachments = incident.attachments || []
   if (attachments.length > 0) {
-    checkPageBreak(20)
+    checkPageBreak(60)
     doc.setFont("helvetica", "bold")
     doc.setFontSize(9)
     doc.text("Pièces jointes", leftColX, y)
     y += 6
-    doc.setFont("helvetica", "normal")
-    doc.setFontSize(8)
+    
     for (const att of attachments) {
+      // Large box for embedded image/document
+      const boxWidth = contentWidth
+      const boxHeight = 50
+      checkPageBreak(boxHeight + 8)
+      
+      // Draw border box
+      doc.setDrawColor(0, 0, 0)
+      doc.setLineWidth(0.2)
+      doc.rect(leftColX, y, boxWidth, boxHeight)
+      
+      // Try to embed image/document inside the box
       if (att.type?.startsWith("image/")) {
         try {
-          checkPageBreak(50)
-          doc.addImage(att.url, "JPEG", leftColX, y, 50, 35)
-          y += 36
-        } catch {
-          y += 2
+          // Calculate image dimensions to fit in box with padding
+          const padding = 2
+          const imgWidth = boxWidth - (padding * 2)
+          const imgHeight = boxHeight - (padding * 2)
+          doc.addImage(att.url, "JPEG", leftColX + padding, y + padding, imgWidth, imgHeight)
+        } catch (err) {
+          // If image fails, just show the box
+          doc.setFont("helvetica", "italic")
+          doc.setFontSize(7)
+          doc.setTextColor(150, 150, 150)
+          doc.text("Image non disponible", leftColX + 5, y + boxHeight / 2)
+          doc.setTextColor(0, 0, 0)
         }
+      } else {
+        // For non-image attachments, show placeholder text
+        doc.setFont("helvetica", "italic")
+        doc.setFontSize(7)
+        doc.setTextColor(150, 150, 150)
+        doc.text("Document joint", leftColX + 5, y + boxHeight / 2)
+        doc.setTextColor(0, 0, 0)
       }
+      
+      y += boxHeight + 3
+      
+      // Filename below the box (normal text, not blue underlined)
+      doc.setFont("helvetica", "normal")
       doc.setFontSize(7)
-      doc.setTextColor(0, 0, 255)
       const name = att.name || "Pièce jointe"
       doc.text(name, leftColX, y)
-      const tw = doc.getTextWidth(name)
-      doc.setDrawColor(0, 0, 255)
-      doc.setLineWidth(0.2)
-      doc.line(leftColX, y + 0.8, leftColX + tw, y + 0.8)
-      doc.setTextColor(0, 0, 0)
-      doc.setDrawColor(0, 0, 0)
       y += 5
     }
     y += 4
     thinLine()
   }
 
-  // ----- Informations sur l'enquête (2x3 grid, clean) -----
-  checkPageBreak(36)
+  // ----- Informations sur l'enquête (2 columns: Left (Danger, Condition contributive), Right (Comportement contributif)) -----
+  checkPageBreak(30)
   doc.setFont("helvetica", "bold")
   doc.setFontSize(9)
   doc.text("Informations sur l'enquête", leftColX, y)
@@ -1636,30 +1670,33 @@ export async function exportIncidentAsPdf(
   doc.setFontSize(8)
 
   const invW = (contentWidth - 4) / 2
-  const invRowH = 9
   const invLabelW = 40
-  const invGrid: [string, string][] = [
-    ["Danger", incident.investigation?.danger ?? ""],
-    ["Condition contributive", incident.investigation?.contributingCondition ?? ""],
-    ["Pris dans/entre", (incident.investigation as any)?.prisDansEntre ?? ""],
-    ["Équipement", (incident.investigation as any)?.equipement ?? ""],
-    ["Comportement contributif", incident.investigation?.contributingBehavior ?? ""],
-    ["Utiliser", (incident.investigation as any)?.utiliser ?? ""],
-  ]
-  for (let row = 0; row < 3; row++) {
-    const rowY = y + row * invRowH
-    for (let col = 0; col < 2; col++) {
-      const idx = row * 2 + col
-      const [lbl, val] = invGrid[idx]
-      const xx = leftColX + col * (invW + 2)
-      doc.setFont("helvetica", "bold")
-      doc.text(lbl, xx, rowY)
-      doc.setFont("helvetica", "normal")
-      const vLines = doc.splitTextToSize(String(val || ""), invW - invLabelW - 2)
-      doc.text(vLines[0] || "", xx + invLabelW, rowY)
-    }
-  }
-  y += invRowH * 3 + 6
+  const invRowH = 6
+  
+  // Left column: Danger, Condition contributive
+  let leftInvY = y
+  doc.setFont("helvetica", "bold")
+  doc.text("Danger", leftColX, leftInvY)
+  doc.setFont("helvetica", "normal")
+  const dangerLines = doc.splitTextToSize(String(incident.investigation?.danger ?? ""), invW - invLabelW - 2)
+  doc.text(dangerLines[0] || "", leftColX + invLabelW, leftInvY)
+  leftInvY += invRowH
+  
+  doc.setFont("helvetica", "bold")
+  doc.text("Condition contributive", leftColX, leftInvY)
+  doc.setFont("helvetica", "normal")
+  const condLines = doc.splitTextToSize(String(incident.investigation?.contributingCondition ?? ""), invW - invLabelW - 2)
+  doc.text(condLines[0] || "", leftColX + invLabelW, leftInvY)
+  
+  // Right column: Comportement contributif
+  let rightInvY = y
+  doc.setFont("helvetica", "bold")
+  doc.text("Comportement contributif", rightColX, rightInvY)
+  doc.setFont("helvetica", "normal")
+  const behaviorLines = doc.splitTextToSize(String(incident.investigation?.contributingBehavior ?? ""), invW - invLabelW - 2)
+  doc.text(behaviorLines[0] || "", rightColX + invLabelW, rightInvY)
+  
+  y = Math.max(leftInvY + invRowH, rightInvY + invRowH) + 6
 
   // ----- Footer: thin dark line, then company | Page X sur Y | Imprimé le DD/MM/YYYY à HH h MM EDT -----
   const pageCount = (doc as any).internal.getNumberOfPages()
@@ -1681,6 +1718,7 @@ export async function exportIncidentAsPdf(
     doc.line(margin, footerY - 2, pageWidth - margin, footerY - 2)
     doc.setFontSize(6)
     doc.setTextColor(100, 100, 100)
+    doc.setFont("helvetica", "normal")
     doc.text("Construction Interlag", margin, footerY + 2)
     doc.text(`Page ${i} sur ${pageCount}`, pageWidth / 2, footerY + 2, { align: "center" })
     doc.text(printedStr, pageWidth - margin, footerY + 2, { align: "right" })

@@ -90,7 +90,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                         )}
                       >
-                        <child.icon className="h-4 w-4 shrink-0" />
+                        <child.icon className="h-5 w-5 shrink-0" />
                         <span>{t(child.key as any)}</span>
                       </Link>
                     )

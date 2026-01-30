@@ -48,7 +48,8 @@ export default function NewObservation() {
     projectNumber: string
     description: string
     priority: "low" | "medium" | "high"
-    status: "draft" | "in-progress" | "submitted"
+    status: "draft" | "in-progress" | "submitted" | "open" | "closed"
+    creatorId: string
     concernedCompany: string
     referenceArticle: string
     dueDate: string
@@ -68,6 +69,7 @@ export default function NewObservation() {
     description: "",
     priority: "medium",
     status: "draft",
+    creatorId: currentUser?.id || "",
     concernedCompany: "",
     referenceArticle: "",
     dueDate: "",
@@ -129,7 +131,7 @@ export default function NewObservation() {
           type: formData.type,
           projectId: formData.projectId,
           projectNumber: formData.projectNumber || undefined,
-          creatorId: currentUser?.id || "unknown",
+          creatorId: formData.creatorId || currentUser?.id || "unknown",
           assignedPersonId: currentUser?.id || "unknown",
           priority: formData.priority,
           status: formData.status,
@@ -300,45 +302,30 @@ export default function NewObservation() {
               error={errors.type}
               required
             >
-              <Select value={formData.type} onValueChange={(value) => setFormData((prev) => ({ ...prev, type: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t("inspection.selectType")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {observationTypes?.map((type) => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {t(`observation.type.${type.id}` as any)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ObservationTypeCrudCombobox
+                value={formData.type}
+                onChange={(value) => setFormData((prev) => ({ ...prev, type: value }))}
+                placeholder={t("inspection.selectType")}
+              />
             </FormField>
 
             <FormField
-              label={t("form.project")}
+              label={t("observation.projectNumber")}
               error={errors.projectId}
               required
             >
-              <Input
+              <ProjectNoCombobox
+                projects={projects}
                 value={formData.projectId}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, projectId: e.target.value }))}
-                placeholder={t("form.project")}
+                onChange={(projectId) => {
+                  const p = projects.find((x) => x.id === projectId)
+                  if (!p) return
+                  setFormData((prev) => ({ ...prev, projectId: projectId || "", projectNumber: p.code }))
+                }}
+                placeholder={t("observation.projectNumber")}
               />
             </FormField>
           </div>
-
-          <FormField label={t("observation.projectNumber")}>
-            <ProjectNoCombobox
-              projects={projects}
-              value={projects.find((p) => p.code === formData.projectNumber)?.id || null}
-              onChange={(projectId) => {
-                const p = projects.find((x) => x.id === projectId)
-                if (!p) return
-                setFormData((prev) => ({ ...prev, projectNumber: p.code }))
-              }}
-              placeholder={t("observation.projectNumber")}
-            />
-          </FormField>
 
           <div className="grid grid-cols-2 gap-4">
             <FormField label={t("form.status")} required>

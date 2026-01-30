@@ -407,6 +407,9 @@ interface AppState {
   // Observation option lists (editable dropdown options)
   observationOptionLists: {
     types: { id: string; label: string }[]
+    danger: { id: string; label: string }[]
+    contributingCondition: { id: string; label: string }[]
+    contributingBehavior: { id: string; label: string }[]
   }
 
   // Livrable option lists (editable dropdown options)
@@ -502,6 +505,15 @@ interface AppState {
   addObservationTypeOption: (item: { id: string; label: string }) => void
   updateObservationTypeOption: (id: string, updates: Partial<{ label: string }>) => void
   deleteObservationTypeOption: (id: string) => void
+  addObservationDangerOption: (item: { id: string; label: string }) => void
+  updateObservationDangerOption: (id: string, updates: Partial<{ label: string }>) => void
+  deleteObservationDangerOption: (id: string) => void
+  addObservationContributingConditionOption: (item: { id: string; label: string }) => void
+  updateObservationContributingConditionOption: (id: string, updates: Partial<{ label: string }>) => void
+  deleteObservationContributingConditionOption: (id: string) => void
+  addObservationContributingBehaviorOption: (item: { id: string; label: string }) => void
+  updateObservationContributingBehaviorOption: (id: string, updates: Partial<{ label: string }>) => void
+  deleteObservationContributingBehaviorOption: (id: string) => void
 
   // Computed
   getRecentDrafts: () => FormListItem[]
@@ -607,6 +619,83 @@ export const useAppStore = create<AppState>()(
           { id: "housekeeping", label: "Problème d'entretien" },
           { id: "tool-equipment", label: "Problème d'outil/équipement" },
         ],
+        danger: [
+          { id: "amputation", label: "Amputation" },
+          { id: "amiantose", label: "Amiantose" },
+          { id: "asphyxie", label: "Asphyxie" },
+          { id: "morsure", label: "Morsure" },
+          { id: "ecchymose", label: "Ecchymose (contusion)" },
+          { id: "brulure-chimique", label: "Brûlure (chimique)" },
+          { id: "brulure-chaleur", label: "Brûlure (chaleur)" },
+          { id: "cancer", label: "Cancer" },
+          { id: "canal-carpien", label: "Syndrome du canal carpien" },
+          { id: "douleur-thoracique", label: "Douleur thoracique (angine de poitrine)" },
+          { id: "commotion", label: "Commotion" },
+          { id: "maladie-contagieuse", label: "Maladie contagieuse" },
+          { id: "ecrasement", label: "Écrasement" },
+          { id: "coupure", label: "Coupure (lacération)" },
+          { id: "dislocation", label: "Dislocation" },
+          { id: "maladie-poussiere", label: "Maladie de la poussière" },
+          { id: "choc-electrique", label: "Choc électrique" },
+          { id: "perte-oculaire", label: "Perte oculaire (énucléation)" },
+          { id: "corps-etranger", label: "Corps étranger" },
+          { id: "fracture", label: "Fracture" },
+          { id: "congelation", label: "Congélation" },
+          { id: "deficience-auditive", label: "Déficience auditive" },
+          { id: "perte-auditive", label: "Perte auditive" },
+          { id: "crise-cardiaque", label: "Crise cardiaque (infarctus du myocarde)" },
+          { id: "epuisement-chaleur", label: "Épuisement dû la chaleur (prostration)" },
+          { id: "coup-chaleur", label: "Coup de chaleur" },
+          { id: "hernie", label: "Hernie" },
+          { id: "hypothermie", label: "Hypothermie" },
+          { id: "infection", label: "Infection" },
+          { id: "inflammation", label: "Inflammation" },
+          { id: "perte-conscience", label: "Perte de conscience (syncope)" },
+          { id: "trouble-mental", label: "Trouble mental" },
+          { id: "stress-mental", label: "Stress mental" },
+          { id: "empoisonnement-chimique", label: "Empoisonnement (chimique)" },
+          { id: "empoisonnement-general", label: "Empoisonnement (général)" },
+          { id: "empoisonnement-metal", label: "Empoisonnement (métal)" },
+          { id: "ponction", label: "Ponction" },
+          { id: "radiation", label: "Radiation" },
+          { id: "eruption-cutanee", label: "Éruption cutanée/plaies/ampoules (dermatite)" },
+          { id: "troubles-respiratoires", label: "Troubles respiratoires" },
+          { id: "rupture", label: "Rupture" },
+          { id: "egratignure", label: "Égratignure (abrasion)" },
+          { id: "demembrement", label: "Démembrement" },
+          { id: "silicose", label: "Silicose" },
+          { id: "entorse", label: "Entorse" },
+          { id: "piqure", label: "Piqûre" },
+          { id: "foulure", label: "Foulure" },
+          { id: "dechirure", label: "Déchirure" },
+          { id: "vasculaire", label: "Vasculaire" },
+          { id: "perte-vision", label: "Perte de vision" },
+        ],
+        contributingCondition: [
+          { id: "acces-sortie", label: "Accès / Sortie" },
+          { id: "vetements", label: "Vêtements" },
+          { id: "environnement", label: "Environnement" },
+          { id: "equipement", label: "Équipement" },
+          { id: "ergonomie", label: "Ergonomie" },
+          { id: "conditions-sol", label: "Conditions du sol" },
+          { id: "garde-barriere", label: "Garde / barrière" },
+          { id: "entretien-menager", label: "Entretien ménager" },
+          { id: "information-signalisation", label: "Information signalisation" },
+          { id: "eclairage", label: "Éclairage" },
+          { id: "selection-materiaux", label: "Sélection de matériaux" },
+          { id: "bruit", label: "Bruit" },
+          { id: "epi", label: "ÉPI" },
+          { id: "securite", label: "Sécurité" },
+          { id: "etaiement-contreventement", label: "Étaiement / contreventement" },
+          { id: "energie-emmagasinee", label: "Énergie emmagasinée" },
+          { id: "outil", label: "Outil" },
+          { id: "circulation", label: "Circulation" },
+          { id: "controles-circulation", label: "Contrôles de circulation" },
+          { id: "ventilation", label: "Ventilation" },
+          { id: "meteo", label: "Météo" },
+          { id: "disposition-poste-travail", label: "Disposition de poste de travail" },
+        ],
+        contributingBehavior: [],
       },
 
       livrableOptionLists: {
@@ -881,6 +970,75 @@ export const useAppStore = create<AppState>()(
           observationOptionLists: {
             ...state.observationOptionLists,
             types: state.observationOptionLists.types.filter((it) => it.id !== id),
+          },
+        })),
+
+      // Observation danger options
+      addObservationDangerOption: (item) =>
+        set((state) => ({
+          observationOptionLists: {
+            ...state.observationOptionLists,
+            danger: [...state.observationOptionLists.danger, item],
+          },
+        })),
+      updateObservationDangerOption: (id, updates) =>
+        set((state) => ({
+          observationOptionLists: {
+            ...state.observationOptionLists,
+            danger: state.observationOptionLists.danger.map((it) => (it.id === id ? { ...it, ...updates } : it)),
+          },
+        })),
+      deleteObservationDangerOption: (id) =>
+        set((state) => ({
+          observationOptionLists: {
+            ...state.observationOptionLists,
+            danger: state.observationOptionLists.danger.filter((it) => it.id !== id),
+          },
+        })),
+
+      // Observation contributing condition options
+      addObservationContributingConditionOption: (item) =>
+        set((state) => ({
+          observationOptionLists: {
+            ...state.observationOptionLists,
+            contributingCondition: [...state.observationOptionLists.contributingCondition, item],
+          },
+        })),
+      updateObservationContributingConditionOption: (id, updates) =>
+        set((state) => ({
+          observationOptionLists: {
+            ...state.observationOptionLists,
+            contributingCondition: state.observationOptionLists.contributingCondition.map((it) => (it.id === id ? { ...it, ...updates } : it)),
+          },
+        })),
+      deleteObservationContributingConditionOption: (id) =>
+        set((state) => ({
+          observationOptionLists: {
+            ...state.observationOptionLists,
+            contributingCondition: state.observationOptionLists.contributingCondition.filter((it) => it.id !== id),
+          },
+        })),
+
+      // Observation contributing behavior options
+      addObservationContributingBehaviorOption: (item) =>
+        set((state) => ({
+          observationOptionLists: {
+            ...state.observationOptionLists,
+            contributingBehavior: [...state.observationOptionLists.contributingBehavior, item],
+          },
+        })),
+      updateObservationContributingBehaviorOption: (id, updates) =>
+        set((state) => ({
+          observationOptionLists: {
+            ...state.observationOptionLists,
+            contributingBehavior: state.observationOptionLists.contributingBehavior.map((it) => (it.id === id ? { ...it, ...updates } : it)),
+          },
+        })),
+      deleteObservationContributingBehaviorOption: (id) =>
+        set((state) => ({
+          observationOptionLists: {
+            ...state.observationOptionLists,
+            contributingBehavior: state.observationOptionLists.contributingBehavior.filter((it) => it.id !== id),
           },
         })),
 
