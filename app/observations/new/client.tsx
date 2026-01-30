@@ -15,6 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { useAppStore } from "@/lib/store"
 import { getObservationTypes } from "@/lib/reference-data-loader"
+import { ObservationTypeCrudCombobox } from "@/components/observation-type-crud-combobox"
+import { IncidentOptionCrudCombobox } from "@/components/incident-crud-combobox"
 import { AlertTriangle, CheckCircle2, Mail } from "lucide-react"
 import type { Observation, Attachment } from "@/lib/types"
 import { useLocale } from "@/lib/locale-context"
@@ -337,6 +339,8 @@ export default function NewObservation() {
                   <SelectItem value="draft">{t("status.draft")}</SelectItem>
                   <SelectItem value="in-progress">{t("status.inProgress")}</SelectItem>
                   <SelectItem value="submitted">{t("status.submitted")}</SelectItem>
+                  <SelectItem value="open">{t("status.open")}</SelectItem>
+                  <SelectItem value="closed">{t("status.closed")}</SelectItem>
                 </SelectContent>
               </Select>
             </FormField>
@@ -344,11 +348,21 @@ export default function NewObservation() {
 
           <div className="grid grid-cols-2 gap-4">
             <FormField label={t("form.createdBy")}>
-              <Input
-                value={currentUser?.name || ""}
-                disabled
-                className="bg-muted"
-              />
+              <Select
+                value={formData.creatorId || ""}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, creatorId: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t("form.createdBy")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {(authUsers?.length ? authUsers : []).map((u: { id: string; name: string }) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </FormField>
 
             <FormField label={t("form.priority")} required>
@@ -447,16 +461,16 @@ export default function NewObservation() {
             error={errors.danger}
             required
           >
-            <Textarea
+            <IncidentOptionCrudCombobox
+              listKey="danger"
               value={formData.safetyAnalysis.danger}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+              onChange={(value) =>
                 setFormData((prev) => ({
                   ...prev,
-                  safetyAnalysis: { ...prev.safetyAnalysis, danger: e.target.value },
+                  safetyAnalysis: { ...prev.safetyAnalysis, danger: value },
                 }))
               }
-              placeholder={t("form.description")}
-              rows={3}
+              placeholder={t("observation.danger")}
             />
           </FormField>
 
@@ -465,19 +479,19 @@ export default function NewObservation() {
             error={errors.condition}
             required
           >
-            <Textarea
+            <IncidentOptionCrudCombobox
+              listKey="contributingCondition"
               value={formData.safetyAnalysis.contributingCondition}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+              onChange={(value) =>
                 setFormData((prev) => ({
                   ...prev,
                   safetyAnalysis: {
                     ...prev.safetyAnalysis,
-                    contributingCondition: e.target.value,
+                    contributingCondition: value,
                   },
                 }))
               }
-              placeholder={t("form.description")}
-              rows={3}
+              placeholder={t("observation.contributingCondition")}
             />
           </FormField>
 

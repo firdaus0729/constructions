@@ -119,9 +119,16 @@ export default function ObservationDetailPage({ params }: { params: Promise<{ id
   const { id } = use(params)
   const router = useRouter()
   const { t, locale } = useLocale()
-  const { observations, projects, users, authUsers } = useAppStore()
+  const { observations, projects, users, authUsers, incidentOptionLists } = useAppStore()
 
   const observation = observations.find((o) => o.id === id)
+  const dangerLabel =
+    incidentOptionLists?.danger?.find((it) => it.id === observation?.safetyAnalysis?.danger)?.label ??
+    observation?.safetyAnalysis?.danger
+  const contributingConditionLabel =
+    incidentOptionLists?.contributingCondition?.find(
+      (it) => it.id === observation?.safetyAnalysis?.contributingCondition
+    )?.label ?? observation?.safetyAnalysis?.contributingCondition
 
   if (!observation) {
     return (
@@ -248,20 +255,20 @@ export default function ObservationDetailPage({ params }: { params: Promise<{ id
           observation.safetyAnalysis.contributingBehavior) && (
           <FormSection title={t("observation.safetyAnalysis")}>
             <div className="space-y-4">
-              {observation.safetyAnalysis.danger && (
+              {(observation.safetyAnalysis.danger || dangerLabel) && (
                 <div className="p-4 bg-destructive/5 border border-destructive/20 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <AlertTriangle className="h-4 w-4 text-destructive" />
                     <p className="font-medium text-sm">{t("observation.danger")}</p>
                   </div>
-                  <p className="text-sm text-foreground">{observation.safetyAnalysis.danger}</p>
+                  <p className="text-sm text-foreground">{dangerLabel || observation.safetyAnalysis.danger}</p>
                 </div>
               )}
 
-              {observation.safetyAnalysis.contributingCondition && (
+              {(observation.safetyAnalysis.contributingCondition || contributingConditionLabel) && (
                 <div className="p-4 bg-warning/5 border border-warning/20 rounded-lg">
                   <p className="font-medium text-sm mb-2">{t("observation.contributingCondition")}</p>
-                  <p className="text-sm text-foreground">{observation.safetyAnalysis.contributingCondition}</p>
+                  <p className="text-sm text-foreground">{contributingConditionLabel || observation.safetyAnalysis.contributingCondition}</p>
                 </div>
               )}
 

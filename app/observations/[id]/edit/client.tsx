@@ -14,13 +14,13 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { useAppStore } from "@/lib/store"
+import { cn } from "@/lib/utils"
 import { AlertTriangle, CheckCircle2, Mail, Save } from "lucide-react"
 import type { Observation, Attachment } from "@/lib/types"
 import { useLocale } from "@/lib/locale-context"
 import { ObservationTypeCrudCombobox } from "@/components/observation-type-crud-combobox"
 import { ProjectNoCombobox } from "@/components/project-no-combobox"
-import { ObservationDangerCrudCombobox } from "@/components/observation-danger-crud-combobox"
-import { ObservationContributingConditionCrudCombobox } from "@/components/observation-contributing-condition-crud-combobox"
+import { IncidentOptionCrudCombobox } from "@/components/incident-crud-combobox"
 import { ObservationContributingBehaviorCrudCombobox } from "@/components/observation-contributing-behavior-crud-combobox"
 
 export default function EditObservation({ params }: { params: Promise<{ id: string }> }) {
@@ -28,7 +28,6 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
   const router = useRouter()
   const store = useAppStore()
   const { t } = useLocale()
-  const [observationTypes, setObservationTypes] = useState<any[]>([])
   const [files, setFiles] = useState<File[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -46,11 +45,6 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
     if (isNaN(d.getTime())) return ""
     return d.toISOString().split("T")[0]
   }
-
-  // Load observation types on client side only
-  useEffect(() => {
-    setObservationTypes(getObservationTypes())
-  }, [])
 
   // Initialize form data from observation
   const [formData, setFormData] = useState<{
@@ -385,7 +379,8 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
             error={errors.danger}
             required
           >
-            <ObservationDangerCrudCombobox
+            <IncidentOptionCrudCombobox
+              listKey="danger"
               value={formData.safetyAnalysis.danger}
               onChange={(value) =>
                 setFormData((prev) => ({
@@ -402,7 +397,8 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
             error={errors.condition}
             required
           >
-            <ObservationContributingConditionCrudCombobox
+            <IncidentOptionCrudCombobox
+              listKey="contributingCondition"
               value={formData.safetyAnalysis.contributingCondition}
               onChange={(value) =>
                 setFormData((prev) => ({

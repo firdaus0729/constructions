@@ -454,7 +454,8 @@ export async function exportObservationAsPdf(
 
   const state = getStoreData()
   const observationOptionLists = state?.observationOptionLists || { types: [], danger: [], contributingCondition: [], contributingBehavior: [] }
-  
+  const incidentOptionLists = state?.incidentOptionLists || { danger: [], contributingCondition: [] }
+
   // Resolve project info
   let projectName = observation.projectName || ""
   let projectLocation = observation.projectLocation || ""
@@ -463,7 +464,11 @@ export async function exportObservationAsPdf(
     projectName = project.name || projectName
     projectLocation = project.location || projectLocation
   }
-  
+
+  // Project line for header: number + full name (French format like reference)
+  const projectNumberPart = observation.projectNumber || (project as any)?.code || ""
+  const projectHeaderLine = [projectNumberPart, projectName].filter(Boolean).join(" ").trim()
+
   // Resolve observation type label
   const getObservationTypeLabel = (typeId: string): string => {
     if (!typeId) return "MES-COR"
@@ -471,16 +476,16 @@ export async function exportObservationAsPdf(
     return typeOption?.label || typeId
   }
 
-  // Resolve danger/condition/behavior labels
+  // Resolve Danger and Condition contributive from incident options (same as incident form)
   const getDangerLabel = (dangerId: string): string => {
     if (!dangerId) return "-"
-    const dangerOption = observationOptionLists.danger?.find((d: any) => d.id === dangerId)
+    const dangerOption = (incidentOptionLists.danger || []).find((d: any) => d.id === dangerId)
     return dangerOption?.label || dangerId
   }
 
   const getContributingConditionLabel = (conditionId: string): string => {
     if (!conditionId) return "-"
-    const conditionOption = observationOptionLists.contributingCondition?.find((c: any) => c.id === conditionId)
+    const conditionOption = (incidentOptionLists.contributingCondition || []).find((c: any) => c.id === conditionId)
     return conditionOption?.label || conditionId
   }
 
@@ -502,7 +507,6 @@ export async function exportObservationAsPdf(
     return `_${year}${month}${day}`
   }
 
-  const projectLine = [observation.projectNumber, projectName].filter(Boolean).join(" ").trim()
   const typeLabel = getObservationTypeLabel(observation.type)
   const titleDateSuffix = getTitleDateSuffix()
   const observationTitle = `Observation Risque de sécurité N°${observationNumber} : ${typeLabel}: ${observation.title || ""}${titleDateSuffix}`
@@ -524,7 +528,7 @@ export async function exportObservationAsPdf(
     doc.text(observationTitle, margin, y)
     doc.setFontSize(7)
     doc.setFont("helvetica", "normal")
-    const projText = projectLine ? `Projet : ${projectLine}` : ""
+    const projText = projectHeaderLine ? `Projet : ${projectHeaderLine}` : ""
     const projLines = doc.splitTextToSize(projText, 95)
     let py = y - 3
     projLines.slice(0, 2).forEach((ln: string) => {
@@ -584,8 +588,8 @@ export async function exportObservationAsPdf(
 
   doc.setFontSize(8)
   let ry = y + 5
-  if (projectLine) {
-    const fullProjectText = projectLocation ? `${projectLine}\n${projectLocation}` : projectLine
+  if (projectHeaderLine) {
+    const fullProjectText = projectLocation ? `${projectHeaderLine}\n${projectLocation}` : projectHeaderLine
     doc.splitTextToSize(`Projet : ${fullProjectText}`, 80).forEach((ln: string) => {
       doc.text(ln, pageWidth - margin, ry, { align: "right" })
       ry += 4
@@ -887,52 +891,61 @@ export async function exportObservationAsPdf(
     y += 6
   }
 
-  // Activité (1): thin line above, thin line under title, name+date left, status box right
-  // Only show on continuation pages (page 2+) - check page count before adding
-  const pageCountBeforeActivity = (doc as any).internal.getNumberOfPages()
-  const willNeedNewPage = y + 28 > pageHeight - margin - 15
-  
-  if (pageCountBeforeActivity > 1 || willNeedNewPage) {
-    // If we need a new page, add it first
-    if (willNeedNewPage) {
-      checkPageBreak(28)
+  // Non-image attachments (file names only, per reference)
+  const otherAttachments = observation.attachments?.filter((a: any) => !a.type?.startsWith("image/")) || []
+  if (otherAttachments.length > 0) {
+    checkPageBreak(8 + otherAttachments.length * 4)
+    if (images.length === 0) {
+      doc.setFont("helvetica", "bold")
+      doc.setFontSize(9)
+      doc.text("Pièces jointes", margin, y)
+      y += 6
     }
-    
-    doc.setDrawColor(100, 100, 100)
-    doc.setLineWidth(0.2)
-    doc.line(margin, y, pageWidth - margin, y)
-    y += 5
-    doc.setDrawColor(0, 0, 0)
-    doc.setFont("helvetica", "bold")
-    doc.setFontSize(9)
-    doc.text("Activité (1)", margin, y)
-    y += 5
-    doc.setDrawColor(180, 180, 180)
-    doc.setLineWidth(0.2)
-    doc.line(margin, y, pageWidth - margin, y)
-    y += 6
-    doc.setDrawColor(0, 0, 0)
-    doc.setFont("helvetica", "normal")
-    doc.setFontSize(8)
-    const activityName = getCreatorName()
-    const activityDate = observation.updatedAt || observation.createdAt
-    // Use FDT for activity date on page 2+ (per original PDF)
-    const finalPageCount = (doc as any).internal.getNumberOfPages()
-    const activityDateStr = activityDate ? formatDateTime(activityDate, finalPageCount > 1) : ""
-    doc.text(activityName, margin, y)
-    if (activityDateStr) doc.text(activityDateStr, margin, y + 4)
-    const boxX = pageWidth - margin - 58
-    const boxW = 56
-    const boxY = y - 2
-    const boxH = 12
-    doc.setFillColor(245, 245, 245)
-    doc.setDrawColor(200, 200, 200)
-    doc.rect(boxX, boxY, boxW, boxH, "FD")
-    doc.setFontSize(8)
-    doc.setTextColor(0, 0, 0)
-    doc.text(`Statut modifié : ${statusText}`, boxX + 3, boxY + 7)
-    y += 18
+    otherAttachments.forEach((att: any) => {
+      doc.setFont("helvetica", "normal")
+      doc.setFontSize(8)
+      doc.setTextColor(0, 0, 255)
+      doc.text(att.name || "Fichier", margin, y)
+      doc.setTextColor(0, 0, 0)
+      y += 5
+    })
+    y += 4
   }
+
+  // Activité (1): always show (per reference PDF page 2) - thin line above, name+date left, status box right
+  checkPageBreak(28)
+  doc.setDrawColor(100, 100, 100)
+  doc.setLineWidth(0.2)
+  doc.line(margin, y, pageWidth - margin, y)
+  y += 5
+  doc.setDrawColor(0, 0, 0)
+  doc.setFont("helvetica", "bold")
+  doc.setFontSize(9)
+  doc.text("Activité (1)", margin, y)
+  y += 5
+  doc.setDrawColor(180, 180, 180)
+  doc.setLineWidth(0.2)
+  doc.line(margin, y, pageWidth - margin, y)
+  y += 6
+  doc.setDrawColor(0, 0, 0)
+  doc.setFont("helvetica", "normal")
+  doc.setFontSize(8)
+  const activityName = getCreatorName()
+  const activityDate = observation.updatedAt || observation.createdAt
+  const activityDateStr = activityDate ? formatDateTime(activityDate, false) : ""
+  doc.text(activityName, margin, y)
+  if (activityDateStr) doc.text(activityDateStr, margin, y + 4)
+  const boxX = pageWidth - margin - 58
+  const boxW = 56
+  const boxY = y - 2
+  const boxH = 12
+  doc.setFillColor(245, 245, 245)
+  doc.setDrawColor(200, 200, 200)
+  doc.rect(boxX, boxY, boxW, boxH, "FD")
+  doc.setFontSize(8)
+  doc.setTextColor(0, 0, 0)
+  doc.text(`Statut modifié : ${statusText}`, boxX + 3, boxY + 7)
+  y += 18
 
   // Footer: thin dark line above, then company | Page X sur Y | Imprimé le
   const pageCount = (doc as any).internal.getNumberOfPages()

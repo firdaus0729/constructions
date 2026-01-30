@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 export function SyncStatusBanner() {
-  const { isOnline, isSyncing, pendingChanges, lastSyncTime, syncNow } = useOffline()
+  const { isOnline, isSyncing, pendingChanges, lastSyncTime } = useOffline()
   const { t } = useLocale()
   const [dismissed, setDismissed] = useState(false)
 
