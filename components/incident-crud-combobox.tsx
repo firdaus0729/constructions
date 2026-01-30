@@ -203,10 +203,21 @@ export function IncidentOptionCrudCombobox({
                   placeholder={t("settings.livrableOptions.placeholder")}
                   className="h-9"
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") addNew()
+                    if (e.key === "Enter") {
+                      e.preventDefault()
+                      addNew()
+                    }
                   }}
                 />
-                <Button type="button" className="h-9 shrink-0" onClick={addNew}>
+                <Button
+                  type="button"
+                  className="h-9 shrink-0"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    addNew()
+                  }}
+                >
                   {t("settings.livrableOptions.add")}
                 </Button>
               </div>

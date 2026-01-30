@@ -1151,27 +1151,37 @@ export const useAppStore = create<AppState>()(
         })),
 
       // Incident option lists (list = accidentTypes | danger | contributingCondition | injuryTypes | bodyParts)
+      // Use || [] so missing lists (e.g. after old persisted state) don't throw when adding/editing/deleting
       addIncidentOption: (list, item) =>
-        set((state) => ({
-          incidentOptionLists: {
-            ...state.incidentOptionLists,
-            [list]: [...state.incidentOptionLists[list], item],
-          },
-        })),
+        set((state) => {
+          const currentList = state.incidentOptionLists[list] || []
+          return {
+            incidentOptionLists: {
+              ...state.incidentOptionLists,
+              [list]: [...currentList, item],
+            },
+          }
+        }),
       updateIncidentOption: (list, id, updates) =>
-        set((state) => ({
-          incidentOptionLists: {
-            ...state.incidentOptionLists,
-            [list]: state.incidentOptionLists[list].map((it) => (it.id === id ? { ...it, ...updates } : it)),
-          },
-        })),
+        set((state) => {
+          const currentList = state.incidentOptionLists[list] || []
+          return {
+            incidentOptionLists: {
+              ...state.incidentOptionLists,
+              [list]: currentList.map((it) => (it.id === id ? { ...it, ...updates } : it)),
+            },
+          }
+        }),
       deleteIncidentOption: (list, id) =>
-        set((state) => ({
-          incidentOptionLists: {
-            ...state.incidentOptionLists,
-            [list]: state.incidentOptionLists[list].filter((it) => it.id !== id),
-          },
-        })),
+        set((state) => {
+          const currentList = state.incidentOptionLists[list] || []
+          return {
+            incidentOptionLists: {
+              ...state.incidentOptionLists,
+              [list]: currentList.filter((it) => it.id !== id),
+            },
+          }
+        }),
 
       // Inspection option lists
       addInspectionTypeOption: (item) =>
