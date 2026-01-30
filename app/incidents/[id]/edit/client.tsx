@@ -419,6 +419,15 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
               rows={3}
             />
           </FormField>
+
+          {/* Attachments in Investigation Section */}
+          <FormField label={t("field.attachments")}>
+            <AttachmentUpload
+              attachments={formData.attachments}
+              onAttachmentsChange={(attachments) => setFormData((prev) => ({ ...prev, attachments }))}
+              readOnly={false}
+            />
+          </FormField>
         </FormSection>
 
         {/* Medical Treatment */}
@@ -544,15 +553,6 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
               </div>
             )}
           </div>
-        </FormSection>
-
-        {/* Attachments */}
-        <FormSection title={t("field.attachments")} defaultOpen>
-          <AttachmentUpload
-            attachments={formData.attachments}
-            onAttachmentsChange={(attachments) => setFormData((prev) => ({ ...prev, attachments }))}
-            readOnly={false}
-          />
         </FormSection>
 
         {/* Distribution */}

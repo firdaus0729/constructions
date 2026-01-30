@@ -514,35 +514,26 @@ export default function NewIncidentPage() {
             </div>
           </FormSection>
 
-        {/* Description Section (with attachments) */}
+        {/* Description Section */}
         <FormSection
           title={t("form.description")}
           collapsible={true}
           defaultOpen={true}
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              label={t("incident.whatHappened")}
-              required
-              error={errors.description}
-              description={t("incident.whatHappenedDesc")}
-              className="col-span-1"
-            >
-              <Textarea
-                value={formData.description}
-                onChange={(e) => handleFieldChange("description", e.target.value)}
-                placeholder={t("incident.descriptionPlaceholder")}
-                rows={8}
-                className={`min-h-50 ${errors.description ? "border-destructive" : ""}`}
-              />
-            </FormField>
-            <div className="col-span-1 flex flex-col gap-2">
-              <AttachmentUpload
-                attachments={formData.attachments}
-                onChange={(attachments) => handleFieldChange("attachments", attachments)}
-              />
-            </div>
-          </div>
+          <FormField
+            label={t("incident.whatHappened")}
+            required
+            error={errors.description}
+            description={t("incident.whatHappenedDesc")}
+          >
+            <Textarea
+              value={formData.description}
+              onChange={(e) => handleFieldChange("description", e.target.value)}
+              placeholder={t("incident.descriptionPlaceholder")}
+              rows={8}
+              className={`min-h-50 ${errors.description ? "border-destructive" : ""}`}
+            />
+          </FormField>
         </FormSection>
 
         {/* Investigation Section */}
@@ -585,6 +576,14 @@ export default function NewIncidentPage() {
                 onChange={(e) => handleFieldChange("contributingBehavior", e.target.value)}
                 placeholder={t("incident.contributingBehaviorPlaceholder")}
                 rows={3}
+              />
+            </FormField>
+
+            {/* Attachments in Investigation Section */}
+            <FormField label={t("field.attachments")}>
+              <AttachmentUpload
+                attachments={formData.attachments}
+                onChange={(attachments) => handleFieldChange("attachments", attachments)}
               />
             </FormField>
           </div>

@@ -173,8 +173,9 @@ export default function IncidentsPage() {
           <div className="space-y-4">
             {filtered.map((incident) => {
               const project = projects.find((p) => p.id === incident.projectId)
-              const projectNumber = (incident as any).projectNumber || project?.code || "-"
-              const projectDisplay = (incident.projectId || "").trim() || project?.name || "-"
+              // Auto-generate project number from project code
+              const projectNumber = project?.code || (incident as any).projectNumber || "-"
+              const projectDisplay = project?.name || "-"
               const priority = (incident as any).priority as string | undefined
               return (
                 <Card key={incident.id} className="hover:shadow-lg transition-shadow">
