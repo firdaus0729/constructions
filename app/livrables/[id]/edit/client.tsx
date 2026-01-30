@@ -361,7 +361,7 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
               <FormField label={t("form.project")} required error={errors.projectId}>
                 <Select value={formData.projectId} onValueChange={(v) => handleFieldChange("projectId", v)}>
                   <SelectTrigger className={`h-12 ${errors.projectId ? "border-destructive" : ""}`}>
-                    <SelectValue placeholder={t("incident.selectProject")} />
+                    <SelectValue placeholder={t("livrable.selectProject")} />
                   </SelectTrigger>
                   <SelectContent>
                     {projects.map((p: any) => (

@@ -82,10 +82,10 @@ export default function LivrableDetailPage({ params }: { params: Promise<{ id: s
         onExportPdf={async () => {
           try {
             await exportLivrableAsPdf(livrable, "Livrable.pdf")
-            toast.success(t("toast.pdfExportSuccess.livrable" as any) || "PDF exported")
+            toast.success(t("toast.pdfExportSuccess.livrable" as any))
           } catch (e) {
             console.error(e)
-            toast.error(t("toast.pdfExportError.livrable" as any) || "PDF export failed")
+            toast.error(t("toast.pdfExportError.livrable" as any))
           }
         }}
       />

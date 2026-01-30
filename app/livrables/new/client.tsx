@@ -414,8 +414,8 @@ export default function NewLivrablePage() {
                     <SelectValue placeholder={t("submittal.selectSpecSection")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="section1">Section 1</SelectItem>
-                    <SelectItem value="section2">Section 2</SelectItem>
+                    <SelectItem value="section1">{t("submittal.section1")}</SelectItem>
+                    <SelectItem value="section2">{t("submittal.section2")}</SelectItem>
                   </SelectContent>
                 </Select>
               </FormField>
@@ -526,7 +526,7 @@ export default function NewLivrablePage() {
               <FormField label={t("form.project")} required error={errors.projectId}>
                 <Select value={formData.projectId} onValueChange={(value) => handleFieldChange("projectId", value)}>
                   <SelectTrigger className={`h-12 ${errors.projectId ? "border-destructive" : ""}`}>
-                    <SelectValue placeholder="Select project" />
+                    <SelectValue placeholder={t("livrable.selectProject")} />
                   </SelectTrigger>
                   <SelectContent>
                     {projects?.map((project) => (
@@ -852,7 +852,7 @@ export default function NewLivrablePage() {
                             <Input
                               value={step.name}
                               onChange={(e) => updateWorkflowStep(step.id, { name: e.target.value })}
-                              placeholder="Name"
+                              placeholder={t("livrable.stepName")}
                               className="h-9"
                             />
                           </TableCell>
@@ -860,7 +860,7 @@ export default function NewLivrablePage() {
                             <Input
                               value={step.role}
                               onChange={(e) => updateWorkflowStep(step.id, { role: e.target.value })}
-                              placeholder="Role"
+                              placeholder={t("livrable.stepRole")}
                               className="h-9"
                             />
                           </TableCell>
@@ -910,7 +910,7 @@ export default function NewLivrablePage() {
                 <Textarea
                   value={formData.description}
                   onChange={(e) => handleFieldChange("description", e.target.value)}
-                  placeholder="Enter description"
+                  placeholder={t("livrable.descriptionPlaceholder")}
                   rows={8}
                   className="min-h-50"
                 />
@@ -986,7 +986,7 @@ export default function NewLivrablePage() {
             </Button>
           </div>
 
-          <p className="text-sm text-destructive">*required fields</p>
+          <p className="text-sm text-destructive">{t("form.requiredFields")}</p>
         </form>
       </div>
 

@@ -57,10 +57,10 @@ export default function LivrablesPage() {
   const handleExportPDF = async (livrable: any) => {
     try {
       await exportLivrableAsPdf(livrable, "Livrable.pdf")
-      toast.success(t("toast.pdfExportSuccess.livrable" as any) || "PDF exported")
+      toast.success(t("toast.pdfExportSuccess.livrable" as any))
     } catch (e) {
       console.error(e)
-      toast.error(t("toast.pdfExportError.livrable" as any) || "PDF export failed")
+      toast.error(t("toast.pdfExportError.livrable" as any))
     }
   }
 
@@ -201,7 +201,7 @@ export default function LivrablesPage() {
                         size="sm"
                         onClick={() => handleExportPDF(livrable)}
                         className="gap-2"
-                        title="Export as PDF"
+                        title={t("action.exportAsPdf")}
                       >
                         <Download className="h-4 w-4" />
                       </Button>
@@ -211,7 +211,7 @@ export default function LivrablesPage() {
                         onClick={() => {
                           if (confirm(t("confirm.deleteLivrable"))) {
                             deleteLivrable(livrable.id)
-                            toast.success("Livrable supprimé")
+                            toast.success(t("toast.livrableDeleted"))
                           }
                         }}
                         className="gap-2"
