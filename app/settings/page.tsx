@@ -194,21 +194,21 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {/* Project No (Projects) */}
+          {/* Project No (Projects) - always in French */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Hash className="h-5 w-5" />
-                {t("settings.projectNo.title" as any)}
+                {t("settings.projectNo.title" as any, undefined, "fr")}
               </CardTitle>
               <CardDescription>
-                {t("settings.projectNo.desc" as any)}
+                {t("settings.projectNo.desc" as any, undefined, "fr")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm text-muted-foreground">
-                  {t("settings.projectNo.count" as any, { count: projects.length })}
+                  {t("settings.projectNo.count" as any, { count: projects.length }, "fr")}
                 </div>
                 <Button
                   type="button"
@@ -220,7 +220,7 @@ export default function SettingsPage() {
                   }}
                 >
                   <Plus className="h-4 w-4" />
-                  {t("settings.projectNo.add" as any)}
+                  {t("settings.projectNo.add" as any, undefined, "fr")}
                 </Button>
               </div>
 
@@ -228,7 +228,7 @@ export default function SettingsPage() {
                 <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type="search"
-                  placeholder={t("settings.projectNo.searchPlaceholder" as any)}
+                  placeholder={t("settings.projectNo.searchPlaceholder" as any, undefined, "fr")}
                   value={projectSearchQuery}
                   onChange={(e) => setProjectSearchQuery(e.target.value)}
                   className="pl-8"
@@ -238,10 +238,10 @@ export default function SettingsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t("settings.projectNo.columns.code" as any)}</TableHead>
-                    <TableHead>{t("settings.projectNo.columns.name" as any)}</TableHead>
-                    <TableHead>{t("settings.projectNo.columns.location" as any)}</TableHead>
-                    <TableHead className="w-[120px]">{t("settings.projectNo.columns.actions" as any)}</TableHead>
+                    <TableHead>{t("settings.projectNo.columns.code" as any, undefined, "fr")}</TableHead>
+                    <TableHead>{t("settings.projectNo.columns.name" as any, undefined, "fr")}</TableHead>
+                    <TableHead>{t("settings.projectNo.columns.location" as any, undefined, "fr")}</TableHead>
+                    <TableHead className="w-[120px]">{t("settings.projectNo.columns.actions" as any, undefined, "fr")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -261,7 +261,7 @@ export default function SettingsPage() {
                               setProjectForm({ code: p.code, name: p.name, location: p.location })
                               setProjectDialogOpen(true)
                             }}
-                            title="Edit"
+                            title={t("action.edit" as any, undefined, "fr")}
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -270,9 +270,9 @@ export default function SettingsPage() {
                             variant="destructive"
                             size="icon-sm"
                             onClick={() => {
-                              if (confirm(t("settings.projectNo.confirmDelete" as any))) deleteProject(p.id)
+                              if (confirm(t("settings.projectNo.confirmDelete" as any, undefined, "fr"))) deleteProject(p.id)
                             }}
-                            title="Delete"
+                            title={t("action.remove" as any, undefined, "fr")}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -361,33 +361,33 @@ export default function SettingsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingProjectId ? t("settings.projectNo.editTitle" as any) : t("settings.projectNo.addTitle" as any)}
+              {editingProjectId ? t("settings.projectNo.editTitle" as any, undefined, "fr") : t("settings.projectNo.addTitle" as any, undefined, "fr")}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-3">
             <div className="space-y-1">
-              <Label>{t("settings.projectNo.fields.code" as any)}</Label>
+              <Label>{t("settings.projectNo.fields.code" as any, undefined, "fr")}</Label>
               <Input
                 value={projectForm.code}
                 onChange={(e) => setProjectForm((s) => ({ ...s, code: e.target.value }))}
-                placeholder={t("settings.projectNo.placeholders.code" as any)}
+                placeholder={t("settings.projectNo.placeholders.code" as any, undefined, "fr")}
               />
             </div>
             <div className="space-y-1">
-              <Label>{t("settings.projectNo.fields.name" as any)}</Label>
+              <Label>{t("settings.projectNo.fields.name" as any, undefined, "fr")}</Label>
               <Input
                 value={projectForm.name}
                 onChange={(e) => setProjectForm((s) => ({ ...s, name: e.target.value }))}
-                placeholder={t("settings.projectNo.placeholders.name" as any)}
+                placeholder={t("settings.projectNo.placeholders.name" as any, undefined, "fr")}
               />
             </div>
             <div className="space-y-1">
-              <Label>{t("settings.projectNo.fields.location" as any)}</Label>
+              <Label>{t("settings.projectNo.fields.location" as any, undefined, "fr")}</Label>
               <Input
                 value={projectForm.location}
                 onChange={(e) => setProjectForm((s) => ({ ...s, location: e.target.value }))}
-                placeholder={t("settings.projectNo.placeholders.location" as any)}
+                placeholder={t("settings.projectNo.placeholders.location" as any, undefined, "fr")}
               />
             </div>
           </div>
@@ -398,7 +398,7 @@ export default function SettingsPage() {
               variant="outline"
               onClick={() => setProjectDialogOpen(false)}
             >
-              {t("action.cancel" as any)}
+              {t("action.cancel" as any, undefined, "fr")}
             </Button>
             <Button
               type="button"
@@ -422,7 +422,7 @@ export default function SettingsPage() {
                 setProjectDialogOpen(false)
               }}
             >
-              {t("action.save" as any)}
+              {t("action.save" as any, undefined, "fr")}
             </Button>
           </DialogFooter>
         </DialogContent>

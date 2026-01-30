@@ -1432,7 +1432,8 @@ type TranslationKey = keyof typeof translations.en
 interface LocaleContextType {
   locale: Locale
   setLocale: (locale: Locale) => void
-  t: (key: TranslationKey, params?: Record<string, string | number>) => string
+  /** Translate key. Use optional localeOverride to force a specific language (e.g. "fr" for project number section). */
+  t: (key: TranslationKey, params?: Record<string, string | number>, localeOverride?: Locale) => string
 }
 
 const LocaleContext = createContext<LocaleContextType | undefined>(undefined)
@@ -1447,8 +1448,9 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   })
 
   const t = useCallback(
-    (key: TranslationKey, params?: Record<string, string | number>) => {
-      let text: string = translations[locale][key] || translations.en[key] || key
+    (key: TranslationKey, params?: Record<string, string | number>, localeOverride?: Locale) => {
+      const lang = localeOverride ?? locale
+      let text: string = translations[lang][key] || translations.en[key] || key
 
       if (params) {
         Object.entries(params).forEach(([paramKey, value]) => {
