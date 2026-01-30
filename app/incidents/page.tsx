@@ -45,16 +45,17 @@ const getStatusTranslationKey = (status: string): string => {
 }
 
 export default function IncidentsPage() {
-  const { incidents, deleteIncident, projects, users, authUsers = [] } = useAppStore()
+  const { incidents, deleteIncident, projects, users, authUsers = [], incidentOptionLists } = useAppStore()
+  const { t } = useLocale()
+  const [searchTerm, setSearchTerm] = useState("")
+  const [filterStatus, setFilterStatus] = useState<string | null>(null)
+
   const getCreatorName = (creatorId: string) =>
     (authUsers as { id: string; name: string }[]).find((u) => u.id === creatorId)?.name ||
     users.find((u) => u.id === creatorId)?.name ||
     "-"
   const getAccidentTypeLabel = (accidentTypeId: string) =>
     incidentOptionLists?.accidentTypes?.find((t) => t.id === accidentTypeId)?.label || accidentTypeId
-  const { t } = useLocale()
-  const [searchTerm, setSearchTerm] = useState("")
-  const [filterStatus, setFilterStatus] = useState<string | null>(null)
 
   const filtered = incidents.filter((incident) => {
     const matchesSearch =
