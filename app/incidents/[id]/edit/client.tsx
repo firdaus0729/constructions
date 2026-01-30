@@ -403,14 +403,19 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
             />
           </FormField>
 
-          {/* Attachments in Investigation Section */}
-          <FormField label={t("field.attachments")}>
-            <AttachmentUpload
-              attachments={formData.attachments}
-              onAttachmentsChange={(attachments) => setFormData((prev) => ({ ...prev, attachments }))}
-              readOnly={false}
-            />
-          </FormField>
+          {/* Attachments in Investigation Section – editable from this box when editing an incident */}
+          <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
+            <FormField
+              label={t("field.attachments")}
+              description={t("incident.attachmentsDesc")}
+            >
+              <AttachmentUpload
+                attachments={formData.attachments}
+                onAttachmentsChange={(attachments) => setFormData((prev) => ({ ...prev, attachments }))}
+                readOnly={false}
+              />
+            </FormField>
+          </div>
         </FormSection>
 
         {/* Medical Treatment */}
