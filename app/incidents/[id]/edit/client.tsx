@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useCallback, useMemo, useEffect } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { use } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -19,13 +19,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertTriangle, CheckCircle2, Clock, Mail, Save } from "lucide-react"
 import { useLocale } from "@/lib/locale-context"
 import { useAppStore } from "@/lib/store"
-import { getInjuryTypes, getBodyParts } from "@/lib/reference-data-loader"
 import type { Incident, Attachment, FormStatus } from "@/lib/types"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { DistributionSelector } from "@/components/forms"
 import { ProjectNoCombobox } from "@/components/project-no-combobox"
-import { IncidentAccidentTypeCrudCombobox } from "@/components/incident-crud-combobox"
+import { IncidentAccidentTypeCrudCombobox, IncidentOptionCrudCombobox } from "@/components/incident-crud-combobox"
 
 export default function EditIncidentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -35,17 +34,9 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
   const { projects = [], currentUser, updateIncident, incidents, authUsers = [], userGroups = [], users = [] } = store || {}
   const creatorOptions = (authUsers?.length ? authUsers : users) as { id: string; name: string }[]
   
-  // Load reference data on client side only
-  const [injuryTypes, setInjuryTypes] = useState<any[]>([])
-  const [bodyParts, setBodyParts] = useState<any[]>([])
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([])
   const [sendNotifications, setSendNotifications] = useState(true)
-  
-  useEffect(() => {
-    setInjuryTypes(getInjuryTypes())
-    setBodyParts(getBodyParts())
-  }, [])
 
   const incident = incidents?.find((i) => i.id === id)
 
@@ -115,14 +106,6 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   // Memoized body parts grouped by category
-  const bodyPartsByCategory = useMemo(() => {
-    const grouped = {
-      upper: bodyParts.filter((p) => p.category === "upper"),
-      torso: bodyParts.filter((p) => p.category === "torso"),
-      lower: bodyParts.filter((p) => p.category === "lower"),
-    }
-    return grouped
-  }, [bodyParts])
 
   const validateForm = useCallback(() => {
     const newErrors: Record<string, string> = {}
@@ -394,20 +377,20 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
           </Alert>
 
           <FormField label={t("observation.danger")} error={errors.danger} required>
-            <Textarea
+            <IncidentOptionCrudCombobox
+              listKey="danger"
               value={formData.danger}
-              onChange={(e) => setFormData((prev) => ({ ...prev, danger: e.target.value }))}
-              placeholder={t("form.description")}
-              rows={3}
+              onChange={(value) => setFormData((prev) => ({ ...prev, danger: value }))}
+              placeholder={t("incident.dangerPlaceholder")}
             />
           </FormField>
 
           <FormField label={t("observation.contributingCondition")} error={errors.condition} required>
-            <Textarea
+            <IncidentOptionCrudCombobox
+              listKey="contributingCondition"
               value={formData.contributingCondition}
-              onChange={(e) => setFormData((prev) => ({ ...prev, contributingCondition: e.target.value }))}
-              placeholder={t("form.description")}
-              rows={3}
+              onChange={(value) => setFormData((prev) => ({ ...prev, contributingCondition: value }))}
+              placeholder={t("incident.contributingConditionPlaceholder")}
             />
           </FormField>
 
@@ -447,45 +430,21 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
             {hasMedicalTreatment && (
               <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
                 <FormField label={t("incident.injuryType")} required>
-                  <Select value={formData.injuryType} onValueChange={(value) => setFormData((prev) => ({ ...prev, injuryType: value }))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {injuryTypes?.map((type) => (
-                        <SelectItem key={type.id} value={type.id}>
-                          <div className="flex items-center gap-2">
-                            <span>{type.label}</span>
-                            {type.severity && (
-                              <Badge variant="outline" className="text-xs">
-                                {type.severity}
-                              </Badge>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <IncidentOptionCrudCombobox
+                    listKey="injuryTypes"
+                    value={formData.injuryType}
+                    onChange={(value) => setFormData((prev) => ({ ...prev, injuryType: value }))}
+                    placeholder={t("incident.selectInjuryType")}
+                  />
                 </FormField>
 
                 <FormField label={t("incident.bodyPart")} required>
-                  <Select value={formData.bodyPart} onValueChange={(value) => setFormData((prev) => ({ ...prev, bodyPart: value }))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(bodyPartsByCategory).map(([category, parts]) => (
-                        <div key={category}>
-                          <div className="font-semibold text-xs text-gray-600 p-2">{category.toUpperCase()}</div>
-                          {parts.map((part) => (
-                            <SelectItem key={part.id} value={part.id}>
-                              {part.label}
-                            </SelectItem>
-                          ))}
-                        </div>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <IncidentOptionCrudCombobox
+                    listKey="bodyParts"
+                    value={formData.bodyPart}
+                    onChange={(value) => setFormData((prev) => ({ ...prev, bodyPart: value }))}
+                    placeholder={t("incident.selectBodyPart")}
+                  />
                 </FormField>
 
                 <div className="space-y-3">

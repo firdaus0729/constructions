@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useCallback, useMemo, useEffect } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
 export const dynamic = 'force-dynamic'
@@ -24,13 +24,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertTriangle, CheckCircle2, Clock, Mail, Save } from "lucide-react"
 import { useLocale } from "@/lib/locale-context"
 import { useAppStore } from "@/lib/store"
-import { getInjuryTypes, getBodyParts } from "@/lib/reference-data-loader"
 import type { Incident, Attachment, FormStatus } from "@/lib/types"
 import { Card, CardContent } from "@/components/ui/card"
 import { DistributionSelector } from "@/components/forms"
 import { sendFormNotificationEmails, collectEmailAddresses } from "@/lib/email-service"
 import { ProjectNoCombobox } from "@/components/project-no-combobox"
-import { IncidentAccidentTypeCrudCombobox } from "@/components/incident-crud-combobox"
+import { IncidentAccidentTypeCrudCombobox, IncidentOptionCrudCombobox } from "@/components/incident-crud-combobox"
 
 export default function NewIncidentPage() {
   const router = useRouter()
@@ -39,17 +38,9 @@ export default function NewIncidentPage() {
   const { projects = [], currentUser, addIncident, authUsers = [], userGroups = [], users = [] } = store || {}
   const creatorOptions = (authUsers?.length ? authUsers : users) as { id: string; name: string }[]
 
-  // Load reference data on client side only
-  const [injuryTypes, setInjuryTypes] = useState<any[]>([])
-  const [bodyParts, setBodyParts] = useState<any[]>([])
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([])
   const [sendNotifications, setSendNotifications] = useState(true)
-
-  useEffect(() => {
-    setInjuryTypes(getInjuryTypes())
-    setBodyParts(getBodyParts())
-  }, [])
 
   // Auto-fill project (Numéro de projet) when only one project exists
   useEffect(() => {
@@ -110,16 +101,6 @@ export default function NewIncidentPage() {
   // Validation state
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Memoized body parts grouped by category
-  const bodyPartsByCategory = useMemo(() => {
-    const grouped = {
-      upper: bodyParts.filter((p) => p.category === "upper"),
-      torso: bodyParts.filter((p) => p.category === "torso"),
-      lower: bodyParts.filter((p) => p.category === "lower"),
-      other: bodyParts.filter((p) => p.category === "other"),
-    }
-    return grouped
-  }, [])
 
   // Validation logic
   const validateForm = useCallback((): boolean => {
@@ -347,10 +328,6 @@ export default function NewIncidentPage() {
     })
   }
 
-  const getInjuryTypeSeverity = (typeId: string) => {
-    const injury = injuryTypes?.find((i) => i.id === typeId)
-    return injury?.severity
-  }
 
   return (
     <AppShell>
@@ -547,11 +524,11 @@ export default function NewIncidentPage() {
               label={t("observation.danger")}
               description={t("incident.dangerDesc")}
             >
-              <Textarea
+              <IncidentOptionCrudCombobox
+                listKey="danger"
                 value={formData.danger}
-                onChange={(e) => handleFieldChange("danger", e.target.value)}
+                onChange={(value) => handleFieldChange("danger", value)}
                 placeholder={t("incident.dangerPlaceholder")}
-                rows={3}
               />
             </FormField>
 
@@ -559,11 +536,11 @@ export default function NewIncidentPage() {
               label={t("observation.contributingCondition")}
               description={t("incident.contributingConditionDesc")}
             >
-              <Textarea
+              <IncidentOptionCrudCombobox
+                listKey="contributingCondition"
                 value={formData.contributingCondition}
-                onChange={(e) => handleFieldChange("contributingCondition", e.target.value)}
+                onChange={(value) => handleFieldChange("contributingCondition", value)}
                 placeholder={t("incident.contributingConditionPlaceholder")}
-                rows={3}
               />
             </FormField>
 
@@ -623,36 +600,12 @@ export default function NewIncidentPage() {
                     error={errors.injuryType}
                     description={t("incident.selectInjuryTypeDesc")}
                   >
-                    <Select
+                    <IncidentOptionCrudCombobox
+                      listKey="injuryTypes"
                       value={formData.injuryType}
-                      onValueChange={(value) => {
-                        handleFieldChange("injuryType", value)
-                        setIsFatal(value === "fatal")
-                      }}
-                    >
-                      <SelectTrigger className={`h-12 ${errors.injuryType ? "border-destructive" : ""}`}>
-                        <SelectValue placeholder={t("incident.selectInjuryType")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {injuryTypes?.map((type) => (
-                          <SelectItem key={type.id} value={type.id}>
-                            <div className="flex items-center gap-2">
-                              <span>{type.label}</span>
-                              {type.severity === "critical" && (
-                                <span className="text-xs bg-destructive/20 text-destructive px-1 rounded">
-                                  {t("incident.critical")}
-                                </span>
-                              )}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {formData.injuryType && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {t("incident.severity")}: {getInjuryTypeSeverity(formData.injuryType) || t("incident.unknown")}
-                      </p>
-                    )}
+                      onChange={(value) => handleFieldChange("injuryType", value)}
+                      placeholder={t("incident.selectInjuryType")}
+                    />
                   </FormField>
 
                   <FormField
@@ -661,22 +614,12 @@ export default function NewIncidentPage() {
                     error={errors.bodyPart}
                     description={t("incident.selectBodyPartDesc")}
                   >
-                    <Select value={formData.bodyPart} onValueChange={(value) => handleFieldChange("bodyPart", value)}>
-                      <SelectTrigger className={`h-12 ${errors.bodyPart ? "border-destructive" : ""}`}>
-                        <SelectValue placeholder={t("incident.selectBodyPart")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {bodyParts && bodyParts.length > 0 ? (
-                          bodyParts.map((part) => (
-                            <SelectItem key={part.id} value={part.id}>
-                              {part.label}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="">No body parts available</SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <IncidentOptionCrudCombobox
+                      listKey="bodyParts"
+                      value={formData.bodyPart}
+                      onChange={(value) => handleFieldChange("bodyPart", value)}
+                      placeholder={t("incident.selectBodyPart")}
+                    />
                   </FormField>
                 </div>
 

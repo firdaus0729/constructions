@@ -11,11 +11,15 @@ import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 
-export function IncidentAccidentTypeCrudCombobox({
+type IncidentListKey = "accidentTypes" | "danger" | "contributingCondition" | "injuryTypes" | "bodyParts"
+
+export function IncidentOptionCrudCombobox({
+  listKey,
   value,
   onChange,
   placeholder,
 }: {
+  listKey: IncidentListKey
   value: string
   onChange: (value: string) => void
   placeholder: string
@@ -29,7 +33,7 @@ export function IncidentAccidentTypeCrudCombobox({
   const [editingId, setEditingId] = React.useState<string | null>(null)
   const [editingLabel, setEditingLabel] = React.useState("")
 
-  const items = incidentOptionLists.accidentTypes || []
+  const items = incidentOptionLists[listKey] || []
   const selected = items.find((it) => it.id === value) || null
 
   const stopItemSelect = (e: React.SyntheticEvent) => {
@@ -50,7 +54,7 @@ export function IncidentAccidentTypeCrudCombobox({
     if (!editingId) return
     const next = editingLabel.trim()
     if (!next) return
-    updateIncidentOption(editingId, { label: next })
+    updateIncidentOption(listKey, editingId, { label: next })
     cancelEdit()
   }
 
@@ -65,7 +69,7 @@ export function IncidentAccidentTypeCrudCombobox({
       return
     }
     const id = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-    addIncidentOption({ id, label: trimmed })
+    addIncidentOption(listKey, { id, label: trimmed })
     onChange(id)
     setNewLabel("")
     setOpen(false)
@@ -175,7 +179,7 @@ export function IncidentAccidentTypeCrudCombobox({
                             onClick={(e) => {
                               stopItemSelect(e)
                               if (confirm(t("settings.livrableOptions.confirmDelete"))) {
-                                deleteIncidentOption(it.id)
+                                deleteIncidentOption(listKey, it.id)
                                 if (value === it.id) onChange("")
                               }
                             }}
@@ -211,6 +215,26 @@ export function IncidentAccidentTypeCrudCombobox({
         </Command>
       </PopoverContent>
     </Popover>
+  )
+}
+
+/** Wrapper for Type d'accident (accident type) - uses incidentOptionLists.accidentTypes */
+export function IncidentAccidentTypeCrudCombobox({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string
+  onChange: (value: string) => void
+  placeholder: string
+}) {
+  return (
+    <IncidentOptionCrudCombobox
+      listKey="accidentTypes"
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+    />
   )
 }
 
