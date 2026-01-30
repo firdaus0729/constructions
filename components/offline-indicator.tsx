@@ -5,6 +5,7 @@ import { useOffline } from "@/lib/offline-provider"
 import { useLocale } from "@/lib/locale-context"
 import { cn } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
+import { fr, enUS } from "date-fns/locale"
 
 interface OfflineIndicatorProps {
   variant?: "minimal" | "full"
@@ -13,7 +14,8 @@ interface OfflineIndicatorProps {
 
 export function OfflineIndicator({ variant = "minimal", className }: OfflineIndicatorProps) {
   const { isOnline, isSyncing, lastSyncTime } = useOffline()
-  const { t } = useLocale()
+  const { t, locale } = useLocale()
+  const dateLocale = locale === "fr" ? fr : enUS
 
   if (variant === "minimal") {
     return (
@@ -55,8 +57,8 @@ export function OfflineIndicator({ variant = "minimal", className }: OfflineIndi
         </p>
         <p className="text-xs text-muted-foreground mt-0.5">
           {lastSyncTime
-            ? `Dernière synchronisation: ${formatDistanceToNow(lastSyncTime, { addSuffix: true })}`
-            : "En attente de synchronisation"}
+            ? `${t("status.lastSyncPrefix")} ${formatDistanceToNow(lastSyncTime, { addSuffix: true, locale: dateLocale })}`
+            : t("status.waitingForSync")}
         </p>
       </div>
     </div>

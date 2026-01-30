@@ -20,6 +20,25 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { LivrableOptionsDialog } from "@/components/livrable-options-dialog"
 import { SESSION_DURATION_OPTIONS } from "@/lib/store"
 
+// Project number section: always French (no dependency on app locale)
+const PROJECT_NO_FR = {
+  title: "Numéro de projet",
+  desc: "Gérer les numéros de projet (Project No) utilisés par les formulaires.",
+  count: (n: number) => `${n} projet(s)`,
+  add: "Ajouter un numéro de projet",
+  addTitle: "Ajouter un numéro de projet",
+  editTitle: "Modifier le numéro de projet",
+  confirmDelete: "Supprimer ce projet?",
+  columns: { code: "Numéro de projet", name: "Nom", location: "Emplacement", actions: "Actions" },
+  fields: { code: "Numéro de projet", name: "Nom", location: "Emplacement" },
+  placeholders: { code: "ex. 21-5866", name: "ex. MTQ_2503-21-0202", location: "ex. Île-aux-Tourtes (Vaudreuil-Dorion)" },
+  searchPlaceholder: "Rechercher des projets...",
+  edit: "Modifier",
+  remove: "Supprimer",
+  cancel: "Annuler",
+  save: "Enregistrer",
+} as const
+
 export default function SettingsPage() {
   const { locale, setLocale, t } = useLocale()
   const { theme, setTheme } = useTheme()
@@ -130,8 +149,8 @@ export default function SettingsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="fr">Français</SelectItem>
+                    <SelectItem value="en">{t("settings.language.english")}</SelectItem>
+                    <SelectItem value="fr">{t("settings.language.french")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -194,21 +213,19 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {/* Project No (Projects) - always in French */}
+          {/* Project No (Projects) - always French */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Hash className="h-5 w-5" />
-                {t("settings.projectNo.title" as any, undefined, "fr")}
+                {PROJECT_NO_FR.title}
               </CardTitle>
-              <CardDescription>
-                {t("settings.projectNo.desc" as any, undefined, "fr")}
-              </CardDescription>
+              <CardDescription>{PROJECT_NO_FR.desc}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm text-muted-foreground">
-                  {t("settings.projectNo.count" as any, { count: projects.length }, "fr")}
+                  {PROJECT_NO_FR.count(projects.length)}
                 </div>
                 <Button
                   type="button"
@@ -220,7 +237,7 @@ export default function SettingsPage() {
                   }}
                 >
                   <Plus className="h-4 w-4" />
-                  {t("settings.projectNo.add" as any, undefined, "fr")}
+                  {PROJECT_NO_FR.add}
                 </Button>
               </div>
 
@@ -228,7 +245,7 @@ export default function SettingsPage() {
                 <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type="search"
-                  placeholder={t("settings.projectNo.searchPlaceholder" as any, undefined, "fr")}
+                  placeholder={PROJECT_NO_FR.searchPlaceholder}
                   value={projectSearchQuery}
                   onChange={(e) => setProjectSearchQuery(e.target.value)}
                   className="pl-8"
@@ -238,10 +255,10 @@ export default function SettingsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t("settings.projectNo.columns.code" as any, undefined, "fr")}</TableHead>
-                    <TableHead>{t("settings.projectNo.columns.name" as any, undefined, "fr")}</TableHead>
-                    <TableHead>{t("settings.projectNo.columns.location" as any, undefined, "fr")}</TableHead>
-                    <TableHead className="w-[120px]">{t("settings.projectNo.columns.actions" as any, undefined, "fr")}</TableHead>
+                    <TableHead>{PROJECT_NO_FR.columns.code}</TableHead>
+                    <TableHead>{PROJECT_NO_FR.columns.name}</TableHead>
+                    <TableHead>{PROJECT_NO_FR.columns.location}</TableHead>
+                    <TableHead className="w-[120px]">{PROJECT_NO_FR.columns.actions}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -261,7 +278,7 @@ export default function SettingsPage() {
                               setProjectForm({ code: p.code, name: p.name, location: p.location })
                               setProjectDialogOpen(true)
                             }}
-                            title={t("action.edit" as any, undefined, "fr")}
+                            title={PROJECT_NO_FR.edit}
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -270,9 +287,9 @@ export default function SettingsPage() {
                             variant="destructive"
                             size="icon-sm"
                             onClick={() => {
-                              if (confirm(t("settings.projectNo.confirmDelete" as any, undefined, "fr"))) deleteProject(p.id)
+                              if (confirm(PROJECT_NO_FR.confirmDelete)) deleteProject(p.id)
                             }}
-                            title={t("action.remove" as any, undefined, "fr")}
+                            title={PROJECT_NO_FR.remove}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -361,33 +378,33 @@ export default function SettingsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingProjectId ? t("settings.projectNo.editTitle" as any, undefined, "fr") : t("settings.projectNo.addTitle" as any, undefined, "fr")}
+              {editingProjectId ? PROJECT_NO_FR.editTitle : PROJECT_NO_FR.addTitle}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-3">
             <div className="space-y-1">
-              <Label>{t("settings.projectNo.fields.code" as any, undefined, "fr")}</Label>
+              <Label>{PROJECT_NO_FR.fields.code}</Label>
               <Input
                 value={projectForm.code}
                 onChange={(e) => setProjectForm((s) => ({ ...s, code: e.target.value }))}
-                placeholder={t("settings.projectNo.placeholders.code" as any, undefined, "fr")}
+                placeholder={PROJECT_NO_FR.placeholders.code}
               />
             </div>
             <div className="space-y-1">
-              <Label>{t("settings.projectNo.fields.name" as any, undefined, "fr")}</Label>
+              <Label>{PROJECT_NO_FR.fields.name}</Label>
               <Input
                 value={projectForm.name}
                 onChange={(e) => setProjectForm((s) => ({ ...s, name: e.target.value }))}
-                placeholder={t("settings.projectNo.placeholders.name" as any, undefined, "fr")}
+                placeholder={PROJECT_NO_FR.placeholders.name}
               />
             </div>
             <div className="space-y-1">
-              <Label>{t("settings.projectNo.fields.location" as any, undefined, "fr")}</Label>
+              <Label>{PROJECT_NO_FR.fields.location}</Label>
               <Input
                 value={projectForm.location}
                 onChange={(e) => setProjectForm((s) => ({ ...s, location: e.target.value }))}
-                placeholder={t("settings.projectNo.placeholders.location" as any, undefined, "fr")}
+                placeholder={PROJECT_NO_FR.placeholders.location}
               />
             </div>
           </div>
@@ -398,7 +415,7 @@ export default function SettingsPage() {
               variant="outline"
               onClick={() => setProjectDialogOpen(false)}
             >
-              {t("action.cancel" as any, undefined, "fr")}
+              {PROJECT_NO_FR.cancel}
             </Button>
             <Button
               type="button"
@@ -422,7 +439,7 @@ export default function SettingsPage() {
                 setProjectDialogOpen(false)
               }}
             >
-              {t("action.save" as any, undefined, "fr")}
+              {PROJECT_NO_FR.save}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -9,7 +9,7 @@ interface QuickActionCardProps {
   description?: string
   href: string
   icon: LucideIcon
-  variant?: "primary" | "secondary" | "accent" | "warning"
+  variant?: "primary" | "secondary" | "accent" | "warning" | "inspection"
   iconClassName?: string
 }
 
@@ -33,6 +33,8 @@ export function QuickActionCard({
         variant === "accent" && "border-accent/20 bg-accent/5 hover:border-accent/40 hover:bg-accent/10",
         variant === "warning" &&
           "border-destructive/20 bg-destructive/5 hover:border-destructive/40 hover:bg-destructive/10",
+        variant === "inspection" &&
+          "border-[#054eb5]/20 bg-[#054eb5]/10 hover:border-[#054eb5]/40 hover:bg-[#054eb5]/20",
       )}
     >
       <div
@@ -45,6 +47,8 @@ export function QuickActionCard({
           variant === "accent" && "bg-accent/10 text-accent group-hover:bg-accent group-hover:text-accent-foreground",
           variant === "warning" &&
             "bg-destructive/10 text-destructive group-hover:bg-destructive group-hover:text-destructive-foreground",
+          variant === "inspection" &&
+            "bg-[#054eb5] text-white group-hover:bg-[#043a8c] group-hover:text-white",
           iconClassName,
         )}
       >
