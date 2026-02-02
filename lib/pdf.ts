@@ -1553,30 +1553,40 @@ export async function exportIncidentAsPdf(
     })
   }
 
-  y += 22
-  thinLine()
+  // ----- Title: centered between two close horizontal lines (matching reference) -----
+  // Move a bit down from header
+  y += 18
+  // First line just above the title
+  doc.setDrawColor(SEP_GRAY[0], SEP_GRAY[1], SEP_GRAY[2])
+  doc.setLineWidth(0.2)
+  doc.line(margin, y, pageWidth - margin, y)
 
-  // ----- Title: centered, bold, larger (matching image format) -----
+  // Title text
+  const titleTopOffset = 4
+  const titleY = y + titleTopOffset
   doc.setFontSize(14)
   doc.setFont("helvetica", "bold")
   // Format: "Incident n°76 - F-1: Tristan Lavallée: Étirement épaule gauche"
   // Construct title from incident number and title field
   let titleText = `Incident n°${incidentNumber}`
   if (incident.title) {
-    // If title already contains the format with colons, use it as-is with dash separator
     if (incident.title.includes(":")) {
       titleText = `${titleText} - ${incident.title}`
     } else {
-      // Otherwise, just append with dash
       titleText = `${titleText} - ${incident.title}`
     }
   }
   const titleLines = doc.splitTextToSize(titleText, contentWidth)
   titleLines.forEach((ln: string, i: number) => {
-    doc.text(ln, pageWidth / 2, y + (i * 6), { align: "center" })
+    doc.text(ln, pageWidth / 2, titleY + i * 6, { align: "center" })
   })
-  y += titleLines.length * 6 + 4
-  thinLine()
+
+  const titleBlockHeight = titleTopOffset + titleLines.length * 6
+  const bottomLineY = y + titleBlockHeight + 2
+  // Second line just below the title
+  doc.line(margin, bottomLineY, pageWidth - margin, bottomLineY)
+  // Continue content a little below the second line
+  y = bottomLineY + 5
 
   // ----- Two-column metadata (no per-field underlines) -----
   const leftColX = margin
