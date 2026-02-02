@@ -18,138 +18,77 @@ import type {
   UserRole
 } from "./types"
 
-// Default Type d'accident options (50 items) – used for initial state and rehydration merge
+// Default Type d'accident options (restricted list from reference screenshot)
 const DEFAULT_ACCIDENT_TYPES: { id: string; label: string }[] = [
-  { id: "amputation", label: "Amputation" },
-  { id: "amiantose", label: "Amiantose" },
-  { id: "asphyxie", label: "Asphyxie" },
-  { id: "morsure", label: "Morsure" },
-  { id: "ecchymose", label: "Ecchymose (contusion)" },
-  { id: "brulure-chimique", label: "Brûlure (chimique)" },
-  { id: "brulure-chaleur", label: "Brûlure (chaleur)" },
-  { id: "cancer", label: "Cancer" },
-  { id: "canal-carpien", label: "Syndrome du canal carpien" },
-  { id: "douleur-thoracique", label: "Douleur thoracique (angine de poitrine)" },
-  { id: "commotion", label: "Commotion" },
-  { id: "maladie-contagieuse", label: "Maladie contagieuse" },
-  { id: "ecrasement", label: "Écrasement" },
-  { id: "coupure", label: "Coupure (lacération)" },
-  { id: "dislocation", label: "Dislocation" },
-  { id: "maladie-poussiere", label: "Maladie de la poussière" },
-  { id: "choc-electrique", label: "Choc électrique" },
-  { id: "perte-oculaire", label: "Perte oculaire (énucléation)" },
-  { id: "corps-etranger", label: "Corps étranger" },
-  { id: "fracture", label: "Fracture" },
-  { id: "congelation", label: "Congélation" },
-  { id: "deficience-auditive", label: "Déficience auditive" },
-  { id: "perte-auditive", label: "Perte auditive" },
-  { id: "crise-cardiaque", label: "Crise cardiaque (infarctus du myocarde)" },
-  { id: "epuisement-chaleur", label: "Épuisement dû la chaleur (prostration)" },
-  { id: "coup-chaleur", label: "Coup de chaleur" },
-  { id: "hernie", label: "Hernie" },
-  { id: "hypothermie", label: "Hypothermie" },
-  { id: "infection", label: "Infection" },
-  { id: "inflammation", label: "Inflammation" },
-  { id: "perte-conscience", label: "Perte de conscience (syncope)" },
-  { id: "trouble-mental", label: "Trouble mental" },
-  { id: "stress-mental", label: "Stress mental" },
-  { id: "empoisonnement-chimique", label: "Empoisonnement (chimique)" },
-  { id: "empoisonnement-general", label: "Empoisonnement (général)" },
-  { id: "empoisonnement-metal", label: "Empoisonnement (métal)" },
-  { id: "ponction", label: "Ponction" },
-  { id: "radiation", label: "Radiation" },
-  { id: "eruption-cutanee", label: "Éruption cutanée/plaies/ampoules (dermatite)" },
-  { id: "troubles-respiratoires", label: "Troubles respiratoires" },
-  { id: "rupture", label: "Rupture" },
-  { id: "egratignure", label: "Égratignure (abrasion)" },
-  { id: "demembrement", label: "Démembrement" },
-  { id: "silicose", label: "Silicose" },
-  { id: "entorse", label: "Entorse" },
-  { id: "piqure", label: "Piqûre" },
-  { id: "foulure", label: "Foulure" },
-  { id: "dechirure", label: "Déchirure" },
-  { id: "vasculaire", label: "Vasculaire" },
-  { id: "perte-vision", label: "Perte de vision" },
+  { id: "rapport-seulement", label: "Rapport seulement" },
+  { id: "premiers-soins", label: "Premier soins" },
+  { id: "traitement-medical", label: "Traitement médical" },
+  { id: "soins-refuses", label: "Soins refusés" },
+  { id: "travail-restreint", label: "Travail restreint" },
+  { id: "temps-perdu", label: "Temps perdu" },
+  { id: "mort", label: "Mort" },
 ]
 
-// Default Danger options (50 items) – used for initial state and rehydration merge
+// Default Danger options (restricted list from reference screenshot)
 const DEFAULT_DANGER_OPTIONS: { id: string; label: string }[] = [
-  { id: "danger-amputation", label: "Amputation" },
-  { id: "danger-amiantose", label: "Amiantose" },
-  { id: "danger-asphyxie", label: "Asphyxie" },
-  { id: "danger-morsure", label: "Morsure" },
-  { id: "danger-ecchymose", label: "Ecchymose (contusion)" },
-  { id: "danger-brulure-chimique", label: "Brûlure (chimique)" },
-  { id: "danger-brulure-chaleur", label: "Brûlure (chaleur)" },
-  { id: "danger-cancer", label: "Cancer" },
-  { id: "danger-canal-carpien", label: "Syndrome du canal carpien" },
-  { id: "danger-douleur-thoracique", label: "Douleur thoracique (angine de poitrine)" },
-  { id: "danger-commotion", label: "Commotion" },
-  { id: "danger-maladie-contagieuse", label: "Maladie contagieuse" },
-  { id: "danger-ecrasement", label: "Écrasement" },
-  { id: "danger-coupure", label: "Coupure (lacération)" },
-  { id: "danger-dislocation", label: "Dislocation" },
-  { id: "danger-maladie-poussiere", label: "Maladie de la poussière" },
-  { id: "danger-choc-electrique", label: "Choc électrique" },
-  { id: "danger-perte-oculaire", label: "Perte oculaire (énucléation)" },
-  { id: "danger-corps-etranger", label: "Corps étranger" },
-  { id: "danger-fracture", label: "Fracture" },
-  { id: "danger-congelation", label: "Congélation" },
-  { id: "danger-deficience-auditive", label: "Déficience auditive" },
-  { id: "danger-perte-auditive", label: "Perte auditive" },
-  { id: "danger-crise-cardiaque", label: "Crise cardiaque (infarctus du myocarde)" },
-  { id: "danger-epuisement-chaleur", label: "Épuisement dû la chaleur (prostration)" },
-  { id: "danger-coup-chaleur", label: "Coup de chaleur" },
-  { id: "danger-hernie", label: "Hernie" },
-  { id: "danger-hypothermie", label: "Hypothermie" },
-  { id: "danger-infection", label: "Infection" },
-  { id: "danger-inflammation", label: "Inflammation" },
-  { id: "danger-perte-conscience", label: "Perte de conscience (syncope)" },
-  { id: "danger-trouble-mental", label: "Trouble mental" },
-  { id: "danger-stress-mental", label: "Stress mental" },
-  { id: "danger-empoisonnement-chimique", label: "Empoisonnement (chimique)" },
-  { id: "danger-empoisonnement-general", label: "Empoisonnement (général)" },
-  { id: "danger-empoisonnement-metal", label: "Empoisonnement (métal)" },
-  { id: "danger-ponction", label: "Ponction" },
-  { id: "danger-radiation", label: "Radiation" },
-  { id: "danger-eruption-cutanee", label: "Éruption cutanée/plaies/ampoules (dermatite)" },
-  { id: "danger-troubles-respiratoires", label: "Troubles respiratoires" },
-  { id: "danger-rupture", label: "Rupture" },
-  { id: "danger-egratignure", label: "Égratignure (abrasion)" },
-  { id: "danger-demembrement", label: "Démembrement" },
-  { id: "danger-silicose", label: "Silicose" },
-  { id: "danger-entorse", label: "Entorse" },
-  { id: "danger-piqure", label: "Piqûre" },
-  { id: "danger-foulure", label: "Foulure" },
-  { id: "danger-dechirure", label: "Déchirure" },
-  { id: "danger-vasculaire", label: "Vasculaire" },
-  { id: "danger-perte-vision", label: "Perte de vision" },
+  { id: "pris-dans-entre", label: "Pris dans/entre" },
+  { id: "produit-chimique", label: "Produit chimique" },
+  { id: "electrique", label: "Électrique" },
+  { id: "environnemental", label: "Environnemental" },
+  { id: "ergonomique-mouvement-repetitifs", label: "Ergonomique (mouvement répétitifs)" },
+  { id: "explosion-chute", label: "Explosion Chute" },
+  { id: "chaleur-feu-explosion-empalement", label: "Chaleur/feu/explosion Empalement" },
+  { id: "surmenage", label: "Surmenage" },
+  { id: "rayonnement", label: "Rayonnement" },
+  { id: "appareil-respiratoire", label: "Appareil respiratoire" },
+  { id: "glissade", label: "Glissade" },
+  { id: "frappe-par", label: "Frappé par" },
+  { id: "trebuchement-violence", label: "Trébuchement: Violence" },
 ]
 
-// Default Condition contributive options (22 items)
+// Default Condition contributive options (restricted list from reference screenshot)
 const DEFAULT_CONTRIBUTING_CONDITION_OPTIONS: { id: string; label: string }[] = [
-  { id: "cc-acces-sortie", label: "Accès / Sortie" },
-  { id: "cc-vetements", label: "Vêtements" },
-  { id: "cc-environnement", label: "Environnement" },
-  { id: "cc-equipement", label: "Équipement" },
-  { id: "cc-ergonomie", label: "Ergonomie" },
-  { id: "cc-conditions-sol", label: "Conditions du sol" },
-  { id: "cc-garde-barriere", label: "Garde barrière" },
-  { id: "cc-entretien-menager", label: "Entretien ménager" },
-  { id: "cc-information-signalisation", label: "Information signalisation" },
-  { id: "cc-eclairage", label: "Éclairage" },
-  { id: "cc-selection-materiaux", label: "Sélection de matériaux" },
-  { id: "cc-bruit", label: "Bruit" },
-  { id: "cc-epi", label: "ÉPI" },
-  { id: "cc-securite", label: "Sécurité" },
-  { id: "cc-etaiement-contreventement", label: "Étaiement / contreventement" },
-  { id: "cc-energie-emmagasinee", label: "Énergie emmagasinée" },
-  { id: "cc-outil", label: "Outil" },
-  { id: "cc-circulation", label: "Circulation" },
-  { id: "cc-controles-circulation", label: "Contrôles de circulation" },
-  { id: "cc-ventilation", label: "Ventilation" },
-  { id: "cc-meteo", label: "Météo" },
-  { id: "cc-disposition-poste", label: "Disposition de poste de travail" },
+  { id: "affectation-personnel", label: "Affectation/Personnel" },
+  { id: "autorisation", label: "Autorisation" },
+  { id: "communication", label: "Communication" },
+  { id: "distraction", label: "Distraction" },
+  { id: "chahut", label: "Chahut" },
+  { id: "verrouiller-taguer", label: "Verrouiller/taguer" },
+  { id: "methodes-procedures-regles", label: "Méthodes/Procédures/Règles" },
+  { id: "inconduite", label: "Inconduite" },
+  { id: "planification", label: "Planification" },
+  { id: "position-posture", label: "Position/Posture" },
+  { id: "epi", label: "ÉPI" },
+  { id: "vitesse-distance", label: "Vitesse/Distance" },
+  { id: "stress", label: "Stress" },
+  { id: "supervision", label: "Supervision" },
+  { id: "formation", label: "Formation" },
+  { id: "utiliser", label: "Utiliser" },
+]
+
+// Default Comportement contributif options (restricted list from reference screenshot)
+const DEFAULT_CONTRIBUTING_BEHAVIOR_OPTIONS: { id: string; label: string }[] = [
+  { id: "acces-sortie", label: "Accès/Sortie" },
+  { id: "vetements", label: "Vêtements" },
+  { id: "environnement", label: "Environnement" },
+  { id: "equipement", label: "Équipement" },
+  { id: "ergonomie", label: "Ergonomie" },
+  { id: "conditions-sol", label: "Conditions du sol" },
+  { id: "garde-barriere", label: "Garde/Barrière" },
+  { id: "entretien-menager", label: "Entretien ménager" },
+  { id: "information-signalisation", label: "Information/Signalisation" },
+  { id: "eclairage", label: "Éclairage" },
+  { id: "selection-materiaux", label: "Sélection de matériaux" },
+  { id: "bruit", label: "Bruit" },
+  { id: "epi", label: "ÉPI" },
+  { id: "securite", label: "Sécurité" },
+  { id: "etaiement-contreventement", label: "Étaiement/Contreventement" },
+  { id: "energie-emmagasinee", label: "Énergie emmagasinée" },
+  { id: "outil", label: "Outil" },
+  { id: "controles-circulation", label: "Contrôles de circulation" },
+  { id: "ventilation", label: "Ventilation" },
+  { id: "meteo", label: "Météo" },
+  { id: "disposition-poste-travail", label: "Disposition de poste de travail" },
 ]
 
 // Default Type de blessure options (50 items)
@@ -320,20 +259,31 @@ const customStorage = {
     if (!value) return value
     try {
       const parsed = JSON.parse(value)
-      // If persisted incidentOptionLists has too few options, restore full default lists
+      // If persisted incidentOptionLists doesn't match required default sets, restore defaults
       if (parsed?.state?.incidentOptionLists) {
         const lists = parsed.state.incidentOptionLists
         let updated = false
-        if (!lists.accidentTypes || !Array.isArray(lists.accidentTypes) || lists.accidentTypes.length < DEFAULT_ACCIDENT_TYPES.length) {
+        const sameIds = (current: any, defaults: { id: string; label: string }[]) => {
+          if (!Array.isArray(current)) return false
+          if (current.length !== defaults.length) return false
+          const currIds = new Set(current.map((x: any) => x?.id))
+          return defaults.every((d) => currIds.has(d.id))
+        }
+
+        if (!sameIds(lists.accidentTypes, DEFAULT_ACCIDENT_TYPES)) {
           lists.accidentTypes = DEFAULT_ACCIDENT_TYPES
           updated = true
         }
-        if (!lists.danger || !Array.isArray(lists.danger) || lists.danger.length < DEFAULT_DANGER_OPTIONS.length) {
+        if (!sameIds(lists.danger, DEFAULT_DANGER_OPTIONS)) {
           lists.danger = DEFAULT_DANGER_OPTIONS
           updated = true
         }
-        if (!lists.contributingCondition || !Array.isArray(lists.contributingCondition) || lists.contributingCondition.length < DEFAULT_CONTRIBUTING_CONDITION_OPTIONS.length) {
+        if (!sameIds(lists.contributingCondition, DEFAULT_CONTRIBUTING_CONDITION_OPTIONS)) {
           lists.contributingCondition = DEFAULT_CONTRIBUTING_CONDITION_OPTIONS
+          updated = true
+        }
+        if (!sameIds(lists.contributingBehavior, DEFAULT_CONTRIBUTING_BEHAVIOR_OPTIONS)) {
+          lists.contributingBehavior = DEFAULT_CONTRIBUTING_BEHAVIOR_OPTIONS
           updated = true
         }
         if (!lists.injuryTypes || !Array.isArray(lists.injuryTypes) || lists.injuryTypes.length < DEFAULT_INJURY_TYPES.length) {
@@ -756,6 +706,7 @@ interface AppState {
     accidentTypes: { id: string; label: string }[]
     danger: { id: string; label: string }[]
     contributingCondition: { id: string; label: string }[]
+    contributingBehavior: { id: string; label: string }[]
     injuryTypes: { id: string; label: string }[]
     bodyParts: { id: string; label: string }[]
   }
@@ -912,6 +863,7 @@ export const useAppStore = create<AppState>()(
         accidentTypes: DEFAULT_ACCIDENT_TYPES,
         danger: DEFAULT_DANGER_OPTIONS,
         contributingCondition: DEFAULT_CONTRIBUTING_CONDITION_OPTIONS,
+        contributingBehavior: DEFAULT_CONTRIBUTING_BEHAVIOR_OPTIONS,
         injuryTypes: DEFAULT_INJURY_TYPES,
         bodyParts: DEFAULT_BODY_PARTS,
       },

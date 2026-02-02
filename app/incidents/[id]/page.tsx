@@ -25,24 +25,13 @@ import { toast } from "sonner"
 import { useAppStore } from "@/lib/store"
 import { cn, distanceToNowLocalized, formatLocalized } from "@/lib/utils"
 
-const STATUS_BADGE: Record<string, string> = {
-  submitted: "bg-[#1865E6] text-white",
-  draft: "bg-[#F28705] text-white",
-  "in-progress": "bg-[#F28705] text-white",
-  open: "bg-[#051DF7] text-white",
-  closed: "bg-[#05F719] text-white",
-}
+// Status display: Initié (any non-closed) / Fermé only, with requested colors
+const INITIATED_BADGE = "bg-[#27F54D] text-white"
+const CLOSED_BADGE = "bg-[#999999] text-white"
 
-const getStatusTranslationKey = (status: string): string => {
-  const statusMap: Record<string, string> = {
-    "draft": "status.draft",
-    "open": "status.open",
-    "in-progress": "status.inProgress",
-    "closed": "status.closed",
-    "submitted": "status.submitted",
-  }
-  return statusMap[status] || `status.${status}`
-}
+const isClosed = (status: string) => status === "closed"
+const getDisplayStatusKey = (status: string): string =>
+  isClosed(status) ? "status.closed" : "status.initiated"
 
 export default function IncidentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -53,6 +42,14 @@ export default function IncidentDetailPage({ params }: { params: Promise<{ id: s
   const incident = incidents.find((i) => i.id === id)
   const creator = (authUsers?.find((u: any) => u.id === incident?.creatorId) || users?.find((u) => u.id === incident?.creatorId)) as { name: string } | undefined
   const accidentTypeLabel = incidentOptionLists?.accidentTypes?.find((t: { id: string; label: string }) => t.id === incident?.accidentType)?.label || incident?.accidentType
+  const resolveIncidentOptionLabel = (
+    items: { id: string; label: string }[] | undefined,
+    value: string | undefined,
+  ): string => {
+    if (!value) return ""
+    const match = items?.find((it) => it.id === value)
+    return match?.label || value
+  }
 
   if (!incident) {
     return (
@@ -92,8 +89,14 @@ export default function IncidentDetailPage({ params }: { params: Promise<{ id: s
           <div>
             <div className="flex items-center gap-2">
               <span className="font-mono text-sm text-muted-foreground">{incident.number}</span>
-              <Badge variant="secondary" className={cn("text-xs", STATUS_BADGE[incident.status] || "bg-[#F28705] text-white")}>
-                {t(getStatusTranslationKey(incident.status) as any)}
+              <Badge
+                variant="secondary"
+                className={cn(
+                  "text-xs",
+                  isClosed(incident.status) ? CLOSED_BADGE : INITIATED_BADGE,
+                )}
+              >
+                {t(getDisplayStatusKey(incident.status) as any)}
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
@@ -109,7 +112,9 @@ export default function IncidentDetailPage({ params }: { params: Promise<{ id: s
               <Building className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-xs text-muted-foreground">{t("form.project")}</p>
-                <p className="font-medium">{incident.projectId || "-"}</p>
+                <p className="font-medium">
+                  {project?.name || "-"}
+                </p>
               </div>
             </div>
 
@@ -165,7 +170,7 @@ export default function IncidentDetailPage({ params }: { params: Promise<{ id: s
               <Activity className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-xs text-muted-foreground">{t("form.status")}</p>
-                <p className="font-medium">{t(getStatusTranslationKey(incident.status) as any)}</p>
+                <p className="font-medium">{t(getDisplayStatusKey(incident.status) as any)}</p>
               </div>
             </div>
           </div>
@@ -190,21 +195,33 @@ export default function IncidentDetailPage({ params }: { params: Promise<{ id: s
                     <AlertTriangle className="h-4 w-4 text-destructive" />
                     <p className="font-medium text-sm">{t("observation.danger")}</p>
                   </div>
-                  <p className="text-sm text-foreground">{incident.investigation.danger}</p>
+                  <p className="text-sm text-foreground">
+                    {resolveIncidentOptionLabel(incidentOptionLists.danger, incident.investigation.danger) || "-"}
+                  </p>
                 </div>
               )}
 
               {incident.investigation.contributingCondition && (
                 <div className="p-4 bg-warning/5 border border-warning/20 rounded-lg">
                   <p className="font-medium text-sm mb-2">{t("observation.contributingCondition")}</p>
-                  <p className="text-sm text-foreground">{incident.investigation.contributingCondition}</p>
+                  <p className="text-sm text-foreground">
+                    {resolveIncidentOptionLabel(
+                      incidentOptionLists.contributingCondition,
+                      incident.investigation.contributingCondition,
+                    ) || "-"}
+                  </p>
                 </div>
               )}
 
               {incident.investigation.contributingBehavior && (
                 <div className="p-4 bg-info/5 border border-info/20 rounded-lg">
                   <p className="font-medium text-sm mb-2">{t("observation.contributingBehavior")}</p>
-                  <p className="text-sm text-foreground">{incident.investigation.contributingBehavior}</p>
+                  <p className="text-sm text-foreground">
+                    {resolveIncidentOptionLabel(
+                      incidentOptionLists.contributingBehavior,
+                      incident.investigation.contributingBehavior,
+                    ) || "-"}
+                  </p>
                 </div>
               )}
             </div>

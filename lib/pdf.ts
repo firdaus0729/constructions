@@ -1378,7 +1378,7 @@ export async function exportInspectionAsPdf(
     y += 2
   })
 
-  // ----- Footer: thin dark line, then company | Page X sur Y | Imprimé le -----
+  // ----- Footer: thin light line, then company | Page X sur Y | Imprimé le -----
   const pageCount = (doc as any).internal.getNumberOfPages()
   const footerY = pageHeight - 8
   const printDate = new Date()
@@ -1388,7 +1388,7 @@ export async function exportInspectionAsPdf(
 
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i)
-    doc.setDrawColor(0, 0, 0)
+    doc.setDrawColor(SEP_GRAY[0], SEP_GRAY[1], SEP_GRAY[2])
     doc.setLineWidth(0.2)
     doc.line(margin, footerY - 2, pageWidth - margin, footerY - 2)
     doc.setFontSize(6)
@@ -1480,6 +1480,8 @@ export async function exportIncidentAsPdf(
   const optionLists = getIncidentOptionLists()
 
   let y = margin
+  const SEP_GRAY: [number, number, number] = [180, 180, 180]
+  const LINK_BLUE: [number, number, number] = [0, 0, 255]
 
   const checkPageBreak = (need: number) => {
     if (y + need > pageHeight - margin - 15) {
@@ -1501,7 +1503,8 @@ export async function exportIncidentAsPdf(
   }
 
   const thinLine = () => {
-    doc.setDrawColor(0, 0, 0)
+    // Reference PDF uses light gray separators
+    doc.setDrawColor(SEP_GRAY[0], SEP_GRAY[1], SEP_GRAY[2])
     doc.setLineWidth(0.2)
     doc.line(margin, y, pageWidth - margin, y)
     y += 5
@@ -1692,11 +1695,24 @@ export async function exportIncidentAsPdf(
   doc.setFont("helvetica", "bold")
   doc.text("Distribution", rightColX, rightY)
   doc.setFont("helvetica", "normal")
-  rightY += 3.5
-  distLines.forEach((line: string) => {
-    doc.text(String(line), rightColX + 2, rightY)
-    rightY += 3.5
-  })
+  // Align distribution values in the value column (like reference PDF)
+  const distValueX = rightColX + labelW
+  const distWrapW = rightColW - labelW - 2
+  let distY = rightY
+  if (distLines.length === 0) {
+    doc.text("-", distValueX, distY)
+    distY += rowH
+  } else {
+    distLines.forEach((line: string) => {
+      const wrapped = doc.splitTextToSize(String(line), distWrapW)
+      wrapped.forEach((w: string) => {
+        doc.text(w, distValueX, distY)
+        distY += 3.5
+      })
+    })
+    distY += 2
+  }
+  rightY = distY
 
   y = Math.max(leftY, rightY) + 5
   thinLine()
@@ -1743,7 +1759,7 @@ export async function exportIncidentAsPdf(
       checkPageBreak(boxHeight + 8)
       
       // Draw border box
-      doc.setDrawColor(0, 0, 0)
+      doc.setDrawColor(SEP_GRAY[0], SEP_GRAY[1], SEP_GRAY[2])
       doc.setLineWidth(0.2)
       doc.rect(leftColX, y, boxWidth, boxHeight)
       
@@ -1774,12 +1790,19 @@ export async function exportIncidentAsPdf(
       
       y += boxHeight + 3
       
-      // Filename below the box (normal text, not blue underlined)
+      // Filename below the box (blue + underlined, centered like reference PDF)
       doc.setFont("helvetica", "normal")
       doc.setFontSize(7)
       const name = att.name || "Pièce jointe"
-      doc.text(name, leftColX, y)
-      y += 5
+      doc.setTextColor(LINK_BLUE[0], LINK_BLUE[1], LINK_BLUE[2])
+      doc.text(name, pageWidth / 2, y, { align: "center" })
+      const textW = doc.getTextWidth(name)
+      doc.setDrawColor(LINK_BLUE[0], LINK_BLUE[1], LINK_BLUE[2])
+      doc.setLineWidth(0.2)
+      doc.line(pageWidth / 2 - textW / 2, y + 0.8, pageWidth / 2 + textW / 2, y + 0.8)
+      doc.setTextColor(0, 0, 0)
+      doc.setDrawColor(0, 0, 0)
+      y += 6
     }
     y += 4
     thinLine()
@@ -1798,10 +1821,12 @@ export async function exportIncidentAsPdf(
   const invLabelW = 40
   const invRowH = 6
   
-  // Resolve investigation option IDs to labels (danger, contributingCondition are from dropdowns; contributingBehavior is free text)
+  // Resolve investigation option IDs to labels (all three are dropdowns)
   const dangerLabel = resolveIncidentOptionLabel(optionLists.danger, incident.investigation?.danger)
   const contributingConditionLabel = resolveIncidentOptionLabel(optionLists.contributingCondition, incident.investigation?.contributingCondition)
-  const contributingBehaviorText = String(incident.investigation?.contributingBehavior ?? "").trim()
+  const contributingBehaviorResolved = resolveIncidentOptionLabel(optionLists.contributingBehavior, incident.investigation?.contributingBehavior)
+  const contributingBehaviorText =
+    String(contributingBehaviorResolved ?? incident.investigation?.contributingBehavior ?? "").trim()
 
   // Left column: Danger, Condition contributive
   let leftInvY = y

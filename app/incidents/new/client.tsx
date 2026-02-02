@@ -30,6 +30,7 @@ import { DistributionSelector } from "@/components/forms"
 import { sendFormNotificationEmails, collectEmailAddresses } from "@/lib/email-service"
 import { ProjectNoCombobox } from "@/components/project-no-combobox"
 import { IncidentAccidentTypeCrudCombobox, IncidentOptionCrudCombobox } from "@/components/incident-crud-combobox"
+import { LivrableCrudCombobox } from "@/components/livrable-crud-combobox"
 
 export default function NewIncidentPage() {
   const router = useRouter()
@@ -64,7 +65,8 @@ export default function NewIncidentPage() {
     projectId: "",
     projectNumber: "",
     creatorId: currentUser?.id || "",
-    status: "draft" as FormStatus,
+    // Default to Initié (open). Drafts are still saved via "Enregistrer le brouillon".
+    status: "open" as FormStatus,
     location: "",
     date: "", // <-- New date field (form creation or report date)
     eventDate: "",
@@ -186,7 +188,7 @@ export default function NewIncidentPage() {
         eventDate: new Date(formData.eventDate),
         eventTime: formData.eventTime,
         accidentType: formData.accidentType,
-        status: formData.status || status,
+        status,
         distribution: uniqueDistribution,
         concernedCompany: formData.concernedCompany,
         description: formData.description,
@@ -245,7 +247,8 @@ export default function NewIncidentPage() {
 
       setIsSubmitting(true)
       try {
-        const incident = createIncidentObject("submitted")
+        // "Soumis" is no longer used in the UI; submitting creates an incident in state "Initié" (open) unless user set Fermé.
+        const incident = createIncidentObject(formData.status === "closed" ? "closed" : "open")
         addIncident(incident)
 
         // Send email notifications if enabled
@@ -422,17 +425,14 @@ export default function NewIncidentPage() {
                 />
               </FormField>
 
-              {/* Statut (Status) - includes Ouvert (Open) */}
+              {/* Statut (Status) - only Initié / Fermé */}
               <FormField label={t("form.status")} required>
                 <Select value={formData.status} onValueChange={(value: FormStatus) => handleFieldChange("status", value)}>
                   <SelectTrigger className="h-12">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="draft">{t("status.draft")}</SelectItem>
-                    <SelectItem value="open">{t("status.open")}</SelectItem>
-                    <SelectItem value="in-progress">{t("status.inProgress")}</SelectItem>
-                    <SelectItem value="submitted">{t("status.submitted")}</SelectItem>
+                    <SelectItem value="open">{t("status.initiated" as any)}</SelectItem>
                     <SelectItem value="closed">{t("status.closed")}</SelectItem>
                   </SelectContent>
                 </Select>
@@ -440,11 +440,11 @@ export default function NewIncidentPage() {
 
               {/* Location */}
               <FormField label={t("incident.location")} required error={errors.location}>
-                <Input
+                <LivrableCrudCombobox
+                  listKey="locations"
                   value={formData.location}
-                  onChange={(e) => handleFieldChange("location", e.target.value)}
+                  onChange={(value) => handleFieldChange("location", value)}
                   placeholder={t("incident.locationPlaceholder")}
-                  className={`h-12 ${errors.location ? "border-destructive" : ""}`}
                 />
               </FormField>
 
@@ -548,11 +548,11 @@ export default function NewIncidentPage() {
               label={t("observation.contributingBehavior")}
               description={t("incident.contributingBehaviorDesc")}
             >
-              <Textarea
+              <IncidentOptionCrudCombobox
+                listKey="contributingBehavior"
                 value={formData.contributingBehavior}
-                onChange={(e) => handleFieldChange("contributingBehavior", e.target.value)}
+                onChange={(value) => handleFieldChange("contributingBehavior", value)}
                 placeholder={t("incident.contributingBehaviorPlaceholder")}
-                rows={3}
               />
             </FormField>
 

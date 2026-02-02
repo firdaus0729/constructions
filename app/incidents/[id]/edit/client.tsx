@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge"
 import { DistributionSelector } from "@/components/forms"
 import { ProjectNoCombobox } from "@/components/project-no-combobox"
 import { IncidentAccidentTypeCrudCombobox, IncidentOptionCrudCombobox } from "@/components/incident-crud-combobox"
+import { LivrableCrudCombobox } from "@/components/livrable-crud-combobox"
 
 export default function EditIncidentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -78,7 +79,8 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
     projectId: incident?.projectId || (projects && Array.isArray(projects) && projects.length > 0 ? projects[0]?.id : ""),
     projectNumber: (incident as any)?.projectNumber || (projects?.find((p) => p.id === incident?.projectId)?.code) || "",
     creatorId: incident?.creatorId || "",
-    status: (incident?.status as FormStatus) || "draft",
+    // UI only supports Initié (open) and Fermé (closed); normalize legacy statuses to open.
+    status: ((incident?.status as FormStatus) === "closed" ? "closed" : "open") as FormStatus,
     location: incident?.location || "",
     eventDate: incident?.eventDate ? new Date(incident.eventDate).toISOString().split("T")[0] : "",
     eventTime: incident?.eventTime || "",
@@ -298,10 +300,7 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="draft">{t("status.draft")}</SelectItem>
-                  <SelectItem value="open">{t("status.open")}</SelectItem>
-                  <SelectItem value="in-progress">{t("status.inProgress")}</SelectItem>
-                  <SelectItem value="submitted">{t("status.submitted")}</SelectItem>
+                  <SelectItem value="open">{t("status.initiated" as any)}</SelectItem>
                   <SelectItem value="closed">{t("status.closed")}</SelectItem>
                 </SelectContent>
               </Select>
@@ -326,10 +325,11 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
           </div>
 
           <FormField label={t("field.location")} error={errors.location} required>
-            <Input
+            <LivrableCrudCombobox
+              listKey="locations"
               value={formData.location}
-              onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
-              placeholder={t("field.location")}
+              onChange={(value) => setFormData((prev) => ({ ...prev, location: value }))}
+              placeholder={t("incident.locationPlaceholder")}
             />
           </FormField>
 
@@ -395,11 +395,11 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
           </FormField>
 
           <FormField label={t("observation.contributingBehavior")} error={errors.behavior} required>
-            <Textarea
+            <IncidentOptionCrudCombobox
+              listKey="contributingBehavior"
               value={formData.contributingBehavior}
-              onChange={(e) => setFormData((prev) => ({ ...prev, contributingBehavior: e.target.value }))}
-              placeholder={t("form.description")}
-              rows={3}
+              onChange={(value) => setFormData((prev) => ({ ...prev, contributingBehavior: value }))}
+              placeholder={t("incident.contributingBehaviorPlaceholder")}
             />
           </FormField>
 
