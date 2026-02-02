@@ -1580,7 +1580,7 @@ export async function exportIncidentAsPdf(
   titleLines.forEach((ln: string, i: number) => {
     doc.text(ln, pageWidth / 2, y + (i * 6), { align: "center" })
   })
-  y += 1
+  y += 2
   thinLine()
 
   // ----- Two-column metadata (no per-field underlines) -----
