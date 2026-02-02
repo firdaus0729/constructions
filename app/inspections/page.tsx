@@ -17,25 +17,17 @@ import { AppShell } from "@/components/app-shell"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
+// Initié #27F54D, Fermé #999999 (match original PDF / observations)
 const STATUS_BADGE: Record<string, string> = {
-  submitted: "bg-[#1865E6] text-white",
-  draft: "bg-[#F28705] text-white",
-  "in-progress": "bg-[#F28705] text-white",
-  open: "bg-[#051DF7] text-white",
-  closed: "bg-[#05F719] text-white",
+  submitted: "bg-[#27F54D] text-white",
+  draft: "bg-[#27F54D] text-white",
+  "in-progress": "bg-[#27F54D] text-white",
+  open: "bg-[#27F54D] text-white",
+  closed: "bg-[#999999] text-white",
 }
 
-// Helper function to convert status key to translation key
-const getStatusTranslationKey = (status: string): string => {
-  const statusMap: Record<string, string> = {
-    "draft": "status.draft",
-    "in-progress": "status.inProgress",
-    "open": "status.open",
-    "submitted": "status.submitted",
-    "closed": "status.closed"
-  }
-  return statusMap[status] || `status.${status}`
-}
+const getInspectionStatusDisplayKey = (status: string): string =>
+  status === "closed" ? "status.closed" : "status.initiated"
 
 export default function InspectionsPage() {
   const { inspections, deleteInspection, projects, users } = useAppStore()
@@ -49,7 +41,11 @@ export default function InspectionsPage() {
       inspection.documentDescription?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       inspection.id.toLowerCase().includes(searchTerm.toLowerCase())
 
-    const matchesStatus = !filterStatus || inspection.status === filterStatus
+    // Only two filters: Initié (non-closed) and Fermé (closed)
+    const matchesStatus =
+      !filterStatus ||
+      (filterStatus === "closed" && inspection.status === "closed") ||
+      (filterStatus === "open" && inspection.status !== "closed")
 
     return matchesSearch && matchesStatus
   })
@@ -107,20 +103,20 @@ export default function InspectionsPage() {
             </div>
             <div className="flex gap-2 flex-wrap">
               {[
-                { key: "draft", label: "status.draft" },
-                { key: "open", label: "status.open" },
-                { key: "in-progress", label: "status.inProgress" },
-                { key: "submitted", label: "status.submitted" },
-                { key: "closed", label: "status.closed" }
-              ].map((status) => (
+                { key: "open", label: "status.initiated" },
+                { key: "closed", label: "status.closed" },
+              ].map((s) => (
                 <Button
-                  key={status.key}
-                  variant={filterStatus === status.key ? "default" : "outline"}
+                  key={s.key}
+                  variant="outline"
                   size="sm"
-                  onClick={() => setFilterStatus(filterStatus === status.key ? null : status.key)}
-                  className="capitalize text-xs"
+                  onClick={() => setFilterStatus(filterStatus === s.key ? null : s.key)}
+                  className={cn(
+                    "text-xs",
+                    filterStatus === s.key && "border-[#3FAEFC] bg-[#3FAEFC]/10 text-[#3FAEFC] hover:bg-[#3FAEFC]/20 hover:text-[#3FAEFC]"
+                  )}
                 >
-                  {t(status.label as any)}
+                  {t(s.label as any)}
                 </Button>
               ))}
             </div>
@@ -173,9 +169,9 @@ export default function InspectionsPage() {
                             <h3 className="font-semibold text-base">{inspection.documentTitle}</h3>
                             <Badge
                               variant="secondary"
-                              className={cn("text-xs", STATUS_BADGE[inspection.status] || "bg-[#F28705] text-white")}
+                              className={cn("text-xs", STATUS_BADGE[inspection.status] || "bg-[#27F54D] text-white")}
                             >
-                              {t(getStatusTranslationKey(inspection.status) as any)}
+                              {t(getInspectionStatusDisplayKey(inspection.status) as any)}
                             </Badge>
                           </div>
                           <p className="text-xs text-muted-foreground">

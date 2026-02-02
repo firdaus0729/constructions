@@ -14,24 +14,17 @@ import { exportInspectionAsPdf } from "@/lib/pdf"
 import { useAppStore, inspectionSections } from "@/lib/store"
 import { cn, distanceToNowLocalized, formatLocalized } from "@/lib/utils"
 
+// Initié #27F54D, Fermé #999999 (match list page)
 const STATUS_BADGE: Record<string, string> = {
-  submitted: "bg-[#1865E6] text-white",
-  draft: "bg-[#F28705] text-white",
-  "in-progress": "bg-[#F28705] text-white",
-  open: "bg-[#051DF7] text-white",
-  closed: "bg-[#05F719] text-white",
+  submitted: "bg-[#27F54D] text-white",
+  draft: "bg-[#27F54D] text-white",
+  "in-progress": "bg-[#27F54D] text-white",
+  open: "bg-[#27F54D] text-white",
+  closed: "bg-[#999999] text-white",
 }
 
-const getStatusTranslationKey = (status: string): string => {
-  const statusMap: Record<string, string> = {
-    draft: "status.draft",
-    "in-progress": "status.inProgress",
-    open: "status.open",
-    closed: "status.closed",
-    submitted: "status.submitted",
-  }
-  return statusMap[status] || `status.${status}`
-}
+const getInspectionStatusDisplayKey = (status: string): string =>
+  status === "closed" ? "status.closed" : "status.initiated"
 
 export default function InspectionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -106,9 +99,9 @@ export default function InspectionDetailPage({ params }: { params: Promise<{ id:
               </span>
               <Badge
                 variant="secondary"
-                className={cn("text-xs", STATUS_BADGE[inspection.status] || "bg-[#F28705] text-white")}
+                className={cn("text-xs", STATUS_BADGE[inspection.status] || "bg-[#27F54D] text-white")}
               >
-                {t(getStatusTranslationKey(inspection.status) as any)}
+                {t(getInspectionStatusDisplayKey(inspection.status) as any)}
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground mt-1">

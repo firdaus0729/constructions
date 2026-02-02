@@ -870,6 +870,7 @@ export const useAppStore = create<AppState>()(
 
       inspectionOptionLists: {
         types: [
+          { id: "sante-securite", label: "Santé et Sécurité" },
           { id: "safety", label: "Inspection de sécurité" },
           { id: "compliance", label: "Vérification de conformité" },
           { id: "incident-follow-up", label: "Suivi d'incident" },

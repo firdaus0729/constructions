@@ -34,7 +34,7 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
   const router = useRouter()
   const { t } = useLocale()
   const store = useAppStore()
-  const { projects = [], currentUser, updateInspection, inspections, authUsers = [], userGroups = [], users = [] } = store || {}
+  const { projects = [], currentUser, updateInspection, inspections, authUsers = [], userGroups = [], users = [], livrableOptionLists } = store || {}
   
   const inspection = inspections?.find((i) => i.id === id)
 
@@ -82,7 +82,7 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
     createdBy: (inspection as any)?.createdBy || currentUser?.name || "Unknown",
     creatorId: inspection?.creatorId || currentUser?.id || "",
     description: inspection?.description || "",
-    status: (inspection?.status as string) || "draft",
+    status: inspection?.status === "closed" ? "closed" : "open",
     responses: inspection?.responses?.reduce((acc, resp) => {
       acc[resp.itemId] = resp
       return acc
@@ -110,7 +110,7 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
         createdBy: (inspection as any)?.createdBy || currentUser?.name || "Unknown",
         creatorId: inspection?.creatorId || currentUser?.id || "",
         description: inspection.description,
-        status: (inspection.status as string),
+        status: inspection.status === "closed" ? "closed" : "open",
         responses: inspection.responses?.reduce((acc, resp) => {
           acc[resp.itemId] = resp
           return acc
@@ -201,7 +201,7 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
           createdBy: formData.createdBy || (inspection as any)?.createdBy,
           creatorId: formData.creatorId || inspection?.creatorId || currentUser?.id || "",
           description: formData.description,
-          status: formData.status,
+          status: (formData.status === "closed" ? "closed" : "open") as Inspection["status"],
           distribution: distributionList.map((d) => d.email || "").filter(Boolean),
           responses: responsesArray,
           attachments: formData.attachments,
@@ -379,7 +379,7 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
             />
           </FormField>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               label={t("inspection.typeLabel")}
               error={errors.type}
@@ -392,30 +392,16 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
               />
             </FormField>
 
-            <FormField
-              label={t("form.project")}
-              error={errors.projectId}
-              required
-            >
-              <Input
-                value={formData.projectId}
-                onChange={(e) => setFormData((prev) => ({ ...prev, projectId: e.target.value }))}
-                placeholder={t("form.project")}
-                className="h-12"
-              />
-            </FormField>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField label={t("observation.projectNumber")}>
+            <FormField label={t("observation.projectNumber")} error={errors.projectId} required>
               <ProjectNoCombobox
                 projects={projects}
-                value={projects.find((p) => p.code === formData.projectNumber)?.id || null}
+                value={formData.projectId || projects.find((p) => p.code === formData.projectNumber)?.id || null}
                 onChange={(projectId) => {
                   const p = projects.find((x) => x.id === projectId)
                   if (!p) return
                   setFormData((prev) => ({
                     ...prev,
+                    projectId: projectId || "",
                     projectNumber: p.code,
                     projectLocation: prev.projectLocation || p.location,
                   }))
@@ -423,13 +409,42 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
                 placeholder={t("observation.projectNumber")}
               />
             </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField label={t("field.location")}>
-              <Input
-                value={formData.projectLocation}
-                onChange={(e) => setFormData((prev) => ({ ...prev, projectLocation: e.target.value }))}
-                placeholder={t("field.location")}
-                className="h-12"
-              />
+              <Select
+                value={formData.projectLocation || ""}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, projectLocation: value }))}
+              >
+                <SelectTrigger className="h-12">
+                  <SelectValue placeholder={t("livrable.selectLocation")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {(livrableOptionLists?.locations || []).map((loc: { id: string; label: string }) => (
+                    <SelectItem key={loc.id} value={loc.label}>
+                      {loc.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+            <FormField label="Lieu">
+              <Select
+                value={formData.lieu || ""}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, lieu: value }))}
+              >
+                <SelectTrigger className="h-12">
+                  <SelectValue placeholder="Lieu" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(livrableOptionLists?.locations || []).map((loc: { id: string; label: string }) => (
+                    <SelectItem key={loc.id} value={loc.label}>
+                      {loc.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </FormField>
           </div>
 
@@ -439,14 +454,6 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
                 value={formData.metier}
                 onChange={(e) => setFormData((prev) => ({ ...prev, metier: e.target.value }))}
                 placeholder="Métier"
-                className="h-12"
-              />
-            </FormField>
-            <FormField label="Lieu">
-              <Input
-                value={formData.lieu}
-                onChange={(e) => setFormData((prev) => ({ ...prev, lieu: e.target.value }))}
-                placeholder="Lieu"
                 className="h-12"
               />
             </FormField>
@@ -539,15 +546,12 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
               label={t("form.status")}
               required
             >
-              <Select value={formData.status} onValueChange={(value: any) => setFormData((prev) => ({ ...prev, status: value }))}>
+              <Select value={formData.status === "closed" ? "closed" : "open"} onValueChange={(value: string) => setFormData((prev) => ({ ...prev, status: value }))}>
                 <SelectTrigger>
                   <SelectValue placeholder={t("form.status")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="draft">{t("status.draft")}</SelectItem>
-                  <SelectItem value="open">{t("status.open")}</SelectItem>
-                  <SelectItem value="in-progress">{t("status.inProgress")}</SelectItem>
-                  <SelectItem value="submitted">{t("status.submitted")}</SelectItem>
+                  <SelectItem value="open">{t("status.initiated")}</SelectItem>
                   <SelectItem value="closed">{t("status.closed")}</SelectItem>
                 </SelectContent>
               </Select>
