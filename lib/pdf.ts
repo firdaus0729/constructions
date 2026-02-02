@@ -1746,6 +1746,7 @@ export async function exportIncidentAsPdf(
     y += 4
   })
   y += 4
+  thinLine()
 
   // ----- Pièces jointes: large embedded image/document box + filename below -----
   const attachments = incident.attachments || []
