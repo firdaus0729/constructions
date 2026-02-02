@@ -1729,11 +1729,13 @@ export async function exportIncidentAsPdf(
   const aDeclarerText = (incident as any).aDeclarer === true ? "Oui" : "Non"
   doc.text("À déclarer", leftColX, y)
   doc.setFont("helvetica", "normal")
-  doc.text(aDeclarerText, leftColX + 25, y)
+  // Value column aligned with Description content column
+  const descLabelW = 40
+  const descTextX = leftColX + descLabelW
+  doc.text(aDeclarerText, descTextX, y)
   y += 5
 
   // Description label + first line on the same row (like original PDF)
-  const descLabelW = 40
   doc.setFont("helvetica", "bold")
   doc.text("Description", leftColX, y)
 
@@ -1741,7 +1743,6 @@ export async function exportIncidentAsPdf(
   doc.setFont("helvetica", "normal")
   doc.setFontSize(8)
   const desc = incident.description || ""
-  const descTextX = leftColX + descLabelW
   const descWrapW = contentWidth - 4 - descLabelW
   const descLines = doc.splitTextToSize(desc || " ", descWrapW)
 
