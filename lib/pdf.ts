@@ -1126,26 +1126,31 @@ export async function exportInspectionAsPdf(
   y += 6
   thinLine()
 
-  // ----- Summary: 5 grey boxes (no red) -----
+  // ----- Summary: 5 grey boxes with white text (match original) -----
   const allItems = inspectionSections.flatMap((s: any) => s?.items || [])
   const totalItems = allItems.length
   const allResponses = inspection.responses || []
   const conforming = allResponses.filter((r: any) => r.response === "conforming").length
   const nonConforming = allResponses.filter((r: any) => r.response === "non-conforming").length
   const notApplicable = allResponses.filter((r: any) => r.response === "not-applicable" || r.response === "na").length
-  const unanswered = totalItems - allResponses.filter((r: any) => r.response != null && r.response !== undefined).length
+  const unanswered = allItems.filter((item: any) => {
+    const r = allResponses.find((rr: any) => rr.itemId === item.id)
+    return !r || r.response == null || r.response === undefined
+  }).length
 
   const sumY = y
   const colW = (pageWidth - 2 * margin) / 5
   const boxH = 16
+  const SUMMARY_BOX_GRAY: [number, number, number] = [120, 120, 120]
   for (let idx = 0; idx < 5; idx++) {
     const x = margin + idx * colW
-    doc.setFillColor(LIGHT_GRAY[0], LIGHT_GRAY[1], LIGHT_GRAY[2])
+    doc.setFillColor(SUMMARY_BOX_GRAY[0], SUMMARY_BOX_GRAY[1], SUMMARY_BOX_GRAY[2])
     doc.rect(x, sumY, colW, boxH, "F")
     doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
     doc.rect(x, sumY, colW, boxH)
   }
   doc.setDrawColor(0, 0, 0)
+  doc.setTextColor(255, 255, 255)
   const summaryValues = [`${totalItems}/${totalItems}`, `${conforming}`, `${nonConforming}`, `${notApplicable}`, `${unanswered}`]
   const summaryLabels = ["Articles inspectés", "Conforme", "Déficient", "S.O.", "Neutre"]
   summaryValues.forEach((val, idx) => {
@@ -1156,6 +1161,7 @@ export async function exportInspectionAsPdf(
     doc.setFontSize(7)
     doc.text(summaryLabels[idx], margin + idx * colW + colW / 2, sumY + 14, { align: "center" })
   })
+  doc.setTextColor(0, 0, 0)
   y = sumY + boxH + 5
 
   // ----- Détails de l'inspection (table-like) -----
@@ -1166,15 +1172,24 @@ export async function exportInspectionAsPdf(
   const leftX = margin
   const rightX = pageWidth / 2 + 2
   const lineH = 4.2
+  const formatDateShort = (d: Date) => {
+    const day = String(d.getDate()).padStart(2, "0")
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const year = String(d.getFullYear()).slice(-2)
+    return `${day}/${month}/${year}`
+  }
   const statusLabel =
     inspection.status === "closed" && inspection.closedById
-      ? `Fermé par ${resolveClosedBy()} le ${formatDateFR(inspection.updatedAt ? new Date(inspection.updatedAt) : new Date())}`
+      ? `Fermé par ${resolveClosedBy()} le ${formatDateShort(inspection.updatedAt ? new Date(inspection.updatedAt) : new Date())}`
       : inspection.status === "in-progress"
         ? "En Progression"
         : inspection.status === "draft"
           ? "Brouillon"
-          : String(inspection.status || "-")
+          : String(inspection.status || "open").toLowerCase() === "open"
+            ? "open"
+            : String(inspection.status || "-")
 
+  const labelWidth = 45
   doc.setFontSize(8)
   doc.setFont("helvetica", "normal")
   const detailsLeft: Array<[string, string]> = [
@@ -1198,40 +1213,39 @@ export async function exportInspectionAsPdf(
       doc.setFont("helvetica", "bold")
       doc.text(ll, leftX, y)
       doc.setFont("helvetica", "normal")
-      doc.text(String(lv || "-"), leftX + 35, y)
+      doc.text(String(lv || "-"), leftX + labelWidth, y)
     }
     if (rl) {
       doc.setFont("helvetica", "bold")
       doc.text(rl, rightX, y)
       doc.setFont("helvetica", "normal")
-      doc.text(String(rv || "-"), rightX + 35, y)
+      doc.text(String(rv || "-"), rightX + labelWidth, y)
     }
     y += lineH
   }
   y += 4
   thinLine()
 
-  // ----- Détails de L'Inspection (thin grey line under heading) -----
+  // ----- Détails de L'Inspection (heading + thin line only, no full grey row) -----
   doc.setFontSize(9)
   doc.setFont("helvetica", "bold")
   doc.text("Détails de L'Inspection", margin, y)
   y += 5
-  drawLightRow(margin, y, pageWidth - 2 * margin, 3)
-  y += 5
+  thinLine()
   doc.setFontSize(8)
   doc.setFont("helvetica", "normal")
   const inspectionDate = inspection.inspectionDate ? new Date(inspection.inspectionDate) : (inspection.createdAt ? new Date(inspection.createdAt) : new Date())
   const dueDate = inspection.dueDate ? new Date(inspection.dueDate) : null
   doc.text("Date de l'inspection", leftX, y)
-  doc.text(formatDateFR(inspectionDate), leftX + 45, y)
+  doc.text(formatDateFR(inspectionDate), leftX + labelWidth, y)
   doc.text("Date d'échéance", rightX, y)
-  doc.text(dueDate ? formatDateFR(dueDate) : "-", rightX + 45, y)
-  y += 5
+  doc.text(dueDate ? formatDateFR(dueDate) : "-", rightX + labelWidth, y)
+  y += lineH
   doc.text("Point de contact", leftX, y)
-  doc.text(inspection.contactPoint || "-", leftX + 45, y)
+  doc.text(inspection.contactPoint || "-", leftX + labelWidth, y)
   doc.text("Entrepreneur responsable", rightX, y)
-  doc.text(inspection.contractor || "-", rightX + 45, y)
-  y += 5
+  doc.text(inspection.contractor || "-", rightX + labelWidth, y)
+  y += lineH
   doc.text("Personne(s) assignée(s)", leftX, y)
   const assigned =
     Array.isArray(inspection.distribution) && inspection.distribution.length > 0
@@ -1241,7 +1255,7 @@ export async function exportInspectionAsPdf(
           .join(", ")
       : "-"
   doc.splitTextToSize(assigned || "-", pageWidth - 2 * margin - 50).forEach((ln: string) => {
-    doc.text(ln, leftX + 45, y)
+    doc.text(ln, leftX + labelWidth, y)
     y += 4
   })
   y += 5
@@ -1250,12 +1264,11 @@ export async function exportInspectionAsPdf(
   inspectionSections.forEach((section: any) => {
     checkPageBreak(30)
 
-    const sectionStartY = y
-    drawLightRow(margin, y, pageWidth - 2 * margin, 10)
+    // Section header: title + summary on right, no full-width grey box (match original)
     doc.setFontSize(10)
     doc.setFont("helvetica", "bold")
     const sectionTitle = section.titleKey || section.title || ""
-    doc.text(sectionTitle, margin, y + 6.5)
+    doc.text(sectionTitle, margin, y + 5)
 
     const sectionItems = section.items || []
     const sectionResponses = sectionItems.map((item: any) => allResponses.find((r: any) => r.itemId === item.id))
@@ -1266,14 +1279,19 @@ export async function exportInspectionAsPdf(
 
     doc.setFontSize(8)
     doc.setFont("helvetica", "normal")
-    const summaryRight = `${sectionNeutral} Neutre     ${sectionConforming} Conforme     ${sectionNonConforming} Déficient     ${sectionNotApplicable} S.O.`
-    doc.text(summaryRight, pageWidth - margin, y + 6.5, { align: "right" })
-    y += 14
+    const summaryRight = `${sectionNeutral} Neutre ${sectionConforming} Conforme ${sectionNonConforming} Déficient ${sectionNotApplicable} S.O.`
+    doc.text(summaryRight, pageWidth - margin, y + 5, { align: "right" })
+    y += 10
+    thinLine()
 
     doc.setFontSize(8)
-    sectionItems.forEach((item: any) => {
-      checkPageBreak(38)
+    // Unified piece: every item = top grey block (title, italic activity, checkboxes with labels below) + thin line + bottom white block (response with name bold, comment, photo)
+    const topBlockHeight = 16
+    const boxSize = 3
+    const checkboxLabels = ["Conforme", "Échec", "S.O."]
+    const checkboxSpacing = 18
 
+    sectionItems.forEach((item: any) => {
       const response = allResponses.find((r: any) => r.itemId === item.id)
       const hasResponse = response && response.response !== null && response.response !== undefined
       const responseCount = hasResponse ? 1 : 0
@@ -1281,127 +1299,144 @@ export async function exportInspectionAsPdf(
       const photosCount = response?.attachments?.filter((a: any) => a.type?.startsWith("image/")).length || 0
       const commentsCount = response?.comment ? 1 : 0
       const observationsCount = 0
+      const hasPhotos = response?.attachments?.filter((a: any) => a.type?.startsWith("image/")).length > 0
+      const spaceNeeded = topBlockHeight + 8 + (hasResponse ? 5 : 0) + (response?.comment ? 12 : 0) + (hasPhotos ? 60 : 0)
+      checkPageBreak(spaceNeeded)
 
       const rowY = y
-      drawLightRow(margin, rowY, pageWidth - 2 * margin, 16)
+      // ----- Piece type: top block (light grey, thin border) -----
+      doc.setFillColor(LIGHT_GRAY[0], LIGHT_GRAY[1], LIGHT_GRAY[2])
+      doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
+      doc.rect(margin, rowY, pageWidth - 2 * margin, topBlockHeight, "FD")
+      doc.setDrawColor(0, 0, 0)
 
       doc.setFont("helvetica", "bold")
-      doc.text(`${item.number} ${item.label}`, margin, rowY + 6)
+      doc.setFontSize(8)
+      doc.text(`${item.number} ${item.label}`, margin + 2, rowY + 5)
 
+      doc.setFont("helvetica", "italic")
+      doc.setFontSize(7)
+      const activityText = `Activité : ${responseCount} Changement${responseCount > 1 ? "s" : ""} de réponse, ${attachmentsCount} Pièces jointes, ${photosCount} Photo${photosCount > 1 ? "s" : ""}, ${commentsCount} Commentaire${commentsCount > 1 ? "s" : ""}, ${observationsCount} Observation${observationsCount > 1 ? "s" : ""}`
+      doc.text(activityText, margin + 2, rowY + 11)
+
+      // Checkboxes on right: boxes in a row, labels BELOW each box (match original)
+      const boxY = rowY + 3
+      const labelY = rowY + 7
+      let boxX = pageWidth - margin - 52
+      const isChecked = (idx: number) => {
+        if (!response || response.response == null || response.response === undefined) return false
+        if (idx === 0) return response.response === "conforming"
+        if (idx === 1) return response.response === "non-conforming"
+        if (idx === 2) return response.response === "not-applicable" || response.response === "na"
+        return false
+      }
+      checkboxLabels.forEach((label, idx) => {
+        doc.rect(boxX, boxY, boxSize, boxSize)
+        if (isChecked(idx)) {
+          doc.setFontSize(10)
+          doc.setFont("helvetica", "bold")
+          doc.text("✓", boxX + 0.6, boxY + 2.3)
+          doc.setFont("helvetica", "normal")
+        }
+        doc.setFontSize(6)
+        doc.setFont("helvetica", "normal")
+        doc.text(label, boxX + boxSize / 2, labelY, { align: "center" })
+        boxX += checkboxSpacing
+      })
+
+      y = rowY + topBlockHeight
+      thinLine()
+
+      // ----- Piece type: bottom block (white) - response with name bold -----
       doc.setFont("helvetica", "normal")
       doc.setFontSize(7)
-      const activityText = `Activité: ${responseCount} Changement${responseCount > 1 ? "s" : ""} de réponse, ${attachmentsCount} Pièces jointes, ${photosCount} Photo${photosCount > 1 ? "s" : ""}, ${commentsCount} Commentaire${commentsCount > 1 ? "s" : ""}, ${observationsCount} Observation${observationsCount > 1 ? "s" : ""}`
-      doc.text(activityText, margin, rowY + 11)
-
-      // Response record
       if (hasResponse && response) {
         const responseDate = response.updatedAt || response.createdAt || inspection.updatedAt || inspection.createdAt || new Date()
         const dateStr = formatDateFR(new Date(responseDate))
         const timeStr = formatTimeFR(new Date(responseDate))
-        
         let responseStatus = ""
         if (response.response === "conforming") responseStatus = "Conforme"
         else if (response.response === "non-conforming") responseStatus = "Échec"
         else if (response.response === "not-applicable" || response.response === "na") responseStatus = "N/A"
-        
-        doc.setFontSize(7)
-        doc.text(`${responderName} (${companyName}) a répondu ${responseStatus} le ${dateStr} à ${timeStr} EDT`, margin, rowY + 15.2)
+        const namePart = `${responderName} (${companyName})`
+        const restPart = ` a répondu ${responseStatus} le ${dateStr} à ${timeStr} EDT`
+        doc.setFont("helvetica", "bold")
+        doc.text(namePart, margin, y)
+        const nameW = doc.getTextWidth(namePart)
+        doc.setFont("helvetica", "normal")
+        doc.text(restPart, margin + nameW, y)
+        y += 4
       }
 
-      // Checkboxes
-      const boxSize = 3
-      const boxY = rowY + 4
-      let boxX = pageWidth - margin - 60
-      const checkboxLabels = ["Conforme", "Échec", "S.O."]
-      const checkboxValues = ["conforming", "non-conforming", "not-applicable"]
-      
-      checkboxLabels.forEach((label, idx) => {
-        doc.rect(boxX, boxY, boxSize, boxSize)
-        if (response && response.response === checkboxValues[idx]) {
-          doc.setFontSize(8)
-          doc.text("✓", boxX + 0.5, boxY + 2.2)
-        }
-        doc.setFontSize(7)
-        doc.text(label, boxX + boxSize + 1, boxY + 2)
-        boxX += 18
-      })
-      y = rowY + 20
-
-      // Comment if present
       if (response && response.comment) {
-        checkPageBreak(10)
-        doc.setFontSize(7)
+        checkPageBreak(12)
         const commentDate = response.updatedAt || response.createdAt || new Date()
         const commentDateStr = formatDateFR(new Date(commentDate))
         const commentTimeStr = formatTimeFR(new Date(commentDate))
-        doc.text(`${responderName} (${companyName}) a laissé un commentaire le ${commentDateStr} à ${commentTimeStr} EDT`, margin + 5, y)
+        doc.setFont("helvetica", "bold")
+        doc.text(responderName + " (" + companyName + ")", margin, y)
+        doc.setFont("helvetica", "normal")
+        doc.text(" a laissé un commentaire le " + commentDateStr + " à " + commentTimeStr + " EDT", margin + doc.getTextWidth(responderName + " (" + companyName + ")"), y)
         y += 3
         const commentLines = doc.splitTextToSize(response.comment, pageWidth - 2 * margin - 10)
         commentLines.forEach((line: string) => {
-          doc.text(line, margin + 5, y)
+          doc.text(line, margin, y)
           y += 3
         })
         y += 2
       }
 
-      // Photos if present
       if (response && response.attachments) {
         const photos = response.attachments.filter((a: any) => a.type?.startsWith("image/"))
         if (photos.length > 0) {
-          checkPageBreak(60)
+          checkPageBreak(10)
           const photoDate = response.updatedAt || response.createdAt || new Date()
           const photoDateStr = formatDateFR(new Date(photoDate))
           const photoTimeStr = formatTimeFR(new Date(photoDate))
-          doc.setFontSize(7)
-          doc.text(`${responderName} (${companyName}) a ajouté ${photos.length} photo${photos.length > 1 ? "s" : ""} via mobile le ${photoDateStr} à ${photoTimeStr} EDT`, margin + 5, y)
+          doc.setFont("helvetica", "bold")
+          doc.text(responderName + " (" + companyName + ")", margin, y)
+          doc.setFont("helvetica", "normal")
+          doc.text(` a ajouté ${photos.length} photo${photos.length > 1 ? "s" : ""} via mobile le ${photoDateStr} à ${photoTimeStr} EDT`, margin + doc.getTextWidth(responderName + " (" + companyName + ")"), y)
           y += 4
-          
           const cellW = 78
           const cellH = 44
           const imgW = 60
           const imgH = 28
-          const startX = margin + 5
+          const startX = margin
           const gapX = 8
           const gapY = 6
-
           for (let idx = 0; idx < photos.length; idx++) {
             const col = idx % 2
             const row = Math.floor(idx / 2)
             const x = startX + col * (cellW + gapX)
             const yy = y + row * (cellH + gapY)
             checkPageBreak(cellH + 18)
-
             doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
             doc.rect(x, yy, cellW, cellH)
-
             const imgX = x + (cellW - imgW) / 2
             const imgY = yy + 6
             doc.rect(imgX, imgY, imgW, imgH)
             try {
               doc.addImage(photos[idx].url, "JPEG", imgX + 0.5, imgY + 0.5, imgW - 1, imgH - 1)
             } catch {}
-
             const name = photos[idx].name || "photo.jpg"
             doc.setFontSize(7)
             doc.setTextColor(0, 0, 255)
-            const textY = imgY + imgH + 6
-            doc.text(name, x + cellW / 2, textY, { align: "center" })
+            doc.text(name, x + cellW / 2, imgY + imgH + 6, { align: "center" })
             const textW = doc.getTextWidth(name)
             doc.setDrawColor(0, 0, 255)
             doc.setLineWidth(0.2)
-            doc.line(x + cellW / 2 - textW / 2, textY + 0.8, x + cellW / 2 + textW / 2, textY + 0.8)
+            doc.line(x + cellW / 2 - textW / 2, imgY + imgH + 6.8, x + cellW / 2 + textW / 2, imgY + imgH + 6.8)
             doc.setTextColor(0, 0, 0)
             doc.setDrawColor(0, 0, 0)
             doc.setLineWidth(0.2)
           }
-
-          const rowsUsed = Math.ceil(photos.length / 2)
-          y += rowsUsed * (cellH + gapY) + 2
-          y += 2
+          y += Math.ceil(photos.length / 2) * (cellH + gapY) + 2
         }
       }
 
-      y += 3
+      thinLine()
+      y += 2
     })
     y += 2
   })
