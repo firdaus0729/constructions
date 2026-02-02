@@ -132,15 +132,7 @@ export default function InspectionDetailPage({ params }: { params: Promise<{ id:
               <Building className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-xs text-muted-foreground">{t("observation.projectNumber")}</p>
-                <p className="font-medium">{(inspection as any).projectNumber || project?.code || "-"}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-              <Building className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">{t("form.project")}</p>
-                <p className="font-medium">{project?.name || "-"}</p>
+                <p className="font-medium font-mono">{(inspection as any).projectNumber || project?.code || "-"}</p>
               </div>
             </div>
 
@@ -178,7 +170,7 @@ export default function InspectionDetailPage({ params }: { params: Promise<{ id:
               <FileText className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-xs text-muted-foreground">{t("form.status")}</p>
-                <p className="font-medium">{t(`status.${inspection.status}` as any)}</p>
+                <p className="font-medium">{t(getInspectionStatusDisplayKey(inspection.status) as any)}</p>
               </div>
             </div>
 

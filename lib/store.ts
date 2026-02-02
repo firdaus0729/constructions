@@ -66,17 +66,17 @@ const DEFAULT_CONTRIBUTING_CONDITION_OPTIONS: { id: string; label: string }[] = 
   { id: "utiliser", label: "Utiliser" },
 ]
 
-// Default Comportement contributif options (restricted list from reference screenshot)
+// Default Comportement contributif options (observation new page: only these 21, remain editable)
 const DEFAULT_CONTRIBUTING_BEHAVIOR_OPTIONS: { id: string; label: string }[] = [
   { id: "acces-sortie", label: "Accès/Sortie" },
   { id: "vetements", label: "Vêtements" },
   { id: "environnement", label: "Environnement" },
-  { id: "equipement", label: "Équipement" },
+  { id: "equippement", label: "Équippement" },
   { id: "ergonomie", label: "Ergonomie" },
   { id: "conditions-sol", label: "Conditions du sol" },
   { id: "garde-barriere", label: "Garde/Barrière" },
   { id: "entretien-menager", label: "Entretien ménager" },
-  { id: "information-signalisation", label: "Information/Signalisation" },
+  { id: "information-signilisation", label: "Information/Signilisation" },
   { id: "eclairage", label: "Éclairage" },
   { id: "selection-materiaux", label: "Sélection de matériaux" },
   { id: "bruit", label: "Bruit" },
