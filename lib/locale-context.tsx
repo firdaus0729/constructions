@@ -51,6 +51,7 @@ const translations = {
     "status.open": "Open",
     "status.closed": "Closed",
     "status.inProgress": "In Progress",
+    "status.initiated": "Initiated",
     "status.archived": "Archived",
 
     // Generic
@@ -765,6 +766,7 @@ const translations = {
     "status.open": "Ouvert",
     "status.closed": "Fermé",
     "status.inProgress": "En Progression",
+    "status.initiated": "Initié",
     "status.archived": "Archivé",
 
     // Form common

@@ -70,7 +70,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                 )}
               >
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg overflow-hidden">
                 <item.icon className="h-5 w-5" aria-hidden />
               </span>
                 <span className="flex-1 text-left">{t(item.key as any)}</span>
@@ -92,7 +92,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                         )}
                       >
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg overflow-hidden">
                           <child.icon className="h-5 w-5" aria-hidden />
                         </span>
                         <span>{t(child.key as any)}</span>
@@ -120,7 +120,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
             )}
           >
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg overflow-hidden">
             <item.icon className="h-5 w-5" aria-hidden />
           </span>
             <span>{t(item.key as any)}</span>
@@ -150,7 +150,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
                 )}
               >
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-lg overflow-hidden">
                 <item.icon className="h-5 w-5" aria-hidden />
               </span>
                 <span>{item.label}</span>

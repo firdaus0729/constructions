@@ -17,14 +17,9 @@ import { cn } from "@/lib/utils"
 import { AppShell } from "@/components/app-shell"
 import { toast } from "sonner"
 
-// Exact badge colors requested (see reference screenshot)
-const STATUS_BADGE: Record<string, string> = {
-  submitted: "bg-[#1865E6] text-white",
-  draft: "bg-[#F28705] text-white",
-  "in-progress": "bg-[#F28705] text-white",
-  open: "bg-[#051DF7] text-white",
-  closed: "bg-[#05F719] text-white",
-}
+// Initié (any non-closed) and Fermé only — requested colors
+const INITIATED_BADGE = "bg-[#27F54D] text-white"
+const CLOSED_BADGE = "bg-[#999999] text-white"
 
 const PRIORITY_BADGE: Record<string, string> = {
   low: "bg-[#05F719] text-white",
@@ -33,16 +28,10 @@ const PRIORITY_BADGE: Record<string, string> = {
   critical: "bg-[#F70505] text-white",
 }
 
-// Helper function to convert status key to translation key
-const getStatusTranslationKey = (status: string): string => {
-  const statusMap: Record<string, string> = {
-    "draft": "status.draft",
-    "open": "status.open",
-    "in-progress": "status.inProgress",
-    "closed": "status.closed"
-  }
-  return statusMap[status] || `status.${status}`
-}
+// Display "Initié" for any non-closed status, "Fermé" for closed
+const isClosed = (status: string) => status === "closed"
+const getDisplayStatusKey = (status: string): string =>
+  isClosed(status) ? "status.closed" : "status.initiated"
 
 export default function IncidentsPage() {
   const { incidents, deleteIncident, projects, users, authUsers = [], incidentOptionLists } = useAppStore()
@@ -63,7 +52,11 @@ export default function IncidentsPage() {
       incident.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       incident.number.toLowerCase().includes(searchTerm.toLowerCase())
 
-    const matchesStatus = !filterStatus || incident.status === filterStatus
+    const incidentClosed = incident.status === "closed"
+    const matchesStatus =
+      !filterStatus ||
+      (filterStatus === "closed" && incidentClosed) ||
+      (filterStatus === "initiated" && !incidentClosed)
 
     return matchesSearch && matchesStatus
   })
@@ -79,7 +72,7 @@ export default function IncidentsPage() {
   }
 
   const formatIncidentEventDate = (incident: any) => {
-    const raw = incident?.eventDate
+    const raw = incident?.eventDate ?? incident?.date ?? incident?.createdAt
     if (!raw) return "-"
     const d = new Date(raw)
     if (Number.isNaN(d.getTime())) return "-"
@@ -123,19 +116,25 @@ export default function IncidentsPage() {
           </div>
           <div className="flex gap-2 flex-wrap">
             {[
-              { key: "draft", label: "status.draft" },
-              { key: "open", label: "status.open" },
-              { key: "in-progress", label: "status.inProgress" },
-              { key: "closed", label: "status.closed" }
-            ].map((status) => (
+              { key: "initiated", label: "status.initiated" },
+              { key: "closed", label: "status.closed" },
+            ].map((s) => (
               <Button
-                key={status.key}
-                variant={filterStatus === status.key ? "default" : "outline"}
+                key={s.key}
+                variant={filterStatus === s.key ? "default" : "outline"}
                 size="sm"
-                onClick={() => setFilterStatus(filterStatus === status.key ? null : status.key)}
-                className="capitalize text-xs"
+                onClick={() => setFilterStatus(filterStatus === s.key ? null : s.key)}
+                className={cn(
+                  "capitalize text-xs",
+                  filterStatus === s.key && "text-[#3FAEFC]"
+                )}
+                style={
+                  filterStatus === s.key
+                    ? { backgroundColor: "var(--background)", color: "#3FAEFC", borderColor: "#3FAEFC" }
+                    : undefined
+                }
               >
-                {t(status.label as any)}
+                {t(s.label as any)}
               </Button>
             ))}
           </div>
@@ -187,8 +186,8 @@ export default function IncidentsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="font-semibold">{incident.title || incident.number}</span>
-                          <Badge variant="secondary" className={cn("text-xs", STATUS_BADGE[incident.status] || "bg-[#F28705] text-white")}>
-                            {t(getStatusTranslationKey(incident.status) as any)}
+                          <Badge variant="secondary" className={cn("text-xs text-white", isClosed(incident.status) ? CLOSED_BADGE : INITIATED_BADGE)}>
+                            {t(getDisplayStatusKey(incident.status) as any)}
                           </Badge>
                           {priority && (
                             <Badge variant="secondary" className={cn("text-xs", PRIORITY_BADGE[priority] || "bg-[#F28705] text-white")}>
@@ -214,7 +213,7 @@ export default function IncidentsPage() {
                       </div>
                       <div>
                         <span className="text-muted-foreground">{t("form.status")}</span>
-                        <p className="font-medium">{t(getStatusTranslationKey(incident.status) as any)}</p>
+                        <p className="font-medium">{t(getDisplayStatusKey(incident.status) as any)}</p>
                       </div>
                       <div>
                         <span className="text-muted-foreground">{t("incident.accidentType")}</span>
