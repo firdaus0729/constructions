@@ -23,8 +23,8 @@ const typeColors = {
 }
 
 const statusVariants = {
-  submitted: "bg-[#1865E6] text-white",
-  draft: "bg-[#F28705] text-white",
+  submitted: "bg-[#999999] text-white",
+  draft: "bg-[#27F54D] text-white",
   "in-progress": "bg-[#F28705] text-white",
   open: "bg-[#051DF7] text-white",
   closed: "bg-[#05F719] text-white",
