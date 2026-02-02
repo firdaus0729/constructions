@@ -2,6 +2,10 @@
 
 import jsPDF from "jspdf"
 
+// Shared PDF styling constants
+const SEP_GRAY: [number, number, number] = [180, 180, 180] // separator line color
+const LINK_BLUE: [number, number, number] = [0, 0, 255]   // link text color
+
 // Professional PDF generator for all forms with logo and header matching the template
 export async function generateProfessionalPDF(data: {
   title: string
@@ -1432,21 +1436,24 @@ function resolveIncidentContext(
 function getIncidentOptionLists(): {
   danger: { id: string; label: string }[]
   contributingCondition: { id: string; label: string }[]
+  contributingBehavior: { id: string; label: string }[]
   accidentTypes: { id: string; label: string }[]
 } {
-  if (typeof window === "undefined") return { danger: [], contributingCondition: [], accidentTypes: [] }
+  if (typeof window === "undefined")
+    return { danger: [], contributingCondition: [], contributingBehavior: [], accidentTypes: [] }
   try {
     const raw = localStorage.getItem("construction-forms-storage")
-    if (!raw) return { danger: [], contributingCondition: [], accidentTypes: [] }
+    if (!raw) return { danger: [], contributingCondition: [], contributingBehavior: [], accidentTypes: [] }
     const parsed = JSON.parse(raw)
     const lists = parsed?.state?.incidentOptionLists || {}
     return {
       danger: lists.danger || [],
       contributingCondition: lists.contributingCondition || [],
+      contributingBehavior: lists.contributingBehavior || [],
       accidentTypes: lists.accidentTypes || [],
     }
   } catch {
-    return { danger: [], contributingCondition: [], accidentTypes: [] }
+    return { danger: [], contributingCondition: [], contributingBehavior: [], accidentTypes: [] }
   }
 }
 
@@ -1480,8 +1487,6 @@ export async function exportIncidentAsPdf(
   const optionLists = getIncidentOptionLists()
 
   let y = margin
-  const SEP_GRAY: [number, number, number] = [180, 180, 180]
-  const LINK_BLUE: [number, number, number] = [0, 0, 255]
 
   const checkPageBreak = (need: number) => {
     if (y + need > pageHeight - margin - 15) {
@@ -1741,7 +1746,6 @@ export async function exportIncidentAsPdf(
     y += 4
   })
   y += 4
-  thinLine()
 
   // ----- Pièces jointes: large embedded image/document box + filename below -----
   const attachments = incident.attachments || []
