@@ -1555,7 +1555,7 @@ export async function exportIncidentAsPdf(
 
   // ----- Title: centered between two close horizontal lines (matching reference) -----
   // Move a bit down from header
-  y += 1
+  y += 18
   // First line just above the title
   doc.setDrawColor(SEP_GRAY[0], SEP_GRAY[1], SEP_GRAY[2])
   doc.setLineWidth(0.2)
@@ -1584,6 +1584,7 @@ export async function exportIncidentAsPdf(
   const titleBlockHeight = titleTopOffset + titleLines.length * 6
   const bottomLineY = y + titleBlockHeight + 2
   // Second line just below the title
+  doc.line(margin, bottomLineY, pageWidth - margin, bottomLineY)
   // Continue content a little below the second line
   y = bottomLineY + 5
 
