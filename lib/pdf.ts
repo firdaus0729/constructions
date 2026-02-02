@@ -1580,7 +1580,7 @@ export async function exportIncidentAsPdf(
   titleLines.forEach((ln: string, i: number) => {
     doc.text(ln, pageWidth / 2, y + (i * 6), { align: "center" })
   })
-  y += titleLines.length * 6 + 4
+  y += 1
   thinLine()
 
   // ----- Two-column metadata (no per-field underlines) -----
@@ -1732,21 +1732,25 @@ export async function exportIncidentAsPdf(
   doc.text(aDeclarerText, leftColX + 25, y)
   y += 5
 
-  // Description label on its own line (below \"À déclarer\")
+  // Description label + first line on the same row (like original PDF)
+  const descLabelW = 40
   doc.setFont("helvetica", "bold")
   doc.text("Description", leftColX, y)
-  y += 6
-  
+
   // Description content
   doc.setFont("helvetica", "normal")
   doc.setFontSize(8)
   const desc = incident.description || ""
-  const descLines = doc.splitTextToSize(desc || " ", contentWidth - 4)
-  descLines.forEach((ln: string) => {
+  const descTextX = leftColX + descLabelW
+  const descWrapW = contentWidth - 4 - descLabelW
+  const descLines = doc.splitTextToSize(desc || " ", descWrapW)
+
+  descLines.forEach((ln: string, idx: number) => {
     checkPageBreak(4)
-    doc.text(ln, leftColX, y)
-    y += 4
+    const lineY = idx === 0 ? y : y + 4 * idx
+    doc.text(ln, descTextX, lineY)
   })
+  y += 4 * (descLines.length || 1)
   y += 4
   thinLine()
 
