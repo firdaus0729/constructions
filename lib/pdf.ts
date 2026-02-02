@@ -1720,19 +1720,21 @@ export async function exportIncidentAsPdf(
   rightY = distY
 
   y = Math.max(leftY, rightY) + 5
-  thinLine()
 
-  // ----- Description section with À déclarer inline -----
+  // ----- Description section: \"À déclarer\" on its own row, \"Description\" label below -----
   checkPageBreak(12)
   doc.setFont("helvetica", "bold")
   doc.setFontSize(9)
-  // À déclarer inline with Description label
+  // À déclarer row
   const aDeclarerText = (incident as any).aDeclarer === true ? "Oui" : "Non"
   doc.text("À déclarer", leftColX, y)
   doc.setFont("helvetica", "normal")
   doc.text(aDeclarerText, leftColX + 25, y)
+  y += 5
+
+  // Description label on its own line (below \"À déclarer\")
   doc.setFont("helvetica", "bold")
-  doc.text("Description", leftColX + 50, y)
+  doc.text("Description", leftColX, y)
   y += 6
   
   // Description content
