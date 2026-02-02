@@ -13,31 +13,24 @@ import { exportObservationAsPdf } from "@/lib/pdf"
 import { useAppStore } from "@/lib/store"
 import { cn, distanceToNowLocalized, formatLocalized } from "@/lib/utils"
 
+// Initié #27F54D, Fermé #999999, Urgent/High #8800F7
 const STATUS_BADGE: Record<string, string> = {
-  submitted: "bg-[#1865E6] text-white",
-  draft: "bg-[#F28705] text-white",
-  "in-progress": "bg-[#F28705] text-white",
-  open: "bg-[#051DF7] text-white",
-  closed: "bg-[#05F719] text-white",
+  submitted: "bg-[#27F54D] text-white",
+  draft: "bg-[#27F54D] text-white",
+  "in-progress": "bg-[#27F54D] text-white",
+  open: "bg-[#27F54D] text-white",
+  closed: "bg-[#999999] text-white",
 }
 
 const PRIORITY_BADGE: Record<string, string> = {
   low: "bg-[#05F719] text-white",
   medium: "bg-[#F28705] text-white",
-  high: "bg-[#F70505] text-white",
-  critical: "bg-[#F70505] text-white",
+  high: "bg-[#8800F7] text-white",
+  critical: "bg-[#8800F7] text-white",
 }
 
-const getStatusTranslationKey = (status: string): string => {
-  const statusMap: Record<string, string> = {
-    draft: "status.draft",
-    "in-progress": "status.inProgress",
-    submitted: "status.submitted",
-    open: "status.open",
-    closed: "status.closed",
-  }
-  return statusMap[status] || `status.${status}`
-}
+const getStatusDisplayKey = (status: string): string =>
+  status === "closed" ? "status.closed" : "status.initiated"
 
 
 function ImagePreviewButton({ attachment }: { attachment: any }) {
@@ -119,7 +112,7 @@ export default function ObservationDetailPage({ params }: { params: Promise<{ id
   const { id } = use(params)
   const router = useRouter()
   const { t, locale } = useLocale()
-  const { observations, projects, users, authUsers, incidentOptionLists } = useAppStore()
+  const { observations, projects, users, authUsers = [], incidentOptionLists } = useAppStore()
 
   const observation = observations.find((o) => o.id === id)
   const dangerLabel =
@@ -141,8 +134,10 @@ export default function ObservationDetailPage({ params }: { params: Promise<{ id
   }
 
   const project = projects.find((p) => p.id === observation.projectId)
-  const creator = users.find((u) => u.id === observation.creatorId)
-  const assignedPerson = users.find((u) => u.id === observation.assignedPersonId)
+  const creatorUser = (authUsers as { id: string; name: string }[]).find((u) => u.id === observation.creatorId)
+  const creator = creatorUser ?? users.find((u) => u.id === observation.creatorId)
+  const assignedPersonUser = (authUsers as { id: string; name: string }[]).find((u) => u.id === observation.assignedPersonId)
+  const assignedPerson = assignedPersonUser ?? users.find((u) => u.id === observation.assignedPersonId)
 
   return (
     <AppShell>
@@ -160,10 +155,10 @@ export default function ObservationDetailPage({ params }: { params: Promise<{ id
           <div>
             <div className="flex items-center gap-2">
               <span className="font-mono text-sm text-muted-foreground">{observation.number}</span>
-              <Badge variant="secondary" className={cn(STATUS_BADGE[observation.status])}>
-                {t(observation.status === "in-progress" ? ("status.inProgress" as any) : (`status.${observation.status}` as any))}
+              <Badge variant="secondary" className={cn(STATUS_BADGE[observation.status] || "bg-[#27F54D] text-white")}>
+                {t(getStatusDisplayKey(observation.status) as any)}
               </Badge>
-              <Badge variant="secondary" className={cn(PRIORITY_BADGE[observation.priority])}>
+              <Badge variant="secondary" className={cn(PRIORITY_BADGE[observation.priority] || "bg-[#05F719] text-white")}>
                 {t(`priority.${observation.priority}` as any)}
               </Badge>
             </div>
@@ -181,6 +176,14 @@ export default function ObservationDetailPage({ params }: { params: Promise<{ id
               <div>
                 <p className="text-xs text-muted-foreground">{t("form.project")}</p>
                 <p className="font-medium">{project?.name || "-"}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+              <FileText className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-xs text-muted-foreground">{t("observation.projectNumber")}</p>
+                <p className="font-medium font-mono">{observation.projectNumber || project?.code || "-"}</p>
               </div>
             </div>
 

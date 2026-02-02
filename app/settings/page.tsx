@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Globe, Sun, Database, Bell, Hash, ListChecks, Plus, Pencil, Trash2, Search, Lock } from "lucide-react"
+import { Globe, Sun, Database, Bell, Hash, ListChecks, Plus, Pencil, Trash2, Search, Lock, RefreshCw } from "lucide-react"
 import { useTheme } from "next-themes"
 
 export const dynamic = 'force-dynamic'
@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch"
 import { OfflineIndicator } from "@/components/offline-indicator"
 import { useLocale } from "@/lib/locale-context"
 import { useAppStore } from "@/lib/store"
+import { useOffline } from "@/lib/offline-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -42,6 +43,7 @@ const PROJECT_NO_FR = {
 export default function SettingsPage() {
   const { locale, setLocale, t } = useLocale()
   const { theme, setTheme } = useTheme()
+  const { isOnline, isSyncing, syncNow } = useOffline()
   const { observations, incidents, inspections, projects, addProject, updateProject, deleteProject, sessionDurationMinutes, setSessionDurationMinutes } = useAppStore()
   const [projectDialogOpen, setProjectDialogOpen] = React.useState(false)
   const [editingProjectId, setEditingProjectId] = React.useState<string | null>(null)
@@ -87,7 +89,21 @@ export default function SettingsPage() {
               <CardDescription>{t("settings.syncStatus.desc")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <OfflineIndicator variant="full" />
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <OfflineIndicator variant="full" className="flex-1 min-w-0" />
+                <Button
+                  type="button"
+                  variant="default"
+                  onClick={() => syncNow()}
+                  disabled={!isOnline || isSyncing}
+                  className="shrink-0 gap-2"
+                >
+                  {isSyncing ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : null}
+                  {t("sync.syncNow")}
+                </Button>
+              </div>
               <div className="grid grid-cols-2 gap-4 pt-2">
                 <div className="p-3 bg-muted/50 rounded-lg">
                   <p className="text-2xl font-bold">{totalForms}</p>

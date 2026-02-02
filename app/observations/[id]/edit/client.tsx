@@ -58,6 +58,10 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
     creatorId: string
     concernedCompany: string
     referenceArticle: string
+    origin: string
+    location: string
+    cnsstSection: string
+    trade: string
     date: string
     dueDate: string
     completionDate: string
@@ -74,10 +78,14 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
     projectNumber: observation?.projectNumber || "",
     description: observation?.description || "",
     priority: (observation?.priority as any) || "medium",
-    status: (observation?.status as string) || "draft",
+    status: observation?.status === "closed" ? "closed" : "open",
     creatorId: observation?.creatorId || "",
     concernedCompany: observation?.concernedCompany || "",
     referenceArticle: observation?.referenceArticle || "",
+    origin: (observation as any)?.origin || "",
+    location: (observation as any)?.location || "",
+    cnsstSection: (observation as any)?.cnsstSection || "",
+    trade: (observation as any)?.trade || "",
     date: "",
     dueDate: "",
     completionDate: "",
@@ -98,13 +106,17 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
         projectNumber: observation.projectNumber || "",
         description: observation.description || "",
         priority: (observation.priority as any) || "medium",
-        status: (observation.status as string) || "draft",
+        status: observation.status === "closed" ? "closed" : "open",
         creatorId: observation.creatorId || "",
         date: toDateStr(observation.date as Date | null),
         dueDate: toDateStr(observation.dueDate),
         completionDate: toDateStr(observation.completionDate),
         concernedCompany: observation.concernedCompany || "",
         referenceArticle: observation.referenceArticle || "",
+        origin: (observation as any).origin || "",
+        location: (observation as any).location || "",
+        cnsstSection: (observation as any).cnsstSection || "",
+        trade: (observation as any).trade || "",
         attachments: observation.attachments || [],
         safetyAnalysis: observation.safetyAnalysis || { danger: "", contributingCondition: "", contributingBehavior: "" },
       })
@@ -159,13 +171,17 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
           projectNumber: formData.projectNumber || undefined,
           description: formData.description,
           priority: formData.priority,
-          status: formData.status as Observation["status"],
+          status: (formData.status === "closed" ? "closed" : "open") as Observation["status"],
           creatorId: formData.creatorId || observation!.creatorId,
           date: formData.date ? new Date(formData.date) : null,
           dueDate: formData.dueDate ? new Date(formData.dueDate) : null,
           completionDate: formData.completionDate ? new Date(formData.completionDate) : null,
           concernedCompany: formData.concernedCompany,
           referenceArticle: formData.referenceArticle,
+          origin: formData.origin || undefined,
+          location: formData.location || undefined,
+          cnsstSection: formData.cnsstSection || undefined,
+          trade: formData.trade || undefined,
           distribution: uniqueDistribution,
           attachments: formData.attachments,
           safetyAnalysis: formData.safetyAnalysis,
@@ -264,16 +280,13 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
             </FormField>
 
             <FormField label={t("form.status")}>
-              <Select value={formData.status} onValueChange={(value) => setFormData((prev) => ({ ...prev, status: value }))}>
+              <Select value={formData.status === "closed" ? "closed" : "open"} onValueChange={(value) => setFormData((prev) => ({ ...prev, status: value }))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="draft">{t("status.draft")}</SelectItem>
-                  <SelectItem value="in-progress">{t("status.inProgress")}</SelectItem>
-                  <SelectItem value="open">{t("status.open")}</SelectItem>
+                  <SelectItem value="open">{t("status.initiated")}</SelectItem>
                   <SelectItem value="closed">{t("status.closed")}</SelectItem>
-                  <SelectItem value="submitted">{t("status.submitted")}</SelectItem>
                 </SelectContent>
               </Select>
             </FormField>
@@ -340,6 +353,35 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
               value={formData.concernedCompany}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, concernedCompany: e.target.value }))}
               placeholder={t("observation.concernedCompanyPlaceholder")}
+            />
+          </FormField>
+
+          <FormField label={t("observation.origin")}>
+            <Input
+              value={formData.origin}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, origin: e.target.value }))}
+              placeholder={t("observation.originPlaceholder")}
+            />
+          </FormField>
+          <FormField label={t("observation.location")}>
+            <Input
+              value={formData.location}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
+              placeholder={t("observation.locationPlaceholder")}
+            />
+          </FormField>
+          <FormField label={t("observation.cnsstSection")}>
+            <Input
+              value={formData.cnsstSection}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, cnsstSection: e.target.value }))}
+              placeholder={t("observation.cnsstSectionPlaceholder")}
+            />
+          </FormField>
+          <FormField label={t("observation.trade")}>
+            <Input
+              value={formData.trade}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, trade: e.target.value }))}
+              placeholder={t("observation.tradePlaceholder")}
             />
           </FormField>
 

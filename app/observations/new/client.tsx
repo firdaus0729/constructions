@@ -17,6 +17,7 @@ import { useAppStore } from "@/lib/store"
 import { getObservationTypes } from "@/lib/reference-data-loader"
 import { ObservationTypeCrudCombobox } from "@/components/observation-type-crud-combobox"
 import { IncidentOptionCrudCombobox } from "@/components/incident-crud-combobox"
+import { ObservationContributingBehaviorCrudCombobox } from "@/components/observation-contributing-behavior-crud-combobox"
 import { AlertTriangle, CheckCircle2, Mail } from "lucide-react"
 import type { Observation, Attachment } from "@/lib/types"
 import { useLocale } from "@/lib/locale-context"
@@ -50,10 +51,14 @@ export default function NewObservation() {
     projectNumber: string
     description: string
     priority: "low" | "medium" | "high"
-    status: "draft" | "in-progress" | "submitted" | "open" | "closed"
+    status: "open" | "closed"
     creatorId: string
     concernedCompany: string
     referenceArticle: string
+    origin: string
+    location: string
+    cnsstSection: string
+    trade: string
     dueDate: string
     date: string
     completionDate: string
@@ -70,10 +75,14 @@ export default function NewObservation() {
     projectNumber: "",
     description: "",
     priority: "medium",
-    status: "draft",
+    status: "open",
     creatorId: currentUser?.id || "",
     concernedCompany: "",
     referenceArticle: "",
+    origin: "",
+    location: "",
+    cnsstSection: "",
+    trade: "",
     dueDate: "",
     date: "",
     completionDate: "",
@@ -144,6 +153,10 @@ export default function NewObservation() {
           concernedCompany: formData.concernedCompany,
           description: formData.description,
           referenceArticle: formData.referenceArticle,
+          origin: formData.origin || undefined,
+          location: formData.location || undefined,
+          cnsstSection: formData.cnsstSection || undefined,
+          trade: formData.trade || undefined,
           attachments: formData.attachments,
           safetyAnalysis: formData.safetyAnalysis,
           createdAt: new Date(),
@@ -333,13 +346,10 @@ export default function NewObservation() {
             <FormField label={t("form.status")} required>
               <Select value={formData.status} onValueChange={(value: any) => setFormData((prev) => ({ ...prev, status: value }))}>
                 <SelectTrigger>
-                  <SelectValue placeholder={t("status.draft")} />
+                  <SelectValue placeholder={t("status.initiated")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="draft">{t("status.draft")}</SelectItem>
-                  <SelectItem value="in-progress">{t("status.inProgress")}</SelectItem>
-                  <SelectItem value="submitted">{t("status.submitted")}</SelectItem>
-                  <SelectItem value="open">{t("status.open")}</SelectItem>
+                  <SelectItem value="open">{t("status.initiated")}</SelectItem>
                   <SelectItem value="closed">{t("status.closed")}</SelectItem>
                 </SelectContent>
               </Select>
@@ -410,6 +420,35 @@ export default function NewObservation() {
               value={formData.concernedCompany}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, concernedCompany: e.target.value }))}
               placeholder={t("observation.concernedCompanyPlaceholder")}
+            />
+          </FormField>
+
+          <FormField label={t("observation.origin")}>
+            <Input
+              value={formData.origin}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, origin: e.target.value }))}
+              placeholder={t("observation.originPlaceholder")}
+            />
+          </FormField>
+          <FormField label={t("observation.location")}>
+            <Input
+              value={formData.location}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
+              placeholder={t("observation.locationPlaceholder")}
+            />
+          </FormField>
+          <FormField label={t("observation.cnsstSection")}>
+            <Input
+              value={formData.cnsstSection}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, cnsstSection: e.target.value }))}
+              placeholder={t("observation.cnsstSectionPlaceholder")}
+            />
+          </FormField>
+          <FormField label={t("observation.trade")}>
+            <Input
+              value={formData.trade}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, trade: e.target.value }))}
+              placeholder={t("observation.tradePlaceholder")}
             />
           </FormField>
         </FormSection>
@@ -500,19 +539,18 @@ export default function NewObservation() {
             error={errors.behavior}
             required
           >
-            <Textarea
+            <ObservationContributingBehaviorCrudCombobox
               value={formData.safetyAnalysis.contributingBehavior}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+              onChange={(value) =>
                 setFormData((prev) => ({
                   ...prev,
                   safetyAnalysis: {
                     ...prev.safetyAnalysis,
-                    contributingBehavior: e.target.value,
+                    contributingBehavior: value,
                   },
                 }))
               }
-              placeholder={t("form.description")}
-              rows={3}
+              placeholder={t("observation.contributingBehavior")}
             />
           </FormField>
         </FormSection>

@@ -16,30 +16,25 @@ import { AppShell } from "@/components/app-shell"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
+// Initié = non-closed (#27F54D), Fermé = closed (#999999). Priority Urgent/High = #8800F7.
 const STATUS_BADGE: Record<string, string> = {
-  submitted: "bg-[#1865E6] text-white",
-  draft: "bg-[#F28705] text-white",
-  "in-progress": "bg-[#F28705] text-white",
-  open: "bg-[#051DF7] text-white",
-  closed: "bg-[#05F719] text-white",
+  submitted: "bg-[#27F54D] text-white",
+  draft: "bg-[#27F54D] text-white",
+  "in-progress": "bg-[#27F54D] text-white",
+  open: "bg-[#27F54D] text-white",
+  closed: "bg-[#999999] text-white",
 }
 
 const PRIORITY_BADGE: Record<string, string> = {
   low: "bg-[#05F719] text-white",
   medium: "bg-[#F28705] text-white",
-  high: "bg-[#F70505] text-white",
+  high: "bg-[#8800F7] text-white",
+  critical: "bg-[#8800F7] text-white",
 }
 
-const getStatusTranslationKey = (status: string): string => {
-  const statusMap: Record<string, string> = {
-    draft: "status.draft",
-    "in-progress": "status.inProgress",
-    submitted: "status.submitted",
-    open: "status.open",
-    closed: "status.closed",
-  }
-  return statusMap[status] || `status.${status}`
-}
+// Observations list: show Initié (non-closed) or Fermé (closed) only.
+const getObservationStatusDisplayKey = (status: string): string =>
+  status === "closed" ? "status.closed" : "status.initiated"
 
 export default function ObservationsPage() {
   const { observations, deleteObservation, projects, users, authUsers } = useAppStore()
@@ -53,7 +48,11 @@ export default function ObservationsPage() {
       obs.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       obs.number.toLowerCase().includes(searchTerm.toLowerCase())
 
-    const matchesStatus = !filterStatus || obs.status === filterStatus
+    // Only two filters: Initié (non-closed) and Fermé (closed)
+    const matchesStatus =
+      !filterStatus ||
+      (filterStatus === "closed" && obs.status === "closed") ||
+      (filterStatus === "open" && obs.status !== "closed")
 
     return matchesSearch && matchesStatus
   })
@@ -105,19 +104,17 @@ export default function ObservationsPage() {
             </div>
             <div className="flex gap-2 flex-wrap">
               {[
-                { key: "draft", label: "status.draft" },
-                { key: "in-progress", label: "status.inProgress" },
-                { key: "open", label: "status.open" },
+                { key: "open", label: "status.initiated" },
                 { key: "closed", label: "status.closed" },
               ].map((s) => (
                 <Button
                   key={s.key}
-                  variant={filterStatus === s.key ? "default" : "outline"}
+                  variant="outline"
                   size="sm"
                   onClick={() => setFilterStatus(filterStatus === s.key ? null : s.key)}
                   className={cn(
                     "text-xs",
-                    filterStatus === s.key ? "bg-black text-white hover:bg-black/90" : ""
+                    filterStatus === s.key && "border-[#3FAEFC] bg-[#3FAEFC]/10 text-[#3FAEFC] hover:bg-[#3FAEFC]/20 hover:text-[#3FAEFC]"
                   )}
                 >
                   {t(s.label as any)}
@@ -186,8 +183,8 @@ export default function ObservationsPage() {
                       </div>
 
                       <div className="flex flex-wrap gap-2 mb-4">
-                        <Badge variant="secondary" className={cn("text-xs", STATUS_BADGE[observation.status] || "bg-[#F28705] text-white")}>
-                          {t(getStatusTranslationKey(observation.status) as any)}
+                        <Badge variant="secondary" className={cn("text-xs", STATUS_BADGE[observation.status] || "bg-[#27F54D] text-white")}>
+                          {t(getObservationStatusDisplayKey(observation.status) as any)}
                         </Badge>
                         <Badge variant="secondary" className={cn("text-xs", PRIORITY_BADGE[observation.priority] || "bg-[#05F719] text-white")}>
                           {t(`priority.${observation.priority}` as any)}

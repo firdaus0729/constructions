@@ -614,7 +614,8 @@ export async function exportObservationAsPdf(
   titleLines.forEach((ln: string, idx: number) => {
     doc.text(ln, pageWidth / 2, y + idx * 6, { align: "center" })
   })
-  y += titleLines.length * 6 + 4
+  y += titleLines.length * 6 + 2
+  thinLine()
 
   // Details two-column layout - exact order from image
   doc.setFontSize(8)
@@ -672,11 +673,12 @@ export async function exportObservationAsPdf(
   }
   const statusText = statusMap[observation.status] || observation.status || "-"
 
-  // Priority translation
+  // Priority translation (original PDF uses "Urgent" for high priority)
   const priorityMap: Record<string, string> = {
     "low": "Faible",
     "medium": "Moyen",
     "high": "Élevé",
+    "critical": "Urgent",
     "urgent": "Urgent"
   }
   const priorityText = priorityMap[observation.priority] || observation.priority || "-"
@@ -713,7 +715,8 @@ export async function exportObservationAsPdf(
     ["Plans liés", plansLiesValue],
   ]
 
-  // Draw left column
+  // Draw left column (labels bold, values normal; consistent row spacing to match original)
+  const rowGap = 1
   leftFields.forEach(([label, value]) => {
     doc.setFont("helvetica", "bold")
     doc.text(label, leftX, leftY)
@@ -722,7 +725,7 @@ export async function exportObservationAsPdf(
     vLines.forEach((line: string, idx: number) => {
       doc.text(line, leftX + labelWidth, leftY + (idx * 4))
     })
-    leftY += Math.max(5, vLines.length * 4)
+    leftY += Math.max(5, vLines.length * 4) + rowGap
   })
 
   // Draw right column
@@ -734,20 +737,41 @@ export async function exportObservationAsPdf(
     vLines.forEach((line: string, idx: number) => {
       doc.text(line, rightX + labelWidth, rightY + (idx * 4))
     })
-    rightY += Math.max(5, vLines.length * 4)
+    rightY += Math.max(5, vLines.length * 4) + rowGap
   })
 
-  y = Math.max(leftY, rightY) + 6
+  y = Math.max(leftY, rightY) + 8
 
-  // Description section - show full description text
+  // Thin separator line before Description (match original PDF layout)
+  checkPageBreak(12)
+  doc.setDrawColor(200, 200, 200)
+  doc.setLineWidth(0.2)
+  doc.line(margin, y, pageWidth - margin, y)
+  y += 6
+  doc.setDrawColor(0, 0, 0)
+
+  // Description section - show full description text (original: bold "Description", then subtitle "date : title")
   if (observation.description) {
     checkPageBreak(30)
     doc.setFont("helvetica", "bold")
     doc.setFontSize(9)
     doc.text("Description", margin, y)
-    y += 6
-    doc.setFont("helvetica", "normal")
-    doc.setFontSize(8)
+    y += 5
+    const notifDate = observation.date ? formatDate(observation.date) : (observation.createdAt ? formatDate(observation.createdAt) : "")
+    const descSubtitle = notifDate && observation.title ? `${notifDate} : ${observation.title}` : (observation.title || notifDate || "")
+    if (descSubtitle) {
+      doc.setFont("helvetica", "normal")
+      doc.setFontSize(8)
+      const subLines = doc.splitTextToSize(descSubtitle, contentWidth)
+      subLines.forEach((ln: string) => {
+        doc.text(ln, margin, y)
+        y += 4
+      })
+      y += 4
+    } else {
+      doc.setFont("helvetica", "normal")
+      doc.setFontSize(8)
+    }
     
     // Parse description for date headings (format: "YYYY-MM-DD : text" or "YYYY-MM-DD à HHhMM : text")
     const descLines = observation.description.split("\n")

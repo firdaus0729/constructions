@@ -964,7 +964,7 @@ export const useAppStore = create<AppState>()(
           { id: "meteo", label: "Météo" },
           { id: "disposition-poste-travail", label: "Disposition de poste de travail" },
         ],
-        contributingBehavior: [],
+        contributingBehavior: [...DEFAULT_CONTRIBUTING_BEHAVIOR_OPTIONS],
       },
 
       livrableOptionLists: {

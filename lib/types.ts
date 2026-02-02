@@ -91,6 +91,14 @@ export interface Observation {
   concernedCompany: string
   description: string
   referenceArticle: string
+  /** PDF: Origine */
+  origin?: string
+  /** PDF: Lieu */
+  location?: string
+  /** PDF: Section du devis */
+  cnsstSection?: string
+  /** PDF: Métier */
+  trade?: string
   attachments: Attachment[]
   safetyAnalysis: {
     danger: string
