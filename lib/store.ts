@@ -298,6 +298,21 @@ const customStorage = {
           parsed.state.incidentOptionLists = { ...lists }
         }
       }
+      // Restore observation Comportement contributif (21 options) when empty or missing
+      if (parsed?.state?.observationOptionLists) {
+        const obs = parsed.state.observationOptionLists
+        const list = obs.contributingBehavior
+        const hasBehavior =
+          Array.isArray(list) &&
+          list.length >= DEFAULT_CONTRIBUTING_BEHAVIOR_OPTIONS.length &&
+          DEFAULT_CONTRIBUTING_BEHAVIOR_OPTIONS.every((d) => list.some((x: any) => x?.id === d.id))
+        if (!hasBehavior) {
+          parsed.state.observationOptionLists = {
+            ...obs,
+            contributingBehavior: [...DEFAULT_CONTRIBUTING_BEHAVIOR_OPTIONS],
+          }
+        }
+      }
       return JSON.stringify(parsed)
     } catch {
       return value
