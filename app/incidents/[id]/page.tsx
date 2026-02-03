@@ -23,7 +23,7 @@ import { useLocale } from "@/lib/locale-context"
 import { exportIncidentAsPdf } from "@/lib/pdf"
 import { toast } from "sonner"
 import { useAppStore } from "@/lib/store"
-import { cn, distanceToNowLocalized, formatLocalized } from "@/lib/utils"
+import { cn, distanceToNowLocalized, formatDateOnlyLocalized } from "@/lib/utils"
 
 // Status display: Initié (any non-closed) / Fermé only, with requested colors
 const INITIATED_BADGE = "bg-[#27F54D] text-white"
@@ -138,7 +138,7 @@ export default function IncidentDetailPage({ params }: { params: Promise<{ id: s
               <Calendar className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-xs text-muted-foreground">{t("incident.eventDate")}</p>
-                <p className="font-medium">{formatLocalized(new Date(incident.eventDate), "MMMM d, yyyy", locale)}</p>
+                <p className="font-medium">{formatDateOnlyLocalized(incident.eventDate, "MMMM d, yyyy", locale)}</p>
               </div>
             </div>
 
@@ -244,7 +244,7 @@ export default function IncidentDetailPage({ params }: { params: Promise<{ id: s
                 <Heart className="h-5 w-5 text-muted-foreground" />
                 <div>
                   <p className="text-xs text-muted-foreground">{t("incident.bodyPart")}</p>
-                  <p className="font-medium">{incident.medicalTreatment.bodyPart || "-"}</p>
+                  <p className="font-medium">{resolveIncidentOptionLabel(incidentOptionLists?.bodyParts, incident.medicalTreatment?.bodyPart) || "-"}</p>
                 </div>
               </div>
 
@@ -295,7 +295,7 @@ export default function IncidentDetailPage({ params }: { params: Promise<{ id: s
                     <div>
                       <p className="text-xs text-muted-foreground">{t("incident.dateOfDeath")}</p>
                       <p className="font-medium text-destructive">
-                        {formatLocalized(new Date(incident.medicalTreatment.dateOfDeath), "MMMM d, yyyy", locale)}
+                        {formatDateOnlyLocalized(incident.medicalTreatment.dateOfDeath, "MMMM d, yyyy", locale)}
                       </p>
                     </div>
                   </div>

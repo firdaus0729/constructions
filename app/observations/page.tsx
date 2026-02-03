@@ -16,7 +16,7 @@ import { AppShell } from "@/components/app-shell"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
-// Initié = non-closed (#27F54D), Fermé = closed (#999999). Priority Urgent/High = #8800F7.
+// Initié = non-closed (#27F54D), Fermé = closed (#999999). Priority Élevé = #BD2D2D.
 const STATUS_BADGE: Record<string, string> = {
   submitted: "bg-[#27F54D] text-white",
   draft: "bg-[#27F54D] text-white",
@@ -28,8 +28,8 @@ const STATUS_BADGE: Record<string, string> = {
 const PRIORITY_BADGE: Record<string, string> = {
   low: "bg-[#05F719] text-white",
   medium: "bg-[#F28705] text-white",
-  high: "bg-[#8800F7] text-white",
-  critical: "bg-[#8800F7] text-white",
+  high: "bg-[#BD2D2D] text-white",
+  critical: "bg-[#BD2D2D] text-white",
 }
 
 // Observations list: show Initié (non-closed) or Fermé (closed) only.
@@ -113,8 +113,8 @@ export default function ObservationsPage() {
                   size="sm"
                   onClick={() => setFilterStatus(filterStatus === s.key ? null : s.key)}
                   className={cn(
-                    "text-xs",
-                    filterStatus === s.key && "border-[#3FAEFC] bg-[#3FAEFC]/10 text-[#3FAEFC] hover:bg-[#3FAEFC]/20 hover:text-[#3FAEFC]"
+                    "text-xs hover:bg-[#64BCDE] hover:border-[#64BCDE] hover:text-foreground",
+                    filterStatus === s.key && "border-[#3FAEFC] bg-[#3FAEFC]/10 text-[#3FAEFC] hover:bg-[#3FAEFC]/20 hover:border-[#3FAEFC] hover:text-[#3FAEFC]"
                   )}
                 >
                   {t(s.label as any)}
@@ -158,9 +158,9 @@ export default function ObservationsPage() {
                 return (
                   <Card key={observation.id} className="hover:shadow-lg transition-shadow">
                     <CardContent className="p-6">
-                      <div className="flex items-start gap-3 mb-4">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-[#051DF7] shrink-0">
-                          <Eye className="h-5 w-5 text-white" />
+                      <div className="flex items-start gap-4 mb-4">
+                        <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-[#051DF7] shrink-0">
+                          <Eye className="h-6 w-6 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-base">{observation.title}</h3>
@@ -173,12 +173,12 @@ export default function ObservationsPage() {
 
                       <div className="grid grid-cols-2 gap-2 mb-4 text-xs">
                         <div>
-                          <span className="text-muted-foreground">{t("observation.projectNumber")}</span>
-                          <p className="font-medium font-mono text-muted-foreground">{observation.projectNumber || project?.code || "-"}</p>
+                          <span className="text-foreground">{t("observation.projectNumber")}</span>
+                          <p className="font-medium font-mono text-foreground">{observation.projectNumber || project?.code || "-"}</p>
                         </div>
                         <div>
-                          <span className="text-muted-foreground">{t("form.project")}</span>
-                          <p className="font-medium">{project?.name || project?.code || "-"}</p>
+                          <span className="text-foreground">{t("form.project")}</span>
+                          <p className="font-medium text-foreground">{project?.name || project?.code || "-"}</p>
                         </div>
                       </div>
 

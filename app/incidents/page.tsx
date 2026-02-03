@@ -1,19 +1,18 @@
 "use client"
 
+export const dynamic = "force-dynamic"
+
 import { useState } from "react"
 import Link from "next/link"
 import { useAppStore } from "@/lib/store"
 import { exportIncidentAsPdf } from "@/lib/pdf"
-import { format } from "date-fns"
-
-export const dynamic = 'force-dynamic'
 import { useLocale } from "@/lib/locale-context"
 import { AlertTriangle, Plus, Edit2, Trash2, Search, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { cn } from "@/lib/utils"
+import { cn, formatDateOnlyLocalized } from "@/lib/utils"
 import { AppShell } from "@/components/app-shell"
 import { toast } from "sonner"
 
@@ -35,7 +34,7 @@ const getDisplayStatusKey = (status: string): string =>
 
 export default function IncidentsPage() {
   const { incidents, deleteIncident, projects, users, authUsers = [], incidentOptionLists } = useAppStore()
-  const { t } = useLocale()
+  const { t, locale } = useLocale()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<string | null>(null)
 
@@ -76,7 +75,7 @@ export default function IncidentsPage() {
     if (!raw) return "-"
     const d = new Date(raw)
     if (Number.isNaN(d.getTime())) return "-"
-    return format(d, "MMM d")
+    return formatDateOnlyLocalized(raw, "MMM d", locale)
   }
 
   return (
@@ -125,8 +124,9 @@ export default function IncidentsPage() {
                 size="sm"
                 onClick={() => setFilterStatus(filterStatus === s.key ? null : s.key)}
                 className={cn(
-                  "capitalize text-xs",
-                  filterStatus === s.key && "text-[#3FAEFC]"
+                  "capitalize text-xs transition-colors",
+                  filterStatus === s.key && "text-[#3FAEFC]",
+                  !filterStatus || filterStatus !== s.key ? "hover:bg-[#64BCDE] hover:text-white hover:border-[#64BCDE]" : ""
                 )}
                 style={
                   filterStatus === s.key

@@ -60,29 +60,37 @@ export default function DashboardPage() {
 
         {/* Recent Forms */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Recent Drafts */}
+          {/* Fermé (closed) */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-lg font-semibold">{t("dashboard.recentDrafts")}</CardTitle>
+              <CardTitle className="text-lg font-semibold">{t("dashboard.closed")}</CardTitle>
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/forms/drafts">{t("dashboard.viewAll")}</Link>
               </Button>
             </CardHeader>
             <CardContent className="p-0">
-              <FormList items={recentDrafts} emptyMessage={t("dashboard.noDrafts")} />
+              <FormList
+                items={recentDrafts}
+                emptyMessage={t("dashboard.noClosed")}
+                statusOverride={{ labelKey: "status.closed", className: "bg-[#999999] text-white" }}
+              />
             </CardContent>
           </Card>
 
-          {/* Recent Submissions */}
+          {/* Initié (initiated) */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-lg font-semibold">{t("dashboard.recentSubmissions")}</CardTitle>
+              <CardTitle className="text-lg font-semibold">{t("dashboard.initiated")}</CardTitle>
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/forms/submissions">{t("dashboard.viewAll")}</Link>
               </Button>
             </CardHeader>
             <CardContent className="p-0">
-              <FormList items={recentSubmissions} emptyMessage={t("dashboard.noSubmissions")} />
+              <FormList
+                items={recentSubmissions}
+                emptyMessage={t("dashboard.noInitiated")}
+                statusOverride={{ labelKey: "status.initiated", className: "bg-[#27F54D] text-white" }}
+              />
             </CardContent>
           </Card>
         </div>

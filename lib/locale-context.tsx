@@ -22,9 +22,13 @@ const translations = {
     "dashboard.newIncident": "New Incident",
     "dashboard.recentDrafts": "Recent Drafts",
     "dashboard.recentSubmissions": "Recent Submissions",
+    "dashboard.closed": "Closed",
+    "dashboard.initiated": "Initiated",
     "dashboard.viewAll": "View All",
     "dashboard.noDrafts": "No drafts yet",
     "dashboard.noSubmissions": "No submissions yet",
+    "dashboard.noClosed": "No closed forms",
+    "dashboard.noInitiated": "No initiated forms",
 
     // NOTE: translations must be flat (no nested locales here)
     "form.createdBy": "Created By",
@@ -758,9 +762,13 @@ const translations = {
     "dashboard.newIncident": "Nouvel Incident",
     "dashboard.recentDrafts": "Brouillons récents",
     "dashboard.recentSubmissions": "Soumissions récentes",
+    "dashboard.closed": "Fermé",
+    "dashboard.initiated": "Initié",
     "dashboard.viewAll": "Voir tout",
     "dashboard.noDrafts": "Aucun brouillon",
     "dashboard.noSubmissions": "Aucune soumission",
+    "dashboard.noClosed": "Aucun fermé",
+    "dashboard.noInitiated": "Aucun initié",
 
     // Status
     "status.online": "En ligne",

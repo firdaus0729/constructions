@@ -145,12 +145,12 @@ const DEFAULT_INJURY_TYPES: { id: string; label: string }[] = [
   { id: "inj-perte-vision", label: "Perte de vision" },
 ]
 
-// Default Partie du corps affectée options (from image: includes Dos, Aine, Coccyx)
+// Default Partie du corps affectée options — exact order from PDF, only these choices
 const DEFAULT_BODY_PARTS: { id: string; label: string }[] = [
   { id: "bp-corps-entier", label: "Corps entier (systémique)" },
   { id: "bp-tete", label: "Tête" },
-  { id: "bp-oeil-droite", label: "Œil (droite)" },
-  { id: "bp-oeil-gauche", label: "Œil (gauche)" },
+  { id: "bp-oeil-droite", label: "Oeil (droite)" },
+  { id: "bp-oeil-gauche", label: "Oeil (gauche)" },
   { id: "bp-nez", label: "Nez" },
   { id: "bp-bouche", label: "Bouche" },
   { id: "bp-dents", label: "Dents" },
@@ -177,12 +177,10 @@ const DEFAULT_BODY_PARTS: { id: string; label: string }[] = [
   { id: "bp-bas-dos-droite", label: "Bas du dos (droite)" },
   { id: "bp-bas-dos-gauche", label: "Bas du dos (gauche)" },
   { id: "bp-colonne-vertebrale", label: "Colonne vertébrale" },
-  { id: "bp-bassin", label: "Bassin" },
   { id: "bp-bassin-avant", label: "Bassin (avant)" },
   { id: "bp-aine", label: "Aine" },
   { id: "bp-fesses", label: "Fesses" },
   { id: "bp-coccyx", label: "Coccyx" },
-  { id: "bp-bras-droite", label: "Bras (droite)" },
   { id: "bp-epaule-droite", label: "Épaule (droite)" },
   { id: "bp-haut-bras-droite", label: "Haut du bras (droite)" },
   { id: "bp-coude-droite", label: "Coude (droite)" },
@@ -206,7 +204,6 @@ const DEFAULT_BODY_PARTS: { id: string; label: string }[] = [
   { id: "bp-index-gauche", label: "Index (gauche)" },
   { id: "bp-majeur-gauche", label: "Majeur (gauche)" },
   { id: "bp-annulaire-gauche", label: "Annulaire (gauche)" },
-  { id: "bp-auriculaire-gauche", label: "Auriculaire (gauche)" },
   { id: "bp-pouce-gauche", label: "Pouce (gauche)" },
   { id: "bp-paume-gauche", label: "Paume (gauche)" },
   { id: "bp-main-arriere-gauche", label: "Main (arrière, gauche)" },
@@ -238,17 +235,6 @@ const DEFAULT_BODY_PARTS: { id: string; label: string }[] = [
   { id: "bp-troisieme-orteil-gauche", label: "Troisième orteil (gauche)" },
   { id: "bp-quatrieme-orteil-gauche", label: "Quatrième orteil (gauche)" },
   { id: "bp-petit-orteil-gauche", label: "Petit orteil (gauche)" },
-  { id: "bp-systeme-circulatoire", label: "Système circulatoire" },
-  { id: "bp-systeme-digestif", label: "Système digestif" },
-  { id: "bp-systeme-nerveux", label: "Système nerveux" },
-  { id: "bp-psychologique", label: "Psychologique" },
-  { id: "bp-systeme-respiratoire", label: "Système respiratoire" },
-  { id: "bp-systeme-reproductif", label: "Système reproductif" },
-  { id: "bp-peau", label: "Peau" },
-  { id: "bp-systeme-urinaire", label: "Système urinaire" },
-  { id: "bp-organes-internes", label: "Organes internes" },
-  { id: "bp-coeur", label: "Cœur" },
-  { id: "bp-poumons", label: "Poumons" },
 ]
 
 // Create a custom storage that checks for window availability and merges full incident option lists on rehydration
@@ -290,7 +276,8 @@ const customStorage = {
           lists.injuryTypes = DEFAULT_INJURY_TYPES
           updated = true
         }
-        if (!lists.bodyParts || !Array.isArray(lists.bodyParts) || lists.bodyParts.length < DEFAULT_BODY_PARTS.length) {
+        // Body parts: always use exact PDF list (only these choices)
+        if (!sameIds(lists.bodyParts, DEFAULT_BODY_PARTS)) {
           lists.bodyParts = DEFAULT_BODY_PARTS
           updated = true
         }

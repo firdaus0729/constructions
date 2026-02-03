@@ -18,6 +18,42 @@ export function formatLocalized(date: Date, pattern: string, locale: 'en' | 'fr'
   return dfFormat(date, pattern, { locale: locale === 'fr' ? frLocale : enUS })
 }
 
+/** Parse a date-only string (YYYY-MM-DD) to a Date at local noon to avoid timezone shift. */
+export function parseDateOnlyToLocal(value: string): Date {
+  if (!value || value.length < 10) return new Date(NaN)
+  return new Date(value.slice(0, 10) + "T12:00:00")
+}
+
+/** Extract local date as YYYY-MM-DD from a Date (for form inputs). */
+export function toLocalDateString(date: Date | string | null | undefined): string {
+  if (!date) return ""
+  const d = date instanceof Date ? date : new Date(date)
+  if (Number.isNaN(d.getTime())) return ""
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, "0")
+  const day = String(d.getDate()).padStart(2, "0")
+  return `${y}-${m}-${day}`
+}
+
+/** Extract YYYY-MM-DD from Date/ISO string for form inputs. Uses ISO date part to avoid timezone shift. */
+export function toDateOnlyString(date: Date | string | null | undefined): string {
+  if (!date) return ""
+  const str = typeof date === "string" ? date : date instanceof Date ? date.toISOString() : ""
+  const datePart = str?.slice(0, 10)
+  return /^\d{4}-\d{2}-\d{2}$/.test(datePart ?? "") ? datePart! : ""
+}
+
+/** Format a date-only value (event date, etc.) without timezone shift. Uses ISO date part to avoid UTC-midnight display bugs. */
+export function formatDateOnlyLocalized(value: Date | string | null | undefined, pattern: string, locale: 'en' | 'fr'): string {
+  if (!value) return ""
+  const str = typeof value === "string" ? value : value instanceof Date ? value.toISOString() : ""
+  if (!str) return ""
+  const datePart = str.slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return ""
+  const localNoon = new Date(datePart + "T12:00:00")
+  return dfFormat(localNoon, pattern, { locale: locale === "fr" ? frLocale : enUS })
+}
+
 export function distanceToNowLocalized(date: Date, locale: 'en' | 'fr') {
   return dfDistance(date, { addSuffix: true, locale: locale === 'fr' ? frLocale : enUS })
 }

@@ -1,184 +1,92 @@
 {
   "bodyParts": [
-    {
-      "id": "head",
-      "label": "Head",
-      "category": "upper"
-    },
-    {
-      "id": "face",
-      "label": "Face",
-      "category": "upper"
-    },
-    {
-      "id": "eyes",
-      "label": "Eyes",
-      "category": "upper"
-    },
-    {
-      "id": "ears",
-      "label": "Ears",
-      "category": "upper"
-    },
-    {
-      "id": "nose",
-      "label": "Nose",
-      "category": "upper"
-    },
-    {
-      "id": "mouth-teeth",
-      "label": "Mouth/Teeth",
-      "category": "upper"
-    },
-    {
-      "id": "neck",
-      "label": "Neck",
-      "category": "upper"
-    },
-    {
-      "id": "shoulder",
-      "label": "Shoulder",
-      "category": "upper"
-    },
-    {
-      "id": "arm",
-      "label": "Arm",
-      "category": "upper"
-    },
-    {
-      "id": "elbow",
-      "label": "Elbow",
-      "category": "upper"
-    },
-    {
-      "id": "forearm",
-      "label": "Forearm",
-      "category": "upper"
-    },
-    {
-      "id": "wrist",
-      "label": "Wrist",
-      "category": "upper"
-    },
-    {
-      "id": "hand",
-      "label": "Hand",
-      "category": "upper"
-    },
-    {
-      "id": "fingers",
-      "label": "Fingers",
-      "category": "upper"
-    },
-    {
-      "id": "thumb",
-      "label": "Thumb",
-      "category": "upper"
-    },
-    {
-      "id": "chest",
-      "label": "Chest",
-      "category": "torso"
-    },
-    {
-      "id": "back",
-      "label": "Back",
-      "category": "torso"
-    },
-    {
-      "id": "spine",
-      "label": "Spine",
-      "category": "torso"
-    },
-    {
-      "id": "abdomen",
-      "label": "Abdomen",
-      "category": "torso"
-    },
-    {
-      "id": "side",
-      "label": "Side",
-      "category": "torso"
-    },
-    {
-      "id": "pelvis",
-      "label": "Pelvis",
-      "category": "lower"
-    },
-    {
-      "id": "hip",
-      "label": "Hip",
-      "category": "lower"
-    },
-    {
-      "id": "groin",
-      "label": "Groin",
-      "category": "lower"
-    },
-    {
-      "id": "buttocks",
-      "label": "Buttocks",
-      "category": "lower"
-    },
-    {
-      "id": "leg",
-      "label": "Leg",
-      "category": "lower"
-    },
-    {
-      "id": "thigh",
-      "label": "Thigh",
-      "category": "lower"
-    },
-    {
-      "id": "knee",
-      "label": "Knee",
-      "category": "lower"
-    },
-    {
-      "id": "shin",
-      "label": "Shin",
-      "category": "lower"
-    },
-    {
-      "id": "calf",
-      "label": "Calf",
-      "category": "lower"
-    },
-    {
-      "id": "ankle",
-      "label": "Ankle",
-      "category": "lower"
-    },
-    {
-      "id": "foot",
-      "label": "Foot",
-      "category": "lower"
-    },
-    {
-      "id": "toes",
-      "label": "Toes",
-      "category": "lower"
-    },
-    {
-      "id": "heel",
-      "label": "Heel",
-      "category": "lower"
-    },
-    {
-      "id": "multiple",
-      "label": "Multiple",
-      "category": "other"
-    },
-    {
-      "id": "internal",
-      "label": "Internal Injuries",
-      "category": "other"
-    },
-    {
-      "id": "whole-body",
-      "label": "Whole Body",
-      "category": "other"
-    }
+    { "id": "bp-corps-entier", "label": "Corps entier (systémique)", "category": "other" },
+    { "id": "bp-tete", "label": "Tête", "category": "upper" },
+    { "id": "bp-oeil-droite", "label": "Oeil (droite)", "category": "upper" },
+    { "id": "bp-oeil-gauche", "label": "Oeil (gauche)", "category": "upper" },
+    { "id": "bp-nez", "label": "Nez", "category": "upper" },
+    { "id": "bp-bouche", "label": "Bouche", "category": "upper" },
+    { "id": "bp-dents", "label": "Dents", "category": "upper" },
+    { "id": "bp-oreille-droite", "label": "Oreille (droite)", "category": "upper" },
+    { "id": "bp-oreille-gauche", "label": "Oreille (gauche)", "category": "upper" },
+    { "id": "bp-crane", "label": "Crâne", "category": "upper" },
+    { "id": "bp-visage", "label": "Visage", "category": "upper" },
+    { "id": "bp-tete-arriere", "label": "Tête (arrière)", "category": "upper" },
+    { "id": "bp-cou", "label": "Cou", "category": "upper" },
+    { "id": "bp-gorge-devant", "label": "Gorge (devant)", "category": "upper" },
+    { "id": "bp-cou-droite", "label": "Cou (droite)", "category": "upper" },
+    { "id": "bp-cou-gauche", "label": "Cou (gauche)", "category": "upper" },
+    { "id": "bp-cou-dos", "label": "Cou (dos)", "category": "upper" },
+    { "id": "bp-torse", "label": "Torse", "category": "torso" },
+    { "id": "bp-poitrine", "label": "Poitrine", "category": "torso" },
+    { "id": "bp-pectoraux-droite", "label": "Pectoraux (droite)", "category": "torso" },
+    { "id": "bp-pectoraux-gauche", "label": "Pectoraux (gauche)", "category": "torso" },
+    { "id": "bp-abdomen", "label": "Abdomen", "category": "torso" },
+    { "id": "bp-cotes-droite", "label": "Côtes (droite)", "category": "torso" },
+    { "id": "bp-cotes-gauche", "label": "Côtes (gauche)", "category": "torso" },
+    { "id": "bp-dos", "label": "Dos", "category": "torso" },
+    { "id": "bp-haut-dos-droite", "label": "Haut du dos (droite)", "category": "torso" },
+    { "id": "bp-haut-dos-gauche", "label": "Haut du dos (gauche)", "category": "torso" },
+    { "id": "bp-bas-dos-droite", "label": "Bas du dos (droite)", "category": "torso" },
+    { "id": "bp-bas-dos-gauche", "label": "Bas du dos (gauche)", "category": "torso" },
+    { "id": "bp-colonne-vertebrale", "label": "Colonne vertébrale", "category": "torso" },
+    { "id": "bp-bassin-avant", "label": "Bassin (avant)", "category": "lower" },
+    { "id": "bp-aine", "label": "Aine", "category": "lower" },
+    { "id": "bp-fesses", "label": "Fesses", "category": "lower" },
+    { "id": "bp-coccyx", "label": "Coccyx", "category": "lower" },
+    { "id": "bp-epaule-droite", "label": "Épaule (droite)", "category": "upper" },
+    { "id": "bp-haut-bras-droite", "label": "Haut du bras (droite)", "category": "upper" },
+    { "id": "bp-coude-droite", "label": "Coude (droite)", "category": "upper" },
+    { "id": "bp-avant-bras-droite", "label": "Avant-bras (droite)", "category": "upper" },
+    { "id": "bp-poignet-droite", "label": "Poignet (droite)", "category": "upper" },
+    { "id": "bp-main-droite", "label": "Main (droite)", "category": "upper" },
+    { "id": "bp-index-droite", "label": "Index (droite)", "category": "upper" },
+    { "id": "bp-majeur-droite", "label": "Majeur (droite)", "category": "upper" },
+    { "id": "bp-annulaire-droite", "label": "Annulaire (droite)", "category": "upper" },
+    { "id": "bp-petit-doigt-droite", "label": "Petit doigt (droite)", "category": "upper" },
+    { "id": "bp-pouce-droite", "label": "Pouce (droite)", "category": "upper" },
+    { "id": "bp-paume-droite", "label": "Paume (droite)", "category": "upper" },
+    { "id": "bp-main-arriere-droite", "label": "Main (arrière, droite)", "category": "upper" },
+    { "id": "bp-bras-gauche", "label": "Bras (gauche)", "category": "upper" },
+    { "id": "bp-epaule-gauche", "label": "Épaule (gauche)", "category": "upper" },
+    { "id": "bp-haut-bras-gauche", "label": "Haut du bras (gauche)", "category": "upper" },
+    { "id": "bp-coude-gauche", "label": "Coude (gauche)", "category": "upper" },
+    { "id": "bp-avant-bras-gauche", "label": "Avant-bras (gauche)", "category": "upper" },
+    { "id": "bp-poignet-gauche", "label": "Poignet (gauche)", "category": "upper" },
+    { "id": "bp-main-gauche", "label": "Main (gauche)", "category": "upper" },
+    { "id": "bp-index-gauche", "label": "Index (gauche)", "category": "upper" },
+    { "id": "bp-majeur-gauche", "label": "Majeur (gauche)", "category": "upper" },
+    { "id": "bp-annulaire-gauche", "label": "Annulaire (gauche)", "category": "upper" },
+    { "id": "bp-pouce-gauche", "label": "Pouce (gauche)", "category": "upper" },
+    { "id": "bp-paume-gauche", "label": "Paume (gauche)", "category": "upper" },
+    { "id": "bp-main-arriere-gauche", "label": "Main (arrière, gauche)", "category": "upper" },
+    { "id": "bp-jambe-droite", "label": "Jambe (droite)", "category": "lower" },
+    { "id": "bp-hanche-droite", "label": "Hanche (droite)", "category": "lower" },
+    { "id": "bp-cuisse-droite", "label": "Partie supérieure de la jambe (droite)", "category": "lower" },
+    { "id": "bp-genou-droit", "label": "Genou (droit)", "category": "lower" },
+    { "id": "bp-bas-jambe-droite", "label": "Bas de la jambe (droite)", "category": "lower" },
+    { "id": "bp-cheville-droite", "label": "Cheville (droite)", "category": "lower" },
+    { "id": "bp-pied-droite", "label": "Pied (droite)", "category": "lower" },
+    { "id": "bp-pied-haut-droite", "label": "Pied (en haut, à droite)", "category": "lower" },
+    { "id": "bp-talon-droite", "label": "Talon (droite)", "category": "lower" },
+    { "id": "bp-gros-orteil-droite", "label": "Gros orteil (droite)", "category": "lower" },
+    { "id": "bp-deuxieme-orteil-droite", "label": "Deuxième orteil (droite)", "category": "lower" },
+    { "id": "bp-troisieme-orteil-droite", "label": "Troisième orteil (droite)", "category": "lower" },
+    { "id": "bp-quatrieme-orteil-droite", "label": "Quatrième orteil (droite)", "category": "lower" },
+    { "id": "bp-petit-orteil-droite", "label": "Petit orteil (droite)", "category": "lower" },
+    { "id": "bp-jambe-gauche", "label": "Jambe (gauche)", "category": "lower" },
+    { "id": "bp-hanche-gauche", "label": "Hanche (gauche)", "category": "lower" },
+    { "id": "bp-cuisse-gauche", "label": "Partie supérieure de la jambe (gauche)", "category": "lower" },
+    { "id": "bp-genou-gauche", "label": "Genou (gauche)", "category": "lower" },
+    { "id": "bp-bas-jambe-gauche", "label": "Bas de la jambe (gauche)", "category": "lower" },
+    { "id": "bp-cheville-gauche", "label": "Cheville (gauche)", "category": "lower" },
+    { "id": "bp-pied-gauche", "label": "Pied (gauche)", "category": "lower" },
+    { "id": "bp-pied-haut-gauche", "label": "Pied (en haut, à gauche)", "category": "lower" },
+    { "id": "bp-talon-gauche", "label": "Talon (gauche)", "category": "lower" },
+    { "id": "bp-gros-orteil-gauche", "label": "Gros orteil (gauche)", "category": "lower" },
+    { "id": "bp-deuxieme-orteil-gauche", "label": "Deuxième orteil (gauche)", "category": "lower" },
+    { "id": "bp-troisieme-orteil-gauche", "label": "Troisième orteil (gauche)", "category": "lower" },
+    { "id": "bp-quatrieme-orteil-gauche", "label": "Quatrième orteil (gauche)", "category": "lower" },
+    { "id": "bp-petit-orteil-gauche", "label": "Petit orteil (gauche)", "category": "lower" }
   ]
 }

@@ -1699,6 +1699,16 @@ export async function exportIncidentAsPdf(
     return `${day}/${month}/${year}`
   }
 
+  // Format date-only fields (event date) without timezone shift
+  const formatDateOnly = (date: Date | string | null | undefined): string => {
+    if (!date) return ""
+    const str = typeof date === "string" ? date : date instanceof Date ? date.toISOString() : ""
+    const datePart = str?.slice(0, 10)
+    if (!datePart || !/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return ""
+    const [y, m, d] = datePart.split("-")
+    return `${d}/${m}/${y}`
+  }
+
   // Format time as "HH h MM EDT"
   const formatTime = (time: string | null | undefined): string => {
     if (!time) return ""
@@ -1713,7 +1723,7 @@ export async function exportIncidentAsPdf(
   const leftRows: [string, string][] = [
     ["Créateur", creatorName || ""],
     ["Lieu", incident.location || ""],
-    ["Date de l'événement", formatDate(incident.eventDate)],
+    ["Date de l'événement", formatDateOnly(incident.eventDate)],
     ["Privé(e)", (incident as any).isPrivate || (incident as any).private ? "Oui" : "Non"],
   ]
 

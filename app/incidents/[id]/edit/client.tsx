@@ -19,6 +19,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertTriangle, CheckCircle2, Clock, Mail, Save } from "lucide-react"
 import { useLocale } from "@/lib/locale-context"
 import { useAppStore } from "@/lib/store"
+import { parseDateOnlyToLocal, toDateOnlyString } from "@/lib/utils"
 import type { Incident, Attachment, FormStatus } from "@/lib/types"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -82,7 +83,7 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
     // UI only supports Initié (open) and Fermé (closed); normalize legacy statuses to open.
     status: ((incident?.status as FormStatus) === "closed" ? "closed" : "open") as FormStatus,
     location: incident?.location || "",
-    eventDate: incident?.eventDate ? new Date(incident.eventDate).toISOString().split("T")[0] : "",
+    eventDate: incident?.eventDate ? toDateOnlyString(incident.eventDate) : "",
     eventTime: incident?.eventTime || "",
     accidentType: incident?.accidentType || "",
     concernedCompany: incident?.concernedCompany || "",
@@ -96,8 +97,8 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
     hospitalizedOvernight: incident?.medicalTreatment?.hospitalizedOvernight || false,
     daysAbsent: incident?.medicalTreatment?.daysAbsent || 0,
     restrictedWorkDays: incident?.medicalTreatment?.restrictedWorkDays || 0,
-    returnToWorkDate: incident?.medicalTreatment?.returnToWorkDate ? new Date(incident.medicalTreatment.returnToWorkDate).toISOString().split("T")[0] : "",
-    dateOfDeath: incident?.medicalTreatment?.dateOfDeath ? new Date(incident.medicalTreatment.dateOfDeath).toISOString().split("T")[0] : "",
+    returnToWorkDate: incident?.medicalTreatment?.returnToWorkDate ? toDateOnlyString(incident.medicalTreatment.returnToWorkDate) : "",
+    dateOfDeath: incident?.medicalTreatment?.dateOfDeath ? toDateOnlyString(incident.medicalTreatment.dateOfDeath) : "",
     aDeclarer: (incident as any)?.aDeclarer || false,
     isPrivate: (incident as any)?.isPrivate || false,
     date: incident?.date || "",
@@ -163,7 +164,7 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
           creatorId: formData.creatorId || incident!.creatorId,
           status: formData.status,
           location: formData.location,
-          eventDate: new Date(formData.eventDate),
+          eventDate: parseDateOnlyToLocal(formData.eventDate),
           eventTime: formData.eventTime,
           accidentType: formData.accidentType,
           concernedCompany: formData.concernedCompany,
@@ -181,8 +182,8 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
                 hospitalizedOvernight: formData.hospitalizedOvernight,
                 daysAbsent: formData.daysAbsent,
                 restrictedWorkDays: formData.restrictedWorkDays,
-                returnToWorkDate: formData.returnToWorkDate ? new Date(formData.returnToWorkDate) : null,
-                dateOfDeath: isFatal && formData.dateOfDeath ? new Date(formData.dateOfDeath) : null,
+                returnToWorkDate: formData.returnToWorkDate ? parseDateOnlyToLocal(formData.returnToWorkDate) : null,
+                dateOfDeath: isFatal && formData.dateOfDeath ? parseDateOnlyToLocal(formData.dateOfDeath) : null,
               }
             : null,
           distribution: distributionList,
@@ -449,6 +450,8 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
                     value={formData.bodyPart}
                     onChange={(value) => setFormData((prev) => ({ ...prev, bodyPart: value }))}
                     placeholder={t("incident.selectBodyPart")}
+                    allowAdd={false}
+                    allowDelete={false}
                   />
                 </FormField>
 

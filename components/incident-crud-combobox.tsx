@@ -24,11 +24,15 @@ export function IncidentOptionCrudCombobox({
   value,
   onChange,
   placeholder,
+  allowAdd = true,
+  allowDelete = true,
 }: {
   listKey: IncidentListKey
   value: string
   onChange: (value: string) => void
   placeholder: string
+  allowAdd?: boolean
+  allowDelete?: boolean
 }) {
   const { t } = useLocale()
   const { incidentOptionLists, addIncidentOption, updateIncidentOption, deleteIncidentOption } = useAppStore()
@@ -175,24 +179,26 @@ export function IncidentOptionCrudCombobox({
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onPointerDown={stopItemSelect}
-                            onMouseDown={stopItemSelect}
-                            onClick={(e) => {
-                              stopItemSelect(e)
-                              if (confirm(t("settings.livrableOptions.confirmDelete"))) {
-                                deleteIncidentOption(listKey, it.id)
-                                if (value === it.id) onChange("")
-                              }
-                            }}
-                            title={t("action.remove")}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {allowDelete && (
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onPointerDown={stopItemSelect}
+                              onMouseDown={stopItemSelect}
+                              onClick={(e) => {
+                                stopItemSelect(e)
+                                if (confirm(t("settings.livrableOptions.confirmDelete"))) {
+                                  deleteIncidentOption(listKey, it.id)
+                                  if (value === it.id) onChange("")
+                                }
+                              }}
+                              title={t("action.remove")}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </>
                     )}
@@ -201,33 +207,35 @@ export function IncidentOptionCrudCombobox({
               })}
             </CommandGroup>
 
-            <div className="border-t p-2">
-              <div className="flex gap-2">
-                <Input
-                  value={newLabel}
-                  onChange={(e) => setNewLabel(e.target.value)}
-                  placeholder={t("settings.livrableOptions.placeholder")}
-                  className="h-9"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
+            {allowAdd && (
+              <div className="border-t p-2">
+                <div className="flex gap-2">
+                  <Input
+                    value={newLabel}
+                    onChange={(e) => setNewLabel(e.target.value)}
+                    placeholder={t("settings.livrableOptions.placeholder")}
+                    className="h-9"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault()
+                        addNew()
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    className="h-9 shrink-0"
+                    onClick={(e) => {
                       e.preventDefault()
+                      e.stopPropagation()
                       addNew()
-                    }
-                  }}
-                />
-                <Button
-                  type="button"
-                  className="h-9 shrink-0"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    addNew()
-                  }}
-                >
-                  {t("settings.livrableOptions.add")}
-                </Button>
+                    }}
+                  >
+                    {t("settings.livrableOptions.add")}
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>

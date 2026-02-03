@@ -30,12 +30,19 @@ const statusVariants = {
   closed: "bg-[#05F719] text-white",
 }
 
+export interface FormListStatusOverride {
+  labelKey: string
+  className: string
+}
+
 interface FormListProps {
   items: FormListItem[]
   emptyMessage: string
+  /** When set, all items show this status badge (e.g. "Fermé" / "Initié") instead of item.status */
+  statusOverride?: FormListStatusOverride
 }
 
-export function FormList({ items, emptyMessage }: FormListProps) {
+export function FormList({ items, emptyMessage, statusOverride }: FormListProps) {
   const { t } = useLocale()
 
   if (items.length === 0) {
@@ -72,8 +79,18 @@ export function FormList({ items, emptyMessage }: FormListProps) {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <span className="font-medium text-sm truncate">{item.title || item.number}</span>
-                <Badge variant="secondary" className={cn("text-xs shrink-0", statusVariants[item.status])}>
-                  {item.status === "in-progress" ? t("status.inProgress") : t(`status.${item.status}` as any)}
+                <Badge
+                  variant="secondary"
+                  className={cn(
+                    "text-xs shrink-0",
+                    statusOverride ? statusOverride.className : statusVariants[item.status]
+                  )}
+                >
+                  {statusOverride
+                    ? t(statusOverride.labelKey as any)
+                    : item.status === "in-progress"
+                      ? t("status.inProgress")
+                      : t(`status.${item.status}` as any)}
                 </Badge>
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">

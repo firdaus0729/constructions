@@ -8,7 +8,8 @@
     "lint": "eslint .",
     "start": "next start",
     "load-test": "artillery run load-tests/artillery-config.yml --output load-tests/results.json",
-    "load-test:report": "npm run load-test && node load-tests/generate-report.js load-tests/results.json load-tests/load-test-report.html"
+    "load-test:report": "npm run load-test && node load-tests/generate-report.js load-tests/results.json",
+    "load-test:pdf": "npm run load-test && node load-tests/generate-report.js load-tests/results.json && node convert-html-to-pdf.js"
   },
   "dependencies": {
     "@azure/msal-browser": "^3.28.0",

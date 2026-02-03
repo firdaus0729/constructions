@@ -24,6 +24,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertTriangle, CheckCircle2, Clock, Mail, Save } from "lucide-react"
 import { useLocale } from "@/lib/locale-context"
 import { useAppStore } from "@/lib/store"
+import { parseDateOnlyToLocal } from "@/lib/utils"
 import type { Incident, Attachment, FormStatus } from "@/lib/types"
 import { Card, CardContent } from "@/components/ui/card"
 import { DistributionSelector } from "@/components/forms"
@@ -185,7 +186,7 @@ export default function NewIncidentPage() {
         projectNumber: formData.projectNumber || undefined,
         creatorId: formData.creatorId || currentUser?.id || "",
         location: formData.location,
-        eventDate: new Date(formData.eventDate),
+        eventDate: parseDateOnlyToLocal(formData.eventDate),
         eventTime: formData.eventTime,
         accidentType: formData.accidentType,
         status,
@@ -209,8 +210,8 @@ export default function NewIncidentPage() {
               hospitalizedOvernight: formData.hospitalizedOvernight,
               daysAbsent: formData.daysAbsent,
               restrictedWorkDays: formData.restrictedWorkDays,
-              returnToWorkDate: formData.returnToWorkDate ? new Date(formData.returnToWorkDate) : null,
-              dateOfDeath: isFatal && formData.dateOfDeath ? new Date(formData.dateOfDeath) : null,
+              returnToWorkDate: formData.returnToWorkDate ? parseDateOnlyToLocal(formData.returnToWorkDate) : null,
+              dateOfDeath: isFatal && formData.dateOfDeath ? parseDateOnlyToLocal(formData.dateOfDeath) : null,
             }
           : null,
         createdAt: new Date(),
@@ -619,6 +620,8 @@ export default function NewIncidentPage() {
                       value={formData.bodyPart}
                       onChange={(value) => handleFieldChange("bodyPart", value)}
                       placeholder={t("incident.selectBodyPart")}
+                      allowAdd={false}
+                      allowDelete={false}
                     />
                   </FormField>
                 </div>

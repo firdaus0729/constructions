@@ -13,7 +13,7 @@ import { exportObservationAsPdf } from "@/lib/pdf"
 import { useAppStore } from "@/lib/store"
 import { cn, distanceToNowLocalized, formatLocalized } from "@/lib/utils"
 
-// Initié #27F54D, Fermé #999999, Urgent/High #8800F7
+// Initié #27F54D, Fermé #999999, Élevé #BD2D2D
 const STATUS_BADGE: Record<string, string> = {
   submitted: "bg-[#27F54D] text-white",
   draft: "bg-[#27F54D] text-white",
@@ -25,8 +25,8 @@ const STATUS_BADGE: Record<string, string> = {
 const PRIORITY_BADGE: Record<string, string> = {
   low: "bg-[#05F719] text-white",
   medium: "bg-[#F28705] text-white",
-  high: "bg-[#8800F7] text-white",
-  critical: "bg-[#8800F7] text-white",
+  high: "bg-[#BD2D2D] text-white",
+  critical: "bg-[#BD2D2D] text-white",
 }
 
 const getStatusDisplayKey = (status: string): string =>
