@@ -120,19 +120,14 @@ export default function IncidentsPage() {
             ].map((s) => (
               <Button
                 key={s.key}
-                variant={filterStatus === s.key ? "default" : "outline"}
+                variant="outline"
                 size="sm"
                 onClick={() => setFilterStatus(filterStatus === s.key ? null : s.key)}
                 className={cn(
-                  "capitalize text-xs transition-colors",
-                  filterStatus === s.key && "text-[#3FAEFC]",
-                  !filterStatus || filterStatus !== s.key ? "hover:bg-[#64BCDE] hover:text-white hover:border-[#64BCDE]" : ""
+                  "text-xs",
+                  filterStatus === s.key && "border-[#3FAEFC] bg-[#3FAEFC]/10 text-[#3FAEFC]",
+                  "hover:border-[#64BCDE] hover:bg-[#64BCDE]/10 hover:text-[#64BCDE]"
                 )}
-                style={
-                  filterStatus === s.key
-                    ? { backgroundColor: "var(--background)", color: "#3FAEFC", borderColor: "#3FAEFC" }
-                    : undefined
-                }
               >
                 {t(s.label as any)}
               </Button>
