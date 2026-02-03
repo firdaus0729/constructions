@@ -364,7 +364,7 @@ export default function NewInspection() {
             />
           </FormField>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               label={t("inspection.typeLabel")}
               required
@@ -378,29 +378,19 @@ export default function NewInspection() {
             </FormField>
 
             <FormField
-              label={t("form.project")}
+              label={t("observation.projectNumber")}
               required
               error={errors.projectId}
             >
-              <Input
-                value={formData.projectId}
-                onChange={(e) => setFormData((prev) => ({ ...prev, projectId: e.target.value }))}
-                placeholder={t("form.project")}
-                className="h-10"
-              />
-            </FormField>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField label={t("observation.projectNumber")}>
               <ProjectNoCombobox
                 projects={projects}
-                value={projects.find((p) => p.code === formData.projectNumber)?.id || null}
+                value={formData.projectId || projects.find((p) => p.code === formData.projectNumber)?.id || null}
                 onChange={(projectId) => {
                   const p = projects.find((x) => x.id === projectId)
                   if (!p) return
                   setFormData((prev) => ({
                     ...prev,
+                    projectId: projectId || "",
                     projectNumber: p.code,
                     projectLocation: prev.projectLocation || p.location,
                   }))
@@ -408,6 +398,9 @@ export default function NewInspection() {
                 placeholder={t("observation.projectNumber")}
               />
             </FormField>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField label={t("field.location")}>
               <Input
                 value={formData.projectLocation}

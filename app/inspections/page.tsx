@@ -113,7 +113,8 @@ export default function InspectionsPage() {
                   onClick={() => setFilterStatus(filterStatus === s.key ? null : s.key)}
                   className={cn(
                     "text-xs",
-                    filterStatus === s.key && "border-[#3FAEFC] bg-[#3FAEFC]/10 text-[#3FAEFC] hover:bg-[#3FAEFC]/20 hover:text-[#3FAEFC]"
+                    filterStatus === s.key && "border-[#3FAEFC] bg-[#3FAEFC]/10 text-[#3FAEFC]",
+                    "hover:border-[#64BCDE] hover:bg-[#64BCDE]/10 hover:text-[#64BCDE]"
                   )}
                 >
                   {t(s.label as any)}
