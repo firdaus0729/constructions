@@ -1326,11 +1326,21 @@ export async function exportInspectionAsPdf(
       // Check if we can fit at least the header on this page
       checkPageBreak(topBlockHeight + 5)
       
-      const itemStartY = y
+      let itemStartY = y
       const itemWidth = pageWidth - 2 * margin
+      
+      // Track which sections have been drawn (for border drawing)
+      let statsSectionDrawn = false
+      let textSectionStartY = 0
+      let textSectionEndY = 0
+      let textSectionDrawn = false
+      let imageSectionStartY = 0
+      let imageSectionEndY = 0
+      let imageSectionDrawn = false
       
       // ----- Section 1: Statistics (top grey block) -----
       const statsSectionY = y
+      statsSectionDrawn = true
       doc.setFillColor(LIGHT_GRAY[0], LIGHT_GRAY[1], LIGHT_GRAY[2])
       doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
       doc.setLineWidth(0.2)
@@ -1423,30 +1433,9 @@ export async function exportInspectionAsPdf(
       doc.line(margin, y, pageWidth - margin, y)
       
       // ----- Section 2: Text (response + comment) - always has border -----
-      const textSectionStartY = y
-      let textY = textSectionStartY + 3.5 // Lower text for better readability
-      
-      // Calculate text content height dynamically
-      let textContentHeight = 0
-      if (hasResponse && response) {
-        textContentHeight += 4
-      }
-      if (response && response.comment) {
-        textContentHeight += 3 // Comment header
-        const commentLines = doc.splitTextToSize(response.comment, pageWidth - 2 * margin - 10)
-        textContentHeight += commentLines.length * 3 + 2
-      }
-      // Always reserve space for text section (even if empty, we'll draw a blank border)
-      if (textContentHeight === 0) {
-        textContentHeight = 8 // Minimum height for blank text section
-      }
-      
-      // Check if text section fits on current page
-      checkPageBreak(textContentHeight + 5)
-      
-      // Draw text content
-      doc.setFont("helvetica", "normal")
-      doc.setFontSize(7)
+      textSectionStartY = y
+      // Prepare all text content first
+      const textLines: { type: 'response' | 'comment-header' | 'comment-line', content: string, height: number, namePart?: string, restPart?: string }[] = []
       
       if (hasResponse && response) {
         const responseDate = response.updatedAt || response.createdAt || inspection.updatedAt || inspection.createdAt || new Date()
@@ -1458,40 +1447,119 @@ export async function exportInspectionAsPdf(
         else if (response.response === "not-applicable" || response.response === "na") responseStatus = "N/A"
         const namePart = `${responderName} (${companyName})`
         const restPart = ` a répondu ${responseStatus} le ${dateStr} à ${timeStr} EDT`
-        doc.setFont("helvetica", "bold")
-        doc.text(namePart, margin + 2, textY)
-        const nameW = doc.getTextWidth(namePart)
-        doc.setFont("helvetica", "normal")
-        doc.text(restPart, margin + 2 + nameW, textY)
-        textY += 4
+        textLines.push({ type: 'response', content: `${namePart}${restPart}`, height: 4, namePart, restPart })
       }
 
       if (response && response.comment) {
         const commentDate = response.updatedAt || response.createdAt || new Date()
         const commentDateStr = formatDateFR(new Date(commentDate))
         const commentTimeStr = formatTimeFR(new Date(commentDate))
-        doc.setFont("helvetica", "bold")
-        doc.text(responderName + " (" + companyName + ")", margin + 2, textY)
-        doc.setFont("helvetica", "normal")
-        doc.text(" a laissé un commentaire le " + commentDateStr + " à " + commentTimeStr + " EDT", margin + 2 + doc.getTextWidth(responderName + " (" + companyName + ")"), textY)
-        textY += 3.5
+        const namePart = responderName + " (" + companyName + ")"
+        const restPart = " a laissé un commentaire le " + commentDateStr + " à " + commentTimeStr + " EDT"
+        textLines.push({ type: 'comment-header', content: `${namePart}${restPart}`, height: 3.5, namePart, restPart })
+        
         const commentLines = doc.splitTextToSize(response.comment, pageWidth - 2 * margin - 10)
         commentLines.forEach((line: string) => {
-          doc.text(line, margin + 2, textY)
-          textY += 3.5
+          textLines.push({ type: 'comment-line', content: line, height: 3.5 })
         })
-        textY += 2
+        textLines.push({ type: 'comment-line', content: '', height: 2 }) // Spacing after comment
       }
       
-      const textSectionEndY = Math.max(textSectionStartY + textContentHeight, textY)
+      // If no content, add blank space
+      if (textLines.length === 0) {
+        textLines.push({ type: 'comment-line', content: '', height: 8 })
+      }
       
-      // Draw text section borders
-      doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
-      doc.setLineWidth(0.2)
-      doc.line(margin, textSectionStartY, margin, textSectionEndY) // Left border
-      doc.line(pageWidth - margin, textSectionStartY, pageWidth - margin, textSectionEndY) // Right border
+      // Draw text lines, handling page breaks to fill current page as much as possible
+      let currentTextSectionStartY = y
+      let remainingLines = [...textLines]
+      let pageBeforeText = (doc as any).internal.getCurrentPageInfo().pageNumber
       
-      y = textSectionEndY
+      doc.setFont("helvetica", "normal")
+      doc.setFontSize(7)
+      
+      while (remainingLines.length > 0) {
+        const availableHeight = pageHeight - margin - 15 - y
+        let linesToDraw: typeof remainingLines = []
+        let heightUsed = 0
+        
+        // Calculate how many lines can fit on current page
+        for (const line of remainingLines) {
+          if (heightUsed + line.height <= availableHeight - 5) {
+            linesToDraw.push(line)
+            heightUsed += line.height
+          } else {
+            break
+          }
+        }
+        
+        // If no lines fit, force at least one line to next page
+        if (linesToDraw.length === 0 && remainingLines.length > 0) {
+          checkPageBreak(remainingLines[0].height + 5)
+          const pageAfterCheck = (doc as any).internal.getCurrentPageInfo().pageNumber
+          if (pageAfterCheck > pageBeforeText) {
+            itemStartY = y
+            pageBeforeText = pageAfterCheck
+          }
+          currentTextSectionStartY = y
+          // Redraw divider line at top of new page
+          doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
+          doc.setLineWidth(0.2)
+          doc.line(margin, y, pageWidth - margin, y)
+          linesToDraw = [remainingLines[0]]
+          heightUsed = remainingLines[0].height
+        }
+        
+        // Draw lines that fit on current page
+        let currentTextY = currentTextSectionStartY + 3.5
+        for (const line of linesToDraw) {
+          if (line.type === 'response' && line.namePart && line.restPart) {
+            doc.setFont("helvetica", "bold")
+            doc.text(line.namePart, margin + 2, currentTextY)
+            const nameW = doc.getTextWidth(line.namePart)
+            doc.setFont("helvetica", "normal")
+            doc.text(line.restPart, margin + 2 + nameW, currentTextY)
+          } else if (line.type === 'comment-header' && line.namePart && line.restPart) {
+            doc.setFont("helvetica", "bold")
+            doc.text(line.namePart, margin + 2, currentTextY)
+            doc.setFont("helvetica", "normal")
+            doc.text(line.restPart, margin + 2 + doc.getTextWidth(line.namePart), currentTextY)
+          } else if (line.content) {
+            doc.text(line.content, margin + 2, currentTextY)
+          }
+          currentTextY += line.height
+        }
+        
+        // Draw borders for this portion
+        const currentTextSectionEndY = currentTextY
+        doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
+        doc.setLineWidth(0.2)
+        doc.line(margin, currentTextSectionStartY, margin, currentTextSectionEndY)
+        doc.line(pageWidth - margin, currentTextSectionStartY, pageWidth - margin, currentTextSectionEndY)
+        
+        // Remove drawn lines from remaining
+        remainingLines = remainingLines.slice(linesToDraw.length)
+        
+        // If there are more lines, move to next page
+        if (remainingLines.length > 0) {
+          checkPageBreak(remainingLines[0].height + 5)
+          const pageAfterCheck = (doc as any).internal.getCurrentPageInfo().pageNumber
+          if (pageAfterCheck > pageBeforeText) {
+            itemStartY = y
+            pageBeforeText = pageAfterCheck
+          }
+          currentTextSectionStartY = y
+          // Redraw divider line at top of new page
+          doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
+          doc.setLineWidth(0.2)
+          doc.line(margin, y, pageWidth - margin, y)
+        } else {
+          y = currentTextSectionEndY
+        }
+      }
+      
+      textSectionEndY = y
+      textSectionDrawn = true
       
       // ----- Section 3: Images (only if photos exist) -----
       if (hasPhotos && response && response.attachments) {
@@ -1502,17 +1570,13 @@ export async function exportInspectionAsPdf(
           doc.setLineWidth(0.2)
           doc.line(margin, y, pageWidth - margin, y)
           
-          const imageSectionStartY = y
-          let imageY = imageSectionStartY + 3.5
+          let imageSectionStartY = y
+          imageSectionDrawn = true
+          let currentImageY = imageSectionStartY + 3.5
           
           const photoDate = response.updatedAt || response.createdAt || new Date()
           const photoDateStr = formatDateFR(new Date(photoDate))
           const photoTimeStr = formatTimeFR(new Date(photoDate))
-          doc.setFont("helvetica", "bold")
-          doc.text(responderName + " (" + companyName + ")", margin + 2, imageY)
-          doc.setFont("helvetica", "normal")
-          doc.text(` a ajouté ${photos.length} photo${photos.length > 1 ? "s" : ""} via mobile le ${photoDateStr} à ${photoTimeStr} EDT`, margin + 2 + doc.getTextWidth(responderName + " (" + companyName + ")"), imageY)
-          imageY += 4.5
           
           const cellW = 78
           const cellH = 44
@@ -1521,17 +1585,59 @@ export async function exportInspectionAsPdf(
           const startX = margin + 2
           const gapX = 8
           const gapY = 6
+          const rowHeight = cellH + gapY
+          const headerHeight = 3.5 + 4.5 // Photo header text + spacing
+          
+          // Draw photo header (only once, at the start)
+          doc.setFont("helvetica", "bold")
+          doc.text(responderName + " (" + companyName + ")", margin + 2, currentImageY)
+          doc.setFont("helvetica", "normal")
+          doc.text(` a ajouté ${photos.length} photo${photos.length > 1 ? "s" : ""} via mobile le ${photoDateStr} à ${photoTimeStr} EDT`, margin + 2 + doc.getTextWidth(responderName + " (" + companyName + ")"), currentImageY)
+          currentImageY += 4.5
+          
+          // Process images row by row, filling current page as much as possible
+          let currentPageStartRow = 0
+          let currentPageImageY = currentImageY
+          let pageBeforeImages = (doc as any).internal.getCurrentPageInfo().pageNumber
           
           for (let idx = 0; idx < photos.length; idx++) {
             const col = idx % 2
             const row = Math.floor(idx / 2)
-            const x = startX + col * (cellW + gapX)
-            const yy = imageY + row * (cellH + gapY)
             
-            // Check page break for each image row
-            if (row > 0) {
-              checkPageBreak(cellH + gapY + 10)
+            // Check if we need a new page for this row
+            if (row > currentPageStartRow) {
+              const availableHeight = pageHeight - margin - 15 - currentImageY
+              const neededHeight = rowHeight
+              
+              if (neededHeight > availableHeight - 5) {
+                // Need new page
+                checkPageBreak(neededHeight + 10)
+                const pageAfterCheck = (doc as any).internal.getCurrentPageInfo().pageNumber
+                if (pageAfterCheck > pageBeforeImages) {
+                  itemStartY = y
+                  pageBeforeImages = pageAfterCheck
+                  // Redraw divider line at top of new page
+                  doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
+                  doc.setLineWidth(0.2)
+                  doc.line(margin, y, pageWidth - margin, y)
+                  imageSectionStartY = y
+                  currentImageY = y + 3.5
+                  // Redraw photo header on new page
+                  doc.setFont("helvetica", "bold")
+                  doc.text(responderName + " (" + companyName + ")", margin + 2, currentImageY)
+                  doc.setFont("helvetica", "normal")
+                  doc.text(` a ajouté ${photos.length} photo${photos.length > 1 ? "s" : ""} via mobile le ${photoDateStr} à ${photoTimeStr} EDT`, margin + 2 + doc.getTextWidth(responderName + " (" + companyName + ")"), currentImageY)
+                  currentImageY += 4.5
+                }
+                currentPageImageY = currentImageY
+                currentPageStartRow = row
+              }
             }
+            
+            // Calculate position relative to current page's start
+            const rowOnCurrentPage = row - currentPageStartRow
+            const x = startX + col * (cellW + gapX)
+            const yy = currentPageImageY + rowOnCurrentPage * rowHeight
             
             doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
             doc.setLineWidth(0.2)
@@ -1552,18 +1658,22 @@ export async function exportInspectionAsPdf(
             doc.line(x + cellW / 2 - textW / 2, imgY + imgH + 6.8, x + cellW / 2 + textW / 2, imgY + imgH + 6.8)
             doc.setTextColor(0, 0, 0)
             doc.setDrawColor(0, 0, 0)
+            
+            // Update y position after each complete row
+            if (col === 1 || idx === photos.length - 1) {
+              y = yy + cellH + 2
+            }
           }
           
-          const imageSectionEndY = imageY + Math.ceil(photos.length / 2) * (cellH + gapY) + 2
+          // Calculate final image section end Y
+          imageSectionEndY = y
           
           // Draw image section borders
           doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
           doc.setLineWidth(0.2)
-          doc.line(margin, imageSectionStartY, margin, imageSectionEndY) // Left border
-          doc.line(pageWidth - margin, imageSectionStartY, pageWidth - margin, imageSectionEndY) // Right border
-          doc.line(margin, imageSectionEndY, pageWidth - margin, imageSectionEndY) // Bottom border
-          
-          y = imageSectionEndY
+          doc.line(margin, imageSectionStartY, margin, imageSectionEndY)
+          doc.line(pageWidth - margin, imageSectionStartY, pageWidth - margin, imageSectionEndY)
+          doc.line(margin, imageSectionEndY, pageWidth - margin, imageSectionEndY)
         }
       } else {
         // No images - draw bottom border for text section
