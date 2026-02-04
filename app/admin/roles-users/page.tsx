@@ -41,26 +41,26 @@ import type { UserRole } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
 
-const ROLE_CONFIG = {
+const getRoleConfig = (role: UserRole, t: (key: string) => string) => ({
   admin: {
-    label: "Admin",
-    description: "Administrators with full system access",
+    label: t("role.admin"),
+    description: t("role.admin.description"),
     color: "destructive",
     icon: Shield,
   },
   supervisor: {
-    label: "Supervisor",
-    description: "Supervisors who can manage workers and review forms",
+    label: t("role.supervisor"),
+    description: t("role.supervisor.description"),
     color: "secondary",
     icon: Users,
   },
   worker: {
-    label: "Worker",
-    description: "Workers who can create and submit forms",
+    label: t("role.worker"),
+    description: t("role.worker.description"),
     color: "default",
     icon: Users,
   },
-} as const
+} as const)[role]
 
 export default function RolesAndUsersPage() {
   const { user } = useAuth()
@@ -98,14 +98,14 @@ export default function RolesAndUsersPage() {
       const result = await signInWithAzure()
       if (result) {
         setIsAzureConnected(true)
-        toast.success("Connected to Azure AD successfully")
+        toast.success(t("azure.connectSuccess"))
         await loadAzureGroups()
       } else {
-        toast.error("Failed to connect to Azure AD")
+        toast.error(t("azure.connectFailed"))
       }
     } catch (error) {
       console.error("Azure AD connection error:", error)
-      toast.error("Failed to connect to Azure AD")
+      toast.error(t("azure.connectFailed"))
     }
   }
 
@@ -115,7 +115,7 @@ export default function RolesAndUsersPage() {
       setAzureGroups(groups)
     } catch (error) {
       console.error("Failed to load Azure AD groups:", error)
-      toast.error("Failed to load Azure AD groups")
+      toast.error(t("azure.loadGroupsFailed"))
     }
   }
 
@@ -131,18 +131,21 @@ export default function RolesAndUsersPage() {
           lastSyncedAt: null,
           memberCount,
         })
-        toast.success(`Configured ${ROLE_CONFIG[role].label} group: ${group.displayName}`)
+        const roleConfig = getRoleConfig(role, t)
+        toast.success(t("azure.groupConfigured", { role: roleConfig.label, groupName: group.displayName }))
       }
     } catch (error) {
       console.error(`Failed to configure ${role} group:`, error)
-      toast.error(`Failed to configure ${role} group`)
+      const roleConfig = getRoleConfig(role, t)
+      toast.error(t("azure.configureGroupFailed", { role: roleConfig.label }))
     }
   }
 
   const handleSyncGroup = async (role: UserRole) => {
     const config = azureAdGroupConfigs.find((c) => c.role === role)
     if (!config || !config.azureGroupId) {
-      toast.error(`No Azure AD group configured for ${ROLE_CONFIG[role].label}`)
+      const roleConfig = getRoleConfig(role, t)
+      toast.error(t("azure.noGroupConfigured", { role: roleConfig.label }))
       return
     }
 
@@ -187,15 +190,16 @@ export default function RolesAndUsersPage() {
           memberCount,
         })
 
-        toast.success(
-          `Synced ${result.syncedCount} users from ${ROLE_CONFIG[role].label} group`
-        )
+        const roleConfig = getRoleConfig(role, t)
+        toast.success(t("azure.usersSynced", { count: result.syncedCount, role: roleConfig.label }))
       } else {
-        toast.error(`Failed to sync ${ROLE_CONFIG[role].label} group`)
+        const roleConfig = getRoleConfig(role, t)
+        toast.error(t("azure.syncGroupFailed", { role: roleConfig.label }))
       }
     } catch (error) {
       console.error(`Failed to sync ${role} group:`, error)
-      toast.error(`Failed to sync ${ROLE_CONFIG[role].label} group`)
+      const roleConfig = getRoleConfig(role, t)
+      toast.error(t("azure.syncGroupFailed", { role: roleConfig.label }))
     } finally {
       setIsSyncing((prev) => ({ ...prev, [role]: false }))
     }
@@ -229,10 +233,10 @@ export default function RolesAndUsersPage() {
               <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
                 <Shield className="h-6 w-6 text-indigo-600 dark:text-indigo-300" />
               </div>
-              <h1 className="text-3xl font-bold text-foreground">Roles & Users</h1>
+              <h1 className="text-3xl font-bold text-foreground">{t("rolesAndUsers")}</h1>
             </div>
             <p className="text-muted-foreground mt-1">
-              Manage role-based access control with Microsoft Azure AD Groups
+              {t("rolesAndUsersDescription")}
             </p>
           </div>
           <div className="flex gap-2">
@@ -241,12 +245,12 @@ export default function RolesAndUsersPage() {
                 {isAzureAdConfigured() ? (
                   <>
                     <Cloud className="h-4 w-4" />
-                    Connect to Azure AD
+                    {t("azure.connectButton")}
                   </>
                 ) : (
                   <>
                     <CloudOff className="h-4 w-4" />
-                    Azure AD Not Configured
+                    {t("azure.notConfigured")}
                   </>
                 )}
               </Button>
@@ -254,7 +258,7 @@ export default function RolesAndUsersPage() {
             {isAzureConnected && (
               <Button onClick={loadAzureGroups} variant="outline" className="gap-2">
                 <RefreshCw className="h-4 w-4" />
-                Refresh Groups
+                {t("azure.refreshGroups")}
               </Button>
             )}
           </div>
@@ -265,7 +269,7 @@ export default function RolesAndUsersPage() {
           <Alert className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Azure AD is not configured. Please set the following environment variables:
+              {t("azure.notConfiguredAlert")}
               <ul className="list-disc list-inside mt-2 space-y-1">
                 <li>NEXT_PUBLIC_AZURE_CLIENT_ID</li>
                 <li>NEXT_PUBLIC_AZURE_TENANT_ID</li>
@@ -279,7 +283,7 @@ export default function RolesAndUsersPage() {
         <div className="grid gap-6 grid-cols-1 lg:grid-cols-3 mb-8">
           {(["admin", "supervisor", "worker"] as UserRole[]).map((role) => {
             const config = azureAdGroupConfigs.find((c) => c.role === role)
-            const roleInfo = ROLE_CONFIG[role]
+            const roleInfo = getRoleConfig(role, t)
             const Icon = roleInfo.icon
             const isSyncingRole = isSyncing[role]
 
@@ -301,7 +305,7 @@ export default function RolesAndUsersPage() {
                     {config?.azureGroupId && (
                       <Badge variant="outline" className="gap-1">
                         <CheckCircle2 className="h-3 w-3" />
-                        Configured
+                        {t("azure.configured")}
                       </Badge>
                     )}
                   </div>
@@ -311,18 +315,18 @@ export default function RolesAndUsersPage() {
                     <>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Azure AD Group:</span>
+                          <span className="text-muted-foreground">{t("azure.adGroup")}</span>
                           <span className="font-medium">{config.azureGroupName || "Unknown"}</span>
                         </div>
                         {config.memberCount !== undefined && (
                           <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">Members:</span>
+                            <span className="text-muted-foreground">{t("azure.members")}</span>
                             <Badge variant="secondary">{config.memberCount}</Badge>
                           </div>
                         )}
                         {config.lastSyncedAt && (
                           <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">Last Synced:</span>
+                            <span className="text-muted-foreground">{t("azure.lastSynced")}</span>
                             <span className="text-xs">
                               {new Date(config.lastSyncedAt).toLocaleString()}
                             </span>
@@ -339,12 +343,12 @@ export default function RolesAndUsersPage() {
                           {isSyncingRole ? (
                             <>
                               <RefreshCw className="h-4 w-4 animate-spin" />
-                              Syncing...
+                              {t("azure.syncing")}
                             </>
                           ) : (
                             <>
                               <RefreshCw className="h-4 w-4" />
-                              Sync Users
+                              {t("azure.syncUsers")}
                             </>
                           )}
                         </Button>
@@ -364,18 +368,18 @@ export default function RolesAndUsersPage() {
                           </DialogTrigger>
                           <DialogContent>
                             <DialogHeader>
-                              <DialogTitle>Configure {roleInfo.label} Group</DialogTitle>
+                              <DialogTitle>{t("azure.configureGroup", { role: roleInfo.label })}</DialogTitle>
                               <DialogDescription>
-                                Select an Azure AD group for {roleInfo.label} role
+                                {t("azure.selectGroupForRole", { role: roleInfo.label })}
                               </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4">
                               <div className="space-y-2">
-                                <label className="text-sm font-medium">Search Groups</label>
+                                <label className="text-sm font-medium">{t("azure.searchGroups")}</label>
                                 <div className="relative">
                                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                   <Input
-                                    placeholder="Search Azure AD groups..."
+                                    placeholder={t("azure.searchGroupsPlaceholder")}
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="pl-9"
@@ -385,7 +389,7 @@ export default function RolesAndUsersPage() {
                               <div className="border rounded-lg p-3 max-h-64 overflow-y-auto space-y-2">
                                 {filteredGroups.length === 0 ? (
                                   <p className="text-sm text-muted-foreground text-center py-4">
-                                    {searchTerm ? "No groups found" : "Search for Azure AD groups"}
+                                    {searchTerm ? t("azure.noGroupsFound") : t("azure.searchForGroups")}
                                   </p>
                                 ) : (
                                   filteredGroups.map((group) => (
@@ -418,7 +422,7 @@ export default function RolesAndUsersPage() {
                       <Alert>
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription className="text-xs">
-                          No Azure AD group configured for this role
+                          {t("azure.noGroupForRole")}
                         </AlertDescription>
                       </Alert>
                       <Dialog open={configDialogRole === role} onOpenChange={(open) => setConfigDialogRole(open ? role : null)}>
@@ -432,23 +436,23 @@ export default function RolesAndUsersPage() {
                             }}
                           >
                             <Settings className="h-4 w-4" />
-                            Configure Group
+                            {t("azure.configureGroupButton")}
                           </Button>
                         </DialogTrigger>
                         <DialogContent>
                           <DialogHeader>
-                            <DialogTitle>Configure {roleInfo.label} Group</DialogTitle>
+                            <DialogTitle>{t("azure.configureGroup", { role: roleInfo.label })}</DialogTitle>
                             <DialogDescription>
-                              Select an Azure AD group for {roleInfo.label} role
+                              {t("azure.selectGroupForRole", { role: roleInfo.label })}
                             </DialogDescription>
                           </DialogHeader>
                           <div className="space-y-4">
                             <div className="space-y-2">
-                              <label className="text-sm font-medium">Search Groups</label>
+                              <label className="text-sm font-medium">{t("azure.searchGroups")}</label>
                               <div className="relative">
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
-                                  placeholder="Search Azure AD groups..."
+                                  placeholder={t("azure.searchGroupsPlaceholder")}
                                   value={searchTerm}
                                   onChange={(e) => setSearchTerm(e.target.value)}
                                   className="pl-9"
@@ -458,7 +462,7 @@ export default function RolesAndUsersPage() {
                             <div className="border rounded-lg p-3 max-h-64 overflow-y-auto space-y-2">
                               {filteredGroups.length === 0 ? (
                                 <p className="text-sm text-muted-foreground text-center py-4">
-                                  {searchTerm ? "No groups found" : "Search for Azure AD groups"}
+                                  {searchTerm ? t("azure.noGroupsFound") : t("azure.searchForGroups")}
                                 </p>
                               ) : (
                                 filteredGroups.map((group) => (
@@ -495,9 +499,9 @@ export default function RolesAndUsersPage() {
         {/* Users by Role Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Users by Role</CardTitle>
+            <CardTitle>{t("azure.usersByRole")}</CardTitle>
             <CardDescription>
-              Users synced from Azure AD Groups and their assigned roles
+              {t("azure.usersByRoleDescription")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -505,18 +509,18 @@ export default function RolesAndUsersPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Azure AD Group</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>{t("azure.table.name")}</TableHead>
+                    <TableHead>{t("azure.table.email")}</TableHead>
+                    <TableHead>{t("azure.table.role")}</TableHead>
+                    <TableHead>{t("azure.table.group")}</TableHead>
+                    <TableHead>{t("azure.table.status")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {authUsers.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                        No users synced yet. Configure and sync Azure AD groups above.
+                        {t("azure.noUsersSynced")}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -524,29 +528,30 @@ export default function RolesAndUsersPage() {
                       const groupConfig = authUser.azureAdGroupId
                         ? azureAdGroupConfigs.find((c) => c.azureGroupId === authUser.azureAdGroupId)
                         : null
+                      const userRoleConfig = getRoleConfig(authUser.role, t)
 
                       return (
                         <TableRow key={authUser.id}>
                           <TableCell className="font-medium">{authUser.name}</TableCell>
                           <TableCell>{authUser.email}</TableCell>
                           <TableCell>
-                            <Badge variant={ROLE_CONFIG[authUser.role].color as any}>
-                              {ROLE_CONFIG[authUser.role].label}
+                            <Badge variant={userRoleConfig.color as any}>
+                              {userRoleConfig.label}
                             </Badge>
                           </TableCell>
                           <TableCell>
                             {groupConfig?.azureGroupName || (
-                              <span className="text-muted-foreground text-sm">Not assigned</span>
+                              <span className="text-muted-foreground text-sm">{t("azure.notAssigned")}</span>
                             )}
                           </TableCell>
                           <TableCell>
                             {authUser.azureAdId ? (
                               <Badge variant="outline" className="gap-1">
                                 <CheckCircle2 className="h-3 w-3" />
-                                Synced
+                                {t("azure.synced")}
                               </Badge>
                             ) : (
-                              <Badge variant="secondary">Local</Badge>
+                              <Badge variant="secondary">{t("azure.local")}</Badge>
                             )}
                           </TableCell>
                         </TableRow>

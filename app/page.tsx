@@ -15,10 +15,10 @@ import Link from "next/link"
 
 export default function DashboardPage() {
   const { t } = useLocale()
-  const { getRecentDrafts, getRecentSubmissions } = useAppStore()
+  const { getRecentClosed, getRecentInitiated } = useAppStore()
 
-  const recentDrafts = getRecentDrafts()
-  const recentSubmissions = getRecentSubmissions()
+  const recentClosed = getRecentClosed()
+  const recentInitiated = getRecentInitiated()
 
   return (
     <AppShell>
@@ -65,12 +65,12 @@ export default function DashboardPage() {
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg font-semibold">{t("dashboard.closed")}</CardTitle>
               <Button variant="ghost" size="sm" asChild>
-                <Link href="/forms/drafts">{t("dashboard.viewAll")}</Link>
+                <Link href="/forms/closed">{t("dashboard.viewAll")}</Link>
               </Button>
             </CardHeader>
             <CardContent className="p-0">
               <FormList
-                items={recentDrafts}
+                items={recentClosed}
                 emptyMessage={t("dashboard.noClosed")}
                 statusOverride={{ labelKey: "status.closed", className: "bg-[#999999] text-white" }}
               />
@@ -82,12 +82,12 @@ export default function DashboardPage() {
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg font-semibold">{t("dashboard.initiated")}</CardTitle>
               <Button variant="ghost" size="sm" asChild>
-                <Link href="/forms/submissions">{t("dashboard.viewAll")}</Link>
+                <Link href="/forms/initiated">{t("dashboard.viewAll")}</Link>
               </Button>
             </CardHeader>
             <CardContent className="p-0">
               <FormList
-                items={recentSubmissions}
+                items={recentInitiated}
                 emptyMessage={t("dashboard.noInitiated")}
                 statusOverride={{ labelKey: "status.initiated", className: "bg-[#27F54D] text-white" }}
               />

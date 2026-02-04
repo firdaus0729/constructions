@@ -1737,13 +1737,26 @@ export async function exportIncidentAsPdf(
   doc.setFont("helvetica", "normal")
 
   let leftY = y
+  let prevLabel = ""
   leftRows.forEach(([label, value]) => {
+    // Add extra spacing after "Date de l'événement" for better visibility
+    if (prevLabel === "Date de l'événement") {
+      leftY += 3
+    }
     doc.setFont("helvetica", "bold")
-    doc.text(label, leftColX, leftY)
+    // Special handling for "Date de l'événement" - split across two lines
+    if (label === "Date de l'événement") {
+      doc.text("Date de", leftColX, leftY)
+      doc.text("l'événement", leftColX, leftY + 3.5)
+    } else {
+      doc.text(label, leftColX, leftY)
+    }
     doc.setFont("helvetica", "normal")
     const v = String(value || "")
     const vLines = doc.splitTextToSize(v, leftColW - labelW - 2)
+    // Align value with the first line of the label
     doc.text(vLines[0] || "", leftColX + labelW, leftY)
+    prevLabel = label
     leftY += rowH
   })
 
@@ -1761,10 +1774,15 @@ export async function exportIncidentAsPdf(
   rightY += rowH
 
   doc.setFont("helvetica", "bold")
-  doc.text("Heure de l'événement", rightColX, rightY)
+  // Split "Heure de l'événement" across two lines
+  doc.text("Heure de", rightColX, rightY)
+  doc.text("l'événement", rightColX, rightY + 3.5)
   doc.setFont("helvetica", "normal")
+  // Align value with the first line of the label
   doc.text(eventTimeStr, rightColX + labelW, rightY)
   rightY += rowH
+  // Add extra spacing after "Heure de l'événement" for better visibility
+  rightY += 3
 
   doc.setFont("helvetica", "bold")
   doc.text("Distribution", rightColX, rightY)
@@ -1822,7 +1840,6 @@ export async function exportIncidentAsPdf(
   })
   y += 4 * (descLines.length || 1)
   y += 4
-  thinLine()
 
   // ----- Pièces jointes: large embedded image/document box + filename below -----
   const attachments = incident.attachments || []

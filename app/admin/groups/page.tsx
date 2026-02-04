@@ -56,7 +56,7 @@ export default function GroupsPage() {
       setNewGroupDescription("")
       setSelectedMembers([])
       setIsOpen(false)
-      toast.success(t("alert.groupCreated") || "Group created successfully")
+      toast.success(t("alert.groupCreated"))
     } catch (err) {
       setFormError(t("failedToAddGroup"))
       toast.error(t("failedToAddGroup"))
@@ -188,7 +188,7 @@ export default function GroupsPage() {
             <CardContent className="flex flex-col items-center justify-center py-12 px-6">
               <Users className="h-12 w-12 text-muted-foreground/50 mb-4" />
               <h3 className="text-lg font-semibold mb-2">{t("noGroupsYet")}</h3>
-              <p className="text-muted-foreground text-center mb-6">Create your first group to organize team members</p>
+              <p className="text-muted-foreground text-center mb-6">{t("createFirstGroupDescription")}</p>
               <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogTrigger asChild>
                   <Button className="gap-2">
@@ -221,7 +221,7 @@ export default function GroupsPage() {
                         size="sm"
                         onClick={() => {
                           deleteUserGroup(group.id)
-                          toast.success(`Group deleted: ${group.name}`)
+                          toast.success(t("alert.groupDeleted"))
                         }}
                         className="text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
                       >

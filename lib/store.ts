@@ -833,6 +833,8 @@ interface AppState {
   // Computed
   getRecentDrafts: () => FormListItem[]
   getRecentSubmissions: () => FormListItem[]
+  getRecentClosed: () => FormListItem[]
+  getRecentInitiated: () => FormListItem[]
 }
 
 export const useAppStore = create<AppState>()(
@@ -1432,6 +1434,114 @@ export const useAppStore = create<AppState>()(
             })),
         ]
         return submissions.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()).slice(0, 5)
+      },
+      getRecentClosed: () => {
+        const state = get()
+        const closed: FormListItem[] = [
+          ...state.observations
+            .filter((o) => o.status === "closed")
+            .map((o) => ({
+              id: o.id,
+              type: "observation" as const,
+              number: o.number,
+              title: o.title,
+              projectName: state.projects.find((p) => p.id === o.projectId)?.name || "",
+              status: o.status,
+              updatedAt: new Date(o.updatedAt),
+              syncStatus: o.syncStatus,
+            })),
+          ...state.incidents
+            .filter((i) => i.status === "closed")
+            .map((i) => ({
+              id: i.id,
+              type: "incident" as const,
+              number: i.number,
+              title: i.title,
+              projectName: state.projects.find((p) => p.id === i.projectId)?.name || "",
+              status: i.status,
+              updatedAt: new Date(i.updatedAt),
+              syncStatus: i.syncStatus,
+            })),
+          ...state.inspections
+            .filter((i) => i.status === "closed")
+            .map((i) => ({
+              id: i.id,
+              type: "inspection" as const,
+              number: i.id.slice(-6).toUpperCase(),
+              title: i.documentTitle,
+              projectName: state.projects.find((p) => p.id === i.projectId)?.name || "",
+              status: i.status,
+              updatedAt: new Date(i.updatedAt),
+              syncStatus: i.syncStatus,
+            })),
+          ...state.livrables
+            .filter((s) => s.status === "closed")
+            .map((s) => ({
+              id: s.id,
+              type: "livrable" as const,
+              number: s.number,
+              title: s.title,
+              projectName: state.projects.find((p) => p.id === s.projectId)?.name || "",
+              status: s.status,
+              updatedAt: new Date(s.updatedAt),
+              syncStatus: s.syncStatus,
+            })),
+        ]
+        return closed.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()).slice(0, 5)
+      },
+      getRecentInitiated: () => {
+        const state = get()
+        const initiated: FormListItem[] = [
+          ...state.observations
+            .filter((o) => o.status !== "closed")
+            .map((o) => ({
+              id: o.id,
+              type: "observation" as const,
+              number: o.number,
+              title: o.title,
+              projectName: state.projects.find((p) => p.id === o.projectId)?.name || "",
+              status: o.status,
+              updatedAt: new Date(o.updatedAt),
+              syncStatus: o.syncStatus,
+            })),
+          ...state.incidents
+            .filter((i) => i.status !== "closed")
+            .map((i) => ({
+              id: i.id,
+              type: "incident" as const,
+              number: i.number,
+              title: i.title,
+              projectName: state.projects.find((p) => p.id === i.projectId)?.name || "",
+              status: i.status,
+              updatedAt: new Date(i.updatedAt),
+              syncStatus: i.syncStatus,
+            })),
+          ...state.inspections
+            .filter((i) => i.status !== "closed")
+            .map((i) => ({
+              id: i.id,
+              type: "inspection" as const,
+              number: i.id.slice(-6).toUpperCase(),
+              title: i.documentTitle,
+              projectName: state.projects.find((p) => p.id === i.projectId)?.name || "",
+              status: i.status,
+              updatedAt: new Date(i.updatedAt),
+              syncStatus: i.syncStatus,
+            })),
+          ...state.livrables
+            .filter((s) => s.status !== "closed")
+            .map((s) => ({
+              id: s.id,
+              type: "livrable" as const,
+              number: s.number,
+              title: s.title,
+              projectName: state.projects.find((p) => p.id === s.projectId)?.name || "",
+              status: s.status,
+              updatedAt: new Date(s.updatedAt),
+              syncStatus: s.syncStatus,
+            })),
+        ]
+        return initiated.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()).slice(0, 5)
       },
     }),
     {
