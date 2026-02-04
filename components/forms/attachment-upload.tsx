@@ -28,20 +28,70 @@ export function AttachmentUpload({
   const { t } = useLocale()
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    const newAttachments: Attachment[] = files.map((file) => ({
-      id: Math.random().toString(36).substring(7),
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      url: URL.createObjectURL(file),
-      uploadedAt: new Date(),
-    }))
+  const fileToDataUrl = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result || ""))
+      reader.onerror = () => reject(reader.error || new Error("Failed to read file"))
+      reader.readAsDataURL(file)
+    })
 
-    handleChange?.([...attachments, ...newAttachments].slice(0, maxFiles))
-    if (inputRef.current) {
-      inputRef.current.value = ""
+  const convertImageDataUrlToJpeg = (dataUrl: string): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const img = document.createElement("img")
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas")
+          canvas.width = img.naturalWidth || img.width
+          canvas.height = img.naturalHeight || img.height
+          const ctx = canvas.getContext("2d")
+          if (!ctx) return reject(new Error("Canvas not supported"))
+          ctx.drawImage(img, 0, 0)
+          resolve(canvas.toDataURL("image/jpeg", 0.92))
+        } catch (err) {
+          reject(err)
+        }
+      }
+      img.onerror = () => reject(new Error("Failed to load image for conversion"))
+      img.src = dataUrl
+    })
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+
+    try {
+      const newAttachments: Attachment[] = await Promise.all(
+        files.map(async (file) => {
+          let url = await fileToDataUrl(file)
+          let type = file.type
+
+          // jsPDF reliably supports PNG/JPEG. Convert other image types to JPEG for durable viewing + PDF export.
+          if (type.startsWith("image/") && type !== "image/jpeg" && type !== "image/png") {
+            try {
+              url = await convertImageDataUrlToJpeg(url)
+              type = "image/jpeg"
+            } catch {
+              // keep original data url if conversion fails
+            }
+          }
+
+          return {
+            id: Math.random().toString(36).substring(7),
+            name: file.name,
+            type,
+            size: file.size,
+            // IMPORTANT: store a durable data URL (not a temporary blob: URL)
+            url,
+            uploadedAt: new Date(),
+          }
+        }),
+      )
+
+      handleChange?.([...attachments, ...newAttachments].slice(0, maxFiles))
+    } finally {
+      if (inputRef.current) {
+        inputRef.current.value = ""
+      }
     }
   }
 

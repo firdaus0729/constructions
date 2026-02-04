@@ -1,6 +1,6 @@
 "use client"
 
-import { use } from "react"
+import { use, useState } from "react"
 import { format } from "date-fns"
 import {
   AlertTriangle,
@@ -13,6 +13,8 @@ import {
   Heart,
   FileText,
   AlertCircle,
+  Eye,
+  X,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { FormHeader } from "@/components/forms/form-header"
@@ -32,6 +34,51 @@ const CLOSED_BADGE = "bg-[#999999] text-white"
 const isClosed = (status: string) => status === "closed"
 const getDisplayStatusKey = (status: string): string =>
   isClosed(status) ? "status.closed" : "status.initiated"
+
+function ImagePreviewButton({ attachment }: { attachment: any }) {
+  const [showPreview, setShowPreview] = useState(false)
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setShowPreview(true)}
+        className="relative group rounded-lg overflow-hidden border border-border bg-muted/50 aspect-square cursor-pointer hover:border-primary transition-all hover:scale-105"
+      >
+        <img
+          src={attachment.url}
+          alt={attachment.name}
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+          <Eye className="h-6 w-6 text-white" />
+          <span className="sr-only">Preview image</span>
+        </div>
+      </button>
+      {showPreview && (
+        <div 
+          className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setShowPreview(false)}
+        >
+          <div className="max-w-4xl max-h-[90vh] relative" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={attachment.url}
+              alt={attachment.name}
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPreview(false)}
+              className="absolute -top-2 -right-2 bg-white hover:bg-gray-100 text-gray-800 rounded-full p-2 shadow-lg transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
 
 export default function IncidentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -308,19 +355,44 @@ export default function IncidentDetailPage({ params }: { params: Promise<{ id: s
         {/* Attachments */}
         {incident.attachments.length > 0 && (
           <FormSection title={t("form.attachments")}>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {incident.attachments.map((attachment) => (
-                <button
-                  key={attachment.id}
-                  type="button"
-                  onClick={() => window.open(attachment.url, "_blank")}
-                  className="p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer text-left"
-                >
-                  <p className="text-sm font-medium truncate">{attachment.name}</p>
-                  <p className="text-xs text-muted-foreground">{(attachment.size / 1024).toFixed(1)} KB</p>
-                </button>
-              ))}
-            </div>
+            {/* Image attachments */}
+            {incident.attachments.some((a: any) => a.type?.startsWith("image/")) && (
+              <div className="mb-4">
+                <p className="text-xs font-semibold text-muted-foreground mb-2">{t("form.attachments")} - {t("field.photos")}</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {incident.attachments
+                    .filter((a: any) => a.type?.startsWith("image/"))
+                    .map((attachment: any) => (
+                      <ImagePreviewButton key={attachment.id} attachment={attachment} />
+                    ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Non-image attachments */}
+            {incident.attachments.some((a: any) => !a.type?.startsWith("image/")) && (
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">{t("form.attachments")}</p>
+                <div className="space-y-2">
+                  {incident.attachments
+                    .filter((a: any) => !a.type?.startsWith("image/"))
+                    .map((attachment: any) => (
+                      <button
+                        key={attachment.id}
+                        type="button"
+                        onClick={() => window.open(attachment.url, "_blank")}
+                        className="w-full flex items-center gap-3 p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer text-left"
+                      >
+                        <FileText className="h-5 w-5 text-primary shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{attachment.name}</p>
+                          <p className="text-xs text-muted-foreground">{(attachment.size / 1024).toFixed(1)} KB</p>
+                        </div>
+                      </button>
+                    ))}
+                </div>
+              </div>
+            )}
           </FormSection>
         )}
       </div>

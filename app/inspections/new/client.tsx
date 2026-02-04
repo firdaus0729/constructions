@@ -56,7 +56,7 @@ export default function NewInspection() {
     createdBy: currentUser?.name || "Unknown",
     creatorId: currentUser?.id || "",
     description: "",
-    status: "draft" as string,
+    status: "open" as string,
     responses: {} as Record<string, InspectionItemResponse>,
   })
 
@@ -288,7 +288,7 @@ export default function NewInspection() {
           comment: response.comment || "",
           attachments: response.attachments || [],
         })),
-        status: "draft" as const,
+        status: "open" as const,
         createdAt: new Date(),
         updatedAt: new Date(),
         closedAt: null,
@@ -523,10 +523,7 @@ export default function NewInspection() {
                 onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value as any }))}
                 className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
               >
-                <option value="draft">{t("status.draft")}</option>
-                <option value="open">{t("status.open")}</option>
-                <option value="in-progress">{t("status.inProgress")}</option>
-                <option value="submitted">{t("status.submitted")}</option>
+                <option value="open">{t("status.initiated")}</option>
                 <option value="closed">{t("status.closed")}</option>
               </select>
             </FormField>

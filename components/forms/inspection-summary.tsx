@@ -73,7 +73,7 @@ export function InspectionSummary({ sections, responses }: InspectionSummaryProp
 
         <div className="flex flex-col items-center p-3 bg-muted/30 rounded-lg">
           <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted-foreground/10 mb-2">
-            <span className="h-4 w-4 text-muted-foreground font-bold">?</span>
+            <span className="text-muted-foreground font-bold text-base leading-none flex items-center justify-center">?</span>
           </div>
           <span className="text-2xl font-bold text-muted-foreground">{notAnsweredCount}</span>
           <span className="text-xs text-muted-foreground text-center">{t("inspection.notAnswered" as any)}</span>

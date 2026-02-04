@@ -174,12 +174,12 @@ export default function ObservationsPage() {
 
                       <div className="grid grid-cols-2 gap-2 mb-4 text-xs">
                         <div>
-                          <span className="text-foreground">{t("observation.projectNumber")}</span>
-                          <p className="font-medium font-mono text-foreground">{observation.projectNumber || project?.code || "-"}</p>
+                          <span className="text-muted-foreground">{t("observation.projectNumber")}</span>
+                          <p className="font-medium font-mono">{observation.projectNumber || project?.code || "-"}</p>
                         </div>
                         <div>
-                          <span className="text-foreground">{t("form.project")}</span>
-                          <p className="font-medium text-foreground">{project?.name || project?.code || "-"}</p>
+                          <span className="text-muted-foreground">{t("form.project")}</span>
+                          <p className="font-medium">{project?.name || project?.code || "-"}</p>
                         </div>
                       </div>
 

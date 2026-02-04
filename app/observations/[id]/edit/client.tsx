@@ -384,27 +384,6 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
               placeholder={t("observation.tradePlaceholder")}
             />
           </FormField>
-
-          <FormField label="Référence Article CRTC">
-            <Input
-              value={formData.referenceArticle}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, referenceArticle: e.target.value }))}
-              placeholder={t("observation.referenceArticlePlaceholder")}
-            />
-          </FormField>
-
-          <FormField
-            label={t("form.description")}
-            error={errors.description}
-            required
-          >
-            <Textarea
-              value={formData.description}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-              placeholder={t("observation.descriptionPlaceholder")}
-              rows={5}
-            />
-          </FormField>
         </FormSection>
 
         {/* Safety Analysis */}
@@ -478,6 +457,27 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
 
         {/* Attachments */}
         <FormSection title={t("form.attachments")} defaultOpen>
+          <FormField label="Référence Article CRTC">
+            <Input
+              value={formData.referenceArticle}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, referenceArticle: e.target.value }))}
+              placeholder={t("observation.referenceArticlePlaceholder")}
+            />
+          </FormField>
+
+          <FormField
+            label={t("form.description")}
+            error={errors.description}
+            required
+          >
+            <Textarea
+              value={formData.description}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+              placeholder={t("observation.descriptionPlaceholder")}
+              rows={5}
+            />
+          </FormField>
+
           <AttachmentUpload
             attachments={formData.attachments}
             onChange={(attachments) => setFormData((prev) => ({ ...prev, attachments }))}

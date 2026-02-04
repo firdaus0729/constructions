@@ -222,7 +222,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </SheetTrigger>
           <SheetContent side="left" className="w-72 bg-sidebar p-0">
             <div className="flex h-16 items-center gap-2 px-6 border-b border-sidebar-border">
-              <ClipboardCheck className="h-7 w-7 text-sidebar-primary" />
+              <img src="/logo.png" alt="Logo" className="h-10 w-10 rounded-full" />
               <span className="text-lg font-semibold text-sidebar-foreground">{t("dashboard.title")}</span>
             </div>
             <div className="py-4 px-3">
@@ -267,7 +267,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </SheetContent>
         </Sheet>
         <div className="flex-1 flex items-center gap-2">
-          <ClipboardCheck className="h-8 w-8 text-primary" />
+          <img src="/logo.png" alt="Logo" className="h-10 w-10 rounded-full" />
           <span className="font-semibold">{t("dashboard.title")}</span>
         </div>
         <OfflineIndicator variant="minimal" />

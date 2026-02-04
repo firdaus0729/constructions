@@ -6,6 +6,17 @@ import jsPDF from "jspdf"
 const SEP_GRAY: [number, number, number] = [180, 180, 180] // separator line color
 const LINK_BLUE: [number, number, number] = [0, 0, 255]   // link text color
 
+function getJsPdfImageFormat(url: string, mimeType?: string): "PNG" | "JPEG" {
+  const t = (mimeType || "").toLowerCase()
+  if (t.includes("png")) return "PNG"
+  if (t.includes("jpg") || t.includes("jpeg")) return "JPEG"
+  // Infer from data URL prefix if present
+  if (url.startsWith("data:image/png")) return "PNG"
+  if (url.startsWith("data:image/jpg") || url.startsWith("data:image/jpeg")) return "JPEG"
+  // Default to JPEG (most common)
+  return "JPEG"
+}
+
 // Professional PDF generator for all forms with logo and header matching the template
 export async function generateProfessionalPDF(data: {
   title: string
@@ -204,7 +215,7 @@ export async function generateProfessionalPDF(data: {
         checkPageBreak(70)
         const imgWidth = contentWidth * 0.5
         const imgHeight = imgWidth * 0.75
-        doc.addImage(image.url, "JPEG", margin, yPosition, imgWidth, imgHeight)
+        doc.addImage(image.url, getJsPdfImageFormat(image.url), margin, yPosition, imgWidth, imgHeight)
         yPosition += imgHeight + 2
 
         doc.setFontSize(6)
@@ -516,30 +527,41 @@ export async function exportObservationAsPdf(
   const observationTitle = `Observation Risque de sécurité N°${observationNumber} : ${typeLabel}: ${observation.title || ""}${titleDateSuffix}`
 
   const thinLine = () => {
-    doc.setDrawColor(0, 0, 0)
+    // Reference PDFs use very light separators (not dark/black)
+    doc.setDrawColor(180, 180, 180)
     doc.setLineWidth(0.2)
     doc.line(margin, y, pageWidth - margin, y)
     y += 5
+    doc.setDrawColor(0, 0, 0)
   }
 
   const drawContinuationHeader = () => {
-    doc.setDrawColor(100, 100, 100)
-    doc.setLineWidth(0.2)
-    doc.line(margin, y, pageWidth - margin, y)
-    y += 5
+    // No top divider line in the reference continuation header
+    // Each section occupies half the horizontal space (like flex space-between)
+    const leftHalfWidth = pageWidth / 2 - margin - 5
+    const rightHalfWidth = pageWidth / 2 - margin - 5
+    const rightHalfEnd = pageWidth - margin
+    
+    // Left half: Observation title
     doc.setFont("helvetica", "bold")
     doc.setFontSize(9)
-    doc.text(observationTitle, margin, y)
+    const titleLines = doc.splitTextToSize(observationTitle, leftHalfWidth)
+    titleLines.forEach((ln: string, idx: number) => {
+      doc.text(ln, margin, y + (idx * 4))
+    })
+    
+    // Right half: Project text (right-aligned)
     doc.setFontSize(7)
     doc.setFont("helvetica", "normal")
     const projText = projectHeaderLine ? `Projet : ${projectHeaderLine}` : ""
-    const projLines = doc.splitTextToSize(projText, 95)
-    let py = y - 3
+    const projLines = doc.splitTextToSize(projText, rightHalfWidth)
+    let py = y
     projLines.slice(0, 2).forEach((ln: string) => {
-      doc.text(ln, pageWidth - margin, py, { align: "right" })
+      doc.text(ln, rightHalfEnd, py, { align: "right" })
       py += 3.5
     })
-    y += 6
+    
+    y += Math.max(titleLines.length * 4, projLines.length * 3.5) + 2
   }
 
   const checkPageBreak = (needed: number) => {
@@ -605,8 +627,9 @@ export async function exportObservationAsPdf(
     })
   }
 
-  y += 30
+  y += 32
   thinLine()
+  y += 1
 
   doc.setFontSize(14)
   doc.setFont("helvetica", "bold")
@@ -614,8 +637,9 @@ export async function exportObservationAsPdf(
   titleLines.forEach((ln: string, idx: number) => {
     doc.text(ln, pageWidth / 2, y + idx * 6, { align: "center" })
   })
-  y += titleLines.length * 6 + 2
+  y += titleLines.length * 3 + 2.5
   thinLine()
+  y += titleLines.length * 1
 
   // Details two-column layout - exact order from image
   doc.setFontSize(8)
@@ -686,6 +710,7 @@ export async function exportObservationAsPdf(
   const leftX = margin
   const rightX = pageWidth / 2 + 5
   const labelWidth = 45
+  const rightColW = pageWidth - margin - rightX
   let leftY = y
   let rightY = y
 
@@ -702,7 +727,7 @@ export async function exportObservationAsPdf(
     ["Section du devis", observation.cnsstSection || "SSE - SANTÉ SÉCURITÉ ENVIRONNEMENT"],
   ]
 
-  // Right column fields (including Plans liés in right column per original)
+  // Right column fields
   const plansLiesValue = (observation as any).plansLies || observation.linkedDrawings || "-"
   const rightFields: Array<[string, string]> = [
     ["Statut", statusText],
@@ -712,7 +737,6 @@ export async function exportObservationAsPdf(
     ["Métier", observation.trade || "Charge de projet"],
     ["Privé(e)", (observation as any).private || (observation as any).isPrivate ? "Oui" : "Non"],
     ["Comportement contributif", getContributingBehaviorLabel(observation.safetyAnalysis?.contributingBehavior || "")],
-    ["Plans liés", plansLiesValue],
   ]
 
   // Draw left column (labels bold, values normal; consistent row spacing to match original)
@@ -742,108 +766,59 @@ export async function exportObservationAsPdf(
 
   y = Math.max(leftY, rightY) + 8
 
-  // Thin separator line before Description (match original PDF layout)
-  checkPageBreak(12)
-  doc.setDrawColor(200, 200, 200)
-  doc.setLineWidth(0.2)
-  doc.line(margin, y, pageWidth - margin, y)
-  y += 6
-  doc.setDrawColor(0, 0, 0)
-
-  // Description section - show full description text (original: bold "Description", then subtitle "date : title")
+  // Description section - key-value layout (label left, value right)
   if (observation.description) {
-    checkPageBreak(30)
+    checkPageBreak(15)
+    doc.setFontSize(8)
     doc.setFont("helvetica", "bold")
-    doc.setFontSize(9)
-    doc.text("Description", margin, y)
-    y += 5
-    const notifDate = observation.date ? formatDate(observation.date) : (observation.createdAt ? formatDate(observation.createdAt) : "")
-    const descSubtitle = notifDate && observation.title ? `${notifDate} : ${observation.title}` : (observation.title || notifDate || "")
-    if (descSubtitle) {
-      doc.setFont("helvetica", "normal")
-      doc.setFontSize(8)
-      const subLines = doc.splitTextToSize(descSubtitle, contentWidth)
-      subLines.forEach((ln: string) => {
-        doc.text(ln, margin, y)
-        y += 4
-      })
-      y += 4
-    } else {
-      doc.setFont("helvetica", "normal")
-      doc.setFontSize(8)
-    }
-    
-    // Parse description for date headings (format: "YYYY-MM-DD : text" or "YYYY-MM-DD à HHhMM : text")
-    const descLines = observation.description.split("\n")
-    descLines.forEach((line: string) => {
-      checkPageBreak(5)
-      // Check if line starts with date pattern (e.g., "2025-09-29 à 13h30:")
-      const dateMatch = line.match(/^(\d{4}-\d{2}-\d{2})(\s+à\s+(\d{1,2})h(\d{2}))?\s*:/)
-      if (dateMatch) {
-        // Format date heading (e.g., "29 sept. 2025 à 13h30 :")
-        const datePart = dateMatch[1]
-        const [year, month, day] = datePart.split("-")
-        const months = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."]
-        const monthName = months[parseInt(month) - 1] || month
-        let dateHeading = `${day} ${monthName} ${year}`
-        if (dateMatch[2] && dateMatch[3] && dateMatch[4]) {
-          dateHeading += ` à ${dateMatch[3]}h${dateMatch[4]}`
-        }
-        dateHeading += " :"
-        doc.setFont("helvetica", "bold")
-        doc.text(dateHeading, margin, y)
-        y += 4
-        doc.setFont("helvetica", "normal")
-        // Rest of the line after the date
-        const restOfLine = line.substring(dateMatch[0].length).trim()
-        if (restOfLine) {
-          const restLines = doc.splitTextToSize(restOfLine, contentWidth)
-          restLines.forEach((ln: string) => {
-            checkPageBreak(4)
-            doc.text(ln, margin, y)
-            y += 4
-          })
-        }
-      } else {
-        // Regular line - check for "Mesures correctives:" pattern
-        if (line.trim().toLowerCase().startsWith("mesures correctives")) {
-          doc.setFont("helvetica", "bold")
-          const textLines = doc.splitTextToSize(line, contentWidth)
-          textLines.forEach((ln: string) => {
-            checkPageBreak(4)
-            doc.text(ln, margin, y)
-            y += 4
-          })
-          doc.setFont("helvetica", "normal")
-        } else {
-          const textLines = doc.splitTextToSize(line, contentWidth)
-          textLines.forEach((ln: string) => {
-            checkPageBreak(4)
-            doc.text(ln, margin, y)
-            y += 4
-          })
-        }
-      }
+    doc.text("Description", leftX, y)
+    doc.setFont("helvetica", "normal")
+    const descValue = observation.description || "-"
+    const descLines = doc.splitTextToSize(descValue, pageWidth / 2 - labelWidth - 5)
+    descLines.forEach((line: string, idx: number) => {
+      doc.text(line, leftX + labelWidth, y + (idx * 4))
     })
-    y += 4
+    y += Math.max(5, descLines.length * 4) + rowGap
   }
 
-  // Reference article (Article de référence (CRTC))
+  // Reference article (Article de référence (CRTC)) - key-value layout (label left, value right)
   if (observation.referenceArticle) {
     checkPageBreak(15)
-    doc.setFont("helvetica", "bold")
-    doc.setFontSize(9)
-    doc.text("Article de référence (CRTC)", margin, y)
-    y += 6
-    doc.setFont("helvetica", "normal")
     doc.setFontSize(8)
-    const artLines = doc.splitTextToSize(observation.referenceArticle, contentWidth)
-    artLines.forEach((ln: string) => {
-      checkPageBreak(4)
-      doc.text(ln, margin, y)
-      y += 4
+    doc.setFont("helvetica", "bold")
+    doc.text("Article de référence (CRTC)", leftX, y)
+    doc.setFont("helvetica", "normal")
+    const artValue = observation.referenceArticle || "-"
+    const artLines = doc.splitTextToSize(artValue, pageWidth / 2 - labelWidth - 5)
+    artLines.forEach((line: string, idx: number) => {
+      doc.text(line, leftX + labelWidth, y + (idx * 4))
     })
-    y += 4
+    y += Math.max(5, artLines.length * 4) + rowGap
+
+    // Plans liés - directly below Article de référence (CRTC) in key-value format (always show)
+    checkPageBreak(10)
+    doc.setFont("helvetica", "bold")
+    doc.text("Plans liés", leftX, y)
+    doc.setFont("helvetica", "normal")
+    const plansValue = plansLiesValue || "-"
+    const plansLines = doc.splitTextToSize(String(plansValue), pageWidth / 2 - labelWidth - 5)
+    plansLines.forEach((line: string, idx: number) => {
+      doc.text(line, leftX + labelWidth, y + (idx * 4))
+    })
+    y += Math.max(5, plansLines.length * 4) + rowGap
+  } else {
+    // If no Article de référence, still show Plans liés
+    checkPageBreak(10)
+    doc.setFontSize(8)
+    doc.setFont("helvetica", "bold")
+    doc.text("Plans liés", leftX, y)
+    doc.setFont("helvetica", "normal")
+    const plansValue = plansLiesValue || "-"
+    const plansLines = doc.splitTextToSize(String(plansValue), pageWidth / 2 - labelWidth - 5)
+    plansLines.forEach((line: string, idx: number) => {
+      doc.text(line, leftX + labelWidth, y + (idx * 4))
+    })
+    y += Math.max(5, plansLines.length * 4) + rowGap
   }
 
   // Mesures correctives - check if it's a separate field or embedded in description
@@ -867,7 +842,7 @@ export async function exportObservationAsPdf(
     y += 4
   }
 
-  // Plans liés is now in right column, so no separate section needed here
+  // Plans liés handled above (right side, under Article de référence)
 
   // Pièces jointes (on continuation page: thin line under title, 2x2 grid, thin border per image, blue underlined filename)
   const images = observation.attachments?.filter((a: any) => a.type?.startsWith("image/")) || []
@@ -875,17 +850,22 @@ export async function exportObservationAsPdf(
     const imgGap = 6
     const imgW = (contentWidth - imgGap) / 2
     const imgH = 45
+    const filenameHeight = 6 // Space for filename below image (3mm text + 3mm spacing)
+    const rowSpacing = 4 // Narrow gap between rows (top filename to bottom image)
+    const rowHeight = imgH + filenameHeight + rowSpacing // Total height per row
     const rows = Math.ceil(images.length / 2)
-    const estimatedHeight = 8 + rows * (imgH + 18)
+    // Calculate actual height: line adjustment (2) + after line (6) + title (6) + title after (6) + images + final spacing (6)
+    const estimatedHeight = 2 + 6 + 6 + 6 + rows * rowHeight + 6
     checkPageBreak(estimatedHeight)
-
-    doc.setFont("helvetica", "bold")
-    doc.setFontSize(9)
-    doc.text("Pièces jointes", margin, y)
-    y += 5
+    y -= 2
     doc.setDrawColor(180, 180, 180)
     doc.setLineWidth(0.2)
     doc.line(margin, y, pageWidth - margin, y)
+    y += 6
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(9)
+    doc.text("Pièces jointes", margin, y)
+    
     y += 6
     doc.setDrawColor(0, 0, 0)
 
@@ -895,27 +875,30 @@ export async function exportObservationAsPdf(
       const col = i % 2
       const row = Math.floor(i / 2)
       const x = margin + col * (imgW + imgGap)
-      const imgY = baseY + row * (imgH + 18)
-      doc.setDrawColor(100, 100, 100)
+      const imgY = baseY + row * rowHeight
+      // Thin border per image like reference
+      doc.setDrawColor(120, 120, 120)
       doc.setLineWidth(0.2)
       doc.rect(x, imgY, imgW, imgH)
       doc.setDrawColor(0, 0, 0)
       try {
-        doc.addImage(img.url, "JPEG", x + 0.5, imgY + 0.5, imgW - 1, imgH - 1)
+        doc.addImage(img.url, getJsPdfImageFormat(img.url, img.type), x + 0.5, imgY + 0.5, imgW - 1, imgH - 1)
       } catch (e) {
         // placeholder
       }
       doc.setFontSize(7)
       doc.setTextColor(0, 0, 255)
       const name = img.name || "GetAttachmentThumbnail.jpg"
-      doc.text(name, x, imgY + imgH + 3)
+      // Center the filename under each image (matches reference)
+      const nameX = x + imgW / 2
+      doc.text(name, nameX, imgY + imgH + 3, { align: "center" })
       const tw = doc.getTextWidth(name)
       doc.setDrawColor(0, 0, 255)
-      doc.line(x, imgY + imgH + 3.5, x + tw, imgY + imgH + 3.5)
+      doc.line(nameX - tw / 2, imgY + imgH + 3.5, nameX + tw / 2, imgY + imgH + 3.5)
       doc.setTextColor(0, 0, 0)
       doc.setDrawColor(0, 0, 0)
     }
-    y = baseY + rows * (imgH + 18)
+    y = baseY + rows * rowHeight
     y += 6
   }
 
@@ -942,38 +925,37 @@ export async function exportObservationAsPdf(
 
   // Activité (1): always show (per reference PDF page 2) - thin line above, name+date left, status box right
   checkPageBreak(28)
-  doc.setDrawColor(100, 100, 100)
-  doc.setLineWidth(0.2)
-  doc.line(margin, y, pageWidth - margin, y)
-  y += 5
-  doc.setDrawColor(0, 0, 0)
+  thinLine()
   doc.setFont("helvetica", "bold")
   doc.setFontSize(9)
   doc.text("Activité (1)", margin, y)
   y += 5
-  doc.setDrawColor(180, 180, 180)
-  doc.setLineWidth(0.2)
-  doc.line(margin, y, pageWidth - margin, y)
-  y += 6
-  doc.setDrawColor(0, 0, 0)
   doc.setFont("helvetica", "normal")
   doc.setFontSize(8)
   const activityName = getCreatorName()
   const activityDate = observation.updatedAt || observation.createdAt
   const activityDateStr = activityDate ? formatDateTime(activityDate, false) : ""
+  
+  // Flex layout: left section (name/date) + right section (status box with width 100%)
+  const leftSectionWidth = 60 // Approximate width for name/date section
+  const boxX = margin + leftSectionWidth + 5 // Start after left section with small gap
+  const boxW = pageWidth - margin - boxX // Fill remaining width (100% of remaining space)
+  const boxY = y - 1 // Align box top with name line
+  const boxH = 10 // Box height
+  
+  // Left side: Name and date stacked vertically
   doc.text(activityName, margin, y)
   if (activityDateStr) doc.text(activityDateStr, margin, y + 4)
-  const boxX = pageWidth - margin - 58
-  const boxW = 56
-  const boxY = y - 2
-  const boxH = 12
-  doc.setFillColor(245, 245, 245)
+  
+  // Right side: Status box - fills remaining width (like flex with width: 100%)
   doc.setDrawColor(200, 200, 200)
-  doc.rect(boxX, boxY, boxW, boxH, "FD")
+  doc.setLineWidth(0.2)
+  doc.rect(boxX, boxY, boxW, boxH)
   doc.setFontSize(8)
+  doc.setFont("helvetica", "bold")
   doc.setTextColor(0, 0, 0)
-  doc.text(`Statut modifié : ${statusText}`, boxX + 3, boxY + 7)
-  y += 18
+  doc.text(`Statut modifié : ${statusText}`, boxX + 3, boxY + 6.5)
+  y += Math.max(12, (activityDateStr ? 8 : 4)) // Adjust based on content height
 
   // Footer: thin dark line above, then company | Page X sur Y | Imprimé le
   const pageCount = (doc as any).internal.getNumberOfPages()
@@ -1047,8 +1029,9 @@ export async function exportInspectionAsPdf(
   }
 
   const thinLine = () => {
-    doc.setDrawColor(0, 0, 0)
-    doc.setLineWidth(0.2)
+    // Light gray line color #e3e3e3 (RGB: 227, 227, 227)
+    doc.setDrawColor(227, 227, 227)
+    doc.setLineWidth(0.3)
     doc.line(margin, y, pageWidth - margin, y)
     y += 5
   }
@@ -1074,8 +1057,9 @@ export async function exportInspectionAsPdf(
       doc.text(ln, pageWidth - margin, py, { align: "right" })
       py += 3.5
     })
-    doc.setDrawColor(0, 0, 0)
-    doc.setLineWidth(0.2)
+    // Light gray line color #e3e3e3 (RGB: 227, 227, 227)
+    doc.setDrawColor(227, 227, 227)
+    doc.setLineWidth(0.3)
     doc.line(margin, 14, pageWidth - margin, 14)
     y = 18
   }
@@ -1123,10 +1107,10 @@ export async function exportInspectionAsPdf(
   doc.setFontSize(14)
   doc.setFont("helvetica", "bold")
   doc.text(`Inspection : Inspection journalière N°${inspectionNumber}`, pageWidth / 2, y, { align: "center" })
-  y += 6
+  y += 2
   thinLine()
 
-  // ----- Summary: 5 grey boxes with white text (match original) -----
+  // ----- Summary: 5 dark gray boxes with white text (match original exactly) -----
   const allItems = inspectionSections.flatMap((s: any) => s?.items || [])
   const totalItems = allItems.length
   const allResponses = inspection.responses || []
@@ -1138,31 +1122,38 @@ export async function exportInspectionAsPdf(
     return !r || r.response == null || r.response === undefined
   }).length
 
-  const sumY = y
-  const colW = (pageWidth - 2 * margin) / 5
-  const boxH = 16
-  const SUMMARY_BOX_GRAY: [number, number, number] = [120, 120, 120]
+  const sumY = y + 3 // Add spacing after title line
+  const boxH = 18
+  const totalWidth = pageWidth - 2 * margin
+  const boxCount = 5
+  const gap = 3 // Gap between boxes (space-between effect)
+  const totalGaps = gap * (boxCount - 1)
+  const boxW = (totalWidth - totalGaps) / boxCount
+  // Light gray background #f2f2f2 (RGB: 242, 242, 242)
+  const SUMMARY_BOX_GRAY: [number, number, number] = [242, 242, 242]
   for (let idx = 0; idx < 5; idx++) {
-    const x = margin + idx * colW
+    const x = margin + idx * (boxW + gap)
+    // Fill with light gray (no border)
     doc.setFillColor(SUMMARY_BOX_GRAY[0], SUMMARY_BOX_GRAY[1], SUMMARY_BOX_GRAY[2])
-    doc.rect(x, sumY, colW, boxH, "F")
-    doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
-    doc.rect(x, sumY, colW, boxH)
+    doc.rect(x, sumY, boxW, boxH, "F")
   }
   doc.setDrawColor(0, 0, 0)
-  doc.setTextColor(255, 255, 255)
+  doc.setTextColor(0, 0, 0) // Black text
   const summaryValues = [`${totalItems}/${totalItems}`, `${conforming}`, `${nonConforming}`, `${notApplicable}`, `${unanswered}`]
   const summaryLabels = ["Articles inspectés", "Conforme", "Déficient", "S.O.", "Neutre"]
   summaryValues.forEach((val, idx) => {
+    const centerX = margin + idx * (boxW + gap) + boxW / 2
+    // Value: bold, larger, centered at top
     doc.setFont("helvetica", "bold")
-    doc.setFontSize(9)
-    doc.text(val, margin + idx * colW + colW / 2, sumY + 7, { align: "center" })
+    doc.setFontSize(10)
+    doc.text(val, centerX, sumY + 8, { align: "center" })
+    // Label: normal, smaller, centered below value
     doc.setFont("helvetica", "normal")
     doc.setFontSize(7)
-    doc.text(summaryLabels[idx], margin + idx * colW + colW / 2, sumY + 14, { align: "center" })
+    doc.text(summaryLabels[idx], centerX, sumY + 14, { align: "center" })
   })
   doc.setTextColor(0, 0, 0)
-  y = sumY + boxH + 5
+  y = sumY + boxH + 6 // Add spacing after summary boxes
 
   // ----- Détails de l'inspection (table-like) -----
   doc.setFontSize(9)
@@ -1223,7 +1214,6 @@ export async function exportInspectionAsPdf(
     }
     y += lineH
   }
-  y += 4
   thinLine()
 
   // ----- Détails de L'Inspection (heading + thin line only, no full grey row) -----
@@ -1231,22 +1221,30 @@ export async function exportInspectionAsPdf(
   doc.setFont("helvetica", "bold")
   doc.text("Détails de L'Inspection", margin, y)
   y += 5
-  thinLine()
   doc.setFontSize(8)
-  doc.setFont("helvetica", "normal")
   const inspectionDate = inspection.inspectionDate ? new Date(inspection.inspectionDate) : (inspection.createdAt ? new Date(inspection.createdAt) : new Date())
   const dueDate = inspection.dueDate ? new Date(inspection.dueDate) : null
+  doc.setFont("helvetica", "bold")
   doc.text("Date de l'inspection", leftX, y)
+  doc.setFont("helvetica", "normal")
   doc.text(formatDateFR(inspectionDate), leftX + labelWidth, y)
+  doc.setFont("helvetica", "bold")
   doc.text("Date d'échéance", rightX, y)
+  doc.setFont("helvetica", "normal")
   doc.text(dueDate ? formatDateFR(dueDate) : "-", rightX + labelWidth, y)
   y += lineH
+  doc.setFont("helvetica", "bold")
   doc.text("Point de contact", leftX, y)
+  doc.setFont("helvetica", "normal")
   doc.text(inspection.contactPoint || "-", leftX + labelWidth, y)
+  doc.setFont("helvetica", "bold")
   doc.text("Entrepreneur responsable", rightX, y)
+  doc.setFont("helvetica", "normal")
   doc.text(inspection.contractor || "-", rightX + labelWidth, y)
   y += lineH
+  doc.setFont("helvetica", "bold")
   doc.text("Personne(s) assignée(s)", leftX, y)
+  doc.setFont("helvetica", "normal")
   const assigned =
     Array.isArray(inspection.distribution) && inspection.distribution.length > 0
       ? inspection.distribution
@@ -1278,18 +1276,42 @@ export async function exportInspectionAsPdf(
     const sectionNeutral = sectionResponses.filter((r: any) => !r || r.response == null || r.response === undefined).length
 
     doc.setFontSize(8)
-    doc.setFont("helvetica", "normal")
-    const summaryRight = `${sectionNeutral} Neutre ${sectionConforming} Conforme ${sectionNonConforming} Déficient ${sectionNotApplicable} S.O.`
-    doc.text(summaryRight, pageWidth - margin, y + 5, { align: "right" })
+    // Summary on right: numbers bold, labels bold, narrower spacing
+    const summaryItems = [
+      { count: sectionNeutral, label: "Neutre" },
+      { count: sectionConforming, label: "Conforme" },
+      { count: sectionNonConforming, label: "Déficient" },
+      { count: sectionNotApplicable, label: "S.O." }
+    ]
+    // Calculate total width needed with narrower gaps
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(8)
+    const totalWidth = summaryItems.reduce((acc, item) => {
+      const countW = doc.getTextWidth(`${item.count}`)
+      const labelW = doc.getTextWidth(item.label)
+      return acc + countW + 2 + labelW
+    }, 0)
+    const availableWidth = 70 // Narrower area
+    const totalGaps = summaryItems.length - 1
+    const gap = totalGaps > 0 ? Math.max(3, (availableWidth - totalWidth) / totalGaps) : 0 // Minimum 3mm gap, narrower spacing
+    let summaryX = pageWidth - margin - availableWidth
+    summaryItems.forEach((item, idx) => {
+      doc.setFont("helvetica", "bold") // Numbers are bold
+      doc.text(`${item.count}`, summaryX, y + 5)
+      const countWidth = doc.getTextWidth(`${item.count}`)
+      doc.text(item.label, summaryX + countWidth + 2, y + 5) // Labels are also bold
+      const itemWidth = countWidth + 2 + doc.getTextWidth(item.label)
+      summaryX += itemWidth + (idx < summaryItems.length - 1 ? gap : 0)
+    })
     y += 10
-    thinLine()
+    // Removed thinLine() - no line below section header
 
     doc.setFontSize(8)
     // Unified piece: every item = top grey block (title, italic activity, checkboxes with labels below) + thin line + bottom white block (response with name bold, comment, photo)
-    const topBlockHeight = 16
+    const topBlockHeight = 14 // Reduced height for tighter spacing
     const boxSize = 3
     const checkboxLabels = ["Conforme", "Échec", "S.O."]
-    const checkboxSpacing = 18
+    const checkboxSpacing = 20 // Slightly wider for better alignment
 
     sectionItems.forEach((item: any) => {
       const response = allResponses.find((r: any) => r.itemId === item.id)
@@ -1300,56 +1322,132 @@ export async function exportInspectionAsPdf(
       const commentsCount = response?.comment ? 1 : 0
       const observationsCount = 0
       const hasPhotos = response?.attachments?.filter((a: any) => a.type?.startsWith("image/")).length > 0
-      const spaceNeeded = topBlockHeight + 8 + (hasResponse ? 5 : 0) + (response?.comment ? 12 : 0) + (hasPhotos ? 60 : 0)
-      checkPageBreak(spaceNeeded)
-
-      const rowY = y
-      // ----- Piece type: top block (light grey, thin border) -----
+      
+      // Check if we can fit at least the header on this page
+      checkPageBreak(topBlockHeight + 5)
+      
+      const itemStartY = y
+      const itemWidth = pageWidth - 2 * margin
+      
+      // ----- Section 1: Statistics (top grey block) -----
+      const statsSectionY = y
       doc.setFillColor(LIGHT_GRAY[0], LIGHT_GRAY[1], LIGHT_GRAY[2])
       doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
-      doc.rect(margin, rowY, pageWidth - 2 * margin, topBlockHeight, "FD")
+      doc.setLineWidth(0.2)
+      // Draw top border of statistics section (will be part of outer border)
+      doc.rect(margin, statsSectionY, itemWidth, topBlockHeight, "FD")
       doc.setDrawColor(0, 0, 0)
 
+      // Center title and activity text vertically in the cell (like flexbox justify-content: center)
+      // Calculate total height of both text elements
       doc.setFont("helvetica", "bold")
       doc.setFontSize(8)
-      doc.text(`${item.number} ${item.label}`, margin + 2, rowY + 5)
+      const titleHeight = 3.5 // Approximate line height for title
+      doc.setFont("helvetica", "bold")
+      doc.setFontSize(7)
+      const activityHeight = 3 // Approximate line height for activity
+      const totalTextHeight = titleHeight + activityHeight
+      const gapBetween = 1 // Small gap between title and activity
+      const totalContentHeight = totalTextHeight + gapBetween
+      
+      // Center the content block vertically in the cell
+      const contentStartY = statsSectionY + (topBlockHeight - totalContentHeight) / 2
+      const titleY = contentStartY + titleHeight
+      const activityY = contentStartY + titleHeight + gapBetween + activityHeight
 
-      doc.setFont("helvetica", "italic")
+      // Title - vertically centered
+      doc.setFont("helvetica", "bold")
+      doc.setFontSize(8)
+      doc.text(`${item.number} ${item.label}`, margin + 2, titleY)
+
+      // Activity text - vertically centered below title, ITALIC
+      doc.setFont("helvetica", "italic") // Changed to italic
       doc.setFontSize(7)
       const activityText = `Activité : ${responseCount} Changement${responseCount > 1 ? "s" : ""} de réponse, ${attachmentsCount} Pièces jointes, ${photosCount} Photo${photosCount > 1 ? "s" : ""}, ${commentsCount} Commentaire${commentsCount > 1 ? "s" : ""}, ${observationsCount} Observation${observationsCount > 1 ? "s" : ""}`
-      doc.text(activityText, margin + 2, rowY + 11)
+      doc.text(activityText, margin + 2, activityY)
 
-      // Checkboxes on right: boxes in a row, labels BELOW each box (match original)
-      const boxY = rowY + 3
-      const labelY = rowY + 7
-      let boxX = pageWidth - margin - 52
+      // Checkboxes on right: boxes aligned with labels directly below, ticks centered in boxes
+      const boxY = statsSectionY + 3.5 // Slightly lower for better alignment
+      const labelY = statsSectionY + 9.5 // Labels directly below boxes
+      let boxX = pageWidth - margin - 58 // Adjusted position
+      
+      // Check response value - handle multiple possible formats
+      const responseValue = response?.response
       const isChecked = (idx: number) => {
-        if (!response || response.response == null || response.response === undefined) return false
-        if (idx === 0) return response.response === "conforming"
-        if (idx === 1) return response.response === "non-conforming"
-        if (idx === 2) return response.response === "not-applicable" || response.response === "na"
+        if (!response || responseValue == null || responseValue === undefined || responseValue === "") return false
+        // Convert to string and normalize
+        const val = String(responseValue).toLowerCase().trim()
+        // Check for conforming
+        if (idx === 0) {
+          return val === "conforming" || val === "conforme"
+        }
+        // Check for non-conforming
+        if (idx === 1) {
+          return val === "non-conforming" || val === "nonconforming" || val === "échec" || val === "echec" || val === "non-conforme"
+        }
+        // Check for not-applicable
+        if (idx === 2) {
+          return val === "not-applicable" || val === "notapplicable" || val === "na" || val === "n/a" || val === "s.o." || val === "so" || val === "sans objet"
+        }
         return false
       }
       checkboxLabels.forEach((label, idx) => {
+        // Draw checkbox
+        doc.setDrawColor(0, 0, 0)
+        doc.setLineWidth(0.2)
         doc.rect(boxX, boxY, boxSize, boxSize)
+        // Draw tick if checked - draw manually with lines for better compatibility
         if (isChecked(idx)) {
-          doc.setFontSize(10)
-          doc.setFont("helvetica", "bold")
-          doc.text("✓", boxX + 0.6, boxY + 2.3)
-          doc.setFont("helvetica", "normal")
+          doc.setDrawColor(0, 0, 0)
+          doc.setLineWidth(0.4)
+          const centerX = boxX + boxSize / 2
+          const centerY = boxY + boxSize / 2
+          // Draw checkmark: two lines forming a check
+          // Left part: from bottom-left to center
+          doc.line(centerX - 1, centerY, centerX - 0.5, centerY + 0.8)
+          // Right part: from center to top-right
+          doc.line(centerX - 0.5, centerY + 0.8, centerX + 1, centerY - 0.8)
         }
+        // Draw label directly below checkbox, centered
         doc.setFontSize(6)
         doc.setFont("helvetica", "normal")
         doc.text(label, boxX + boxSize / 2, labelY, { align: "center" })
         boxX += checkboxSpacing
       })
 
-      y = rowY + topBlockHeight
-      thinLine()
-
-      // ----- Piece type: bottom block (white) - response with name bold -----
+      y = statsSectionY + topBlockHeight
+      
+      // Draw horizontal divider between statistics and text sections
+      doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
+      doc.setLineWidth(0.2)
+      doc.line(margin, y, pageWidth - margin, y)
+      
+      // ----- Section 2: Text (response + comment) - always has border -----
+      const textSectionStartY = y
+      let textY = textSectionStartY + 3.5 // Lower text for better readability
+      
+      // Calculate text content height dynamically
+      let textContentHeight = 0
+      if (hasResponse && response) {
+        textContentHeight += 4
+      }
+      if (response && response.comment) {
+        textContentHeight += 3 // Comment header
+        const commentLines = doc.splitTextToSize(response.comment, pageWidth - 2 * margin - 10)
+        textContentHeight += commentLines.length * 3 + 2
+      }
+      // Always reserve space for text section (even if empty, we'll draw a blank border)
+      if (textContentHeight === 0) {
+        textContentHeight = 8 // Minimum height for blank text section
+      }
+      
+      // Check if text section fits on current page
+      checkPageBreak(textContentHeight + 5)
+      
+      // Draw text content
       doc.setFont("helvetica", "normal")
       doc.setFontSize(7)
+      
       if (hasResponse && response) {
         const responseDate = response.updatedAt || response.createdAt || inspection.updatedAt || inspection.createdAt || new Date()
         const dateStr = formatDateFR(new Date(responseDate))
@@ -1361,63 +1459,88 @@ export async function exportInspectionAsPdf(
         const namePart = `${responderName} (${companyName})`
         const restPart = ` a répondu ${responseStatus} le ${dateStr} à ${timeStr} EDT`
         doc.setFont("helvetica", "bold")
-        doc.text(namePart, margin, y)
+        doc.text(namePart, margin + 2, textY)
         const nameW = doc.getTextWidth(namePart)
         doc.setFont("helvetica", "normal")
-        doc.text(restPart, margin + nameW, y)
-        y += 4
+        doc.text(restPart, margin + 2 + nameW, textY)
+        textY += 4
       }
 
       if (response && response.comment) {
-        checkPageBreak(12)
         const commentDate = response.updatedAt || response.createdAt || new Date()
         const commentDateStr = formatDateFR(new Date(commentDate))
         const commentTimeStr = formatTimeFR(new Date(commentDate))
         doc.setFont("helvetica", "bold")
-        doc.text(responderName + " (" + companyName + ")", margin, y)
+        doc.text(responderName + " (" + companyName + ")", margin + 2, textY)
         doc.setFont("helvetica", "normal")
-        doc.text(" a laissé un commentaire le " + commentDateStr + " à " + commentTimeStr + " EDT", margin + doc.getTextWidth(responderName + " (" + companyName + ")"), y)
-        y += 3
+        doc.text(" a laissé un commentaire le " + commentDateStr + " à " + commentTimeStr + " EDT", margin + 2 + doc.getTextWidth(responderName + " (" + companyName + ")"), textY)
+        textY += 3.5
         const commentLines = doc.splitTextToSize(response.comment, pageWidth - 2 * margin - 10)
         commentLines.forEach((line: string) => {
-          doc.text(line, margin, y)
-          y += 3
+          doc.text(line, margin + 2, textY)
+          textY += 3.5
         })
-        y += 2
+        textY += 2
       }
-
-      if (response && response.attachments) {
+      
+      const textSectionEndY = Math.max(textSectionStartY + textContentHeight, textY)
+      
+      // Draw text section borders
+      doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
+      doc.setLineWidth(0.2)
+      doc.line(margin, textSectionStartY, margin, textSectionEndY) // Left border
+      doc.line(pageWidth - margin, textSectionStartY, pageWidth - margin, textSectionEndY) // Right border
+      
+      y = textSectionEndY
+      
+      // ----- Section 3: Images (only if photos exist) -----
+      if (hasPhotos && response && response.attachments) {
         const photos = response.attachments.filter((a: any) => a.type?.startsWith("image/"))
         if (photos.length > 0) {
-          checkPageBreak(10)
+          // Draw horizontal divider between text and image sections
+          doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
+          doc.setLineWidth(0.2)
+          doc.line(margin, y, pageWidth - margin, y)
+          
+          const imageSectionStartY = y
+          let imageY = imageSectionStartY + 3.5
+          
           const photoDate = response.updatedAt || response.createdAt || new Date()
           const photoDateStr = formatDateFR(new Date(photoDate))
           const photoTimeStr = formatTimeFR(new Date(photoDate))
           doc.setFont("helvetica", "bold")
-          doc.text(responderName + " (" + companyName + ")", margin, y)
+          doc.text(responderName + " (" + companyName + ")", margin + 2, imageY)
           doc.setFont("helvetica", "normal")
-          doc.text(` a ajouté ${photos.length} photo${photos.length > 1 ? "s" : ""} via mobile le ${photoDateStr} à ${photoTimeStr} EDT`, margin + doc.getTextWidth(responderName + " (" + companyName + ")"), y)
-          y += 4
+          doc.text(` a ajouté ${photos.length} photo${photos.length > 1 ? "s" : ""} via mobile le ${photoDateStr} à ${photoTimeStr} EDT`, margin + 2 + doc.getTextWidth(responderName + " (" + companyName + ")"), imageY)
+          imageY += 4.5
+          
           const cellW = 78
           const cellH = 44
           const imgW = 60
           const imgH = 28
-          const startX = margin
+          const startX = margin + 2
           const gapX = 8
           const gapY = 6
+          
           for (let idx = 0; idx < photos.length; idx++) {
             const col = idx % 2
             const row = Math.floor(idx / 2)
             const x = startX + col * (cellW + gapX)
-            const yy = y + row * (cellH + gapY)
-            checkPageBreak(cellH + 18)
+            const yy = imageY + row * (cellH + gapY)
+            
+            // Check page break for each image row
+            if (row > 0) {
+              checkPageBreak(cellH + gapY + 10)
+            }
+            
             doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
+            doc.setLineWidth(0.2)
             doc.rect(x, yy, cellW, cellH)
             const imgX = x + (cellW - imgW) / 2
             const imgY = yy + 6
             doc.rect(imgX, imgY, imgW, imgH)
             try {
-              doc.addImage(photos[idx].url, "JPEG", imgX + 0.5, imgY + 0.5, imgW - 1, imgH - 1)
+              doc.addImage(photos[idx].url, getJsPdfImageFormat(photos[idx].url, photos[idx].type), imgX + 0.5, imgY + 0.5, imgW - 1, imgH - 1)
             } catch {}
             const name = photos[idx].name || "photo.jpg"
             doc.setFontSize(7)
@@ -1429,14 +1552,34 @@ export async function exportInspectionAsPdf(
             doc.line(x + cellW / 2 - textW / 2, imgY + imgH + 6.8, x + cellW / 2 + textW / 2, imgY + imgH + 6.8)
             doc.setTextColor(0, 0, 0)
             doc.setDrawColor(0, 0, 0)
-            doc.setLineWidth(0.2)
           }
-          y += Math.ceil(photos.length / 2) * (cellH + gapY) + 2
+          
+          const imageSectionEndY = imageY + Math.ceil(photos.length / 2) * (cellH + gapY) + 2
+          
+          // Draw image section borders
+          doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
+          doc.setLineWidth(0.2)
+          doc.line(margin, imageSectionStartY, margin, imageSectionEndY) // Left border
+          doc.line(pageWidth - margin, imageSectionStartY, pageWidth - margin, imageSectionEndY) // Right border
+          doc.line(margin, imageSectionEndY, pageWidth - margin, imageSectionEndY) // Bottom border
+          
+          y = imageSectionEndY
         }
+      } else {
+        // No images - draw bottom border for text section
+        doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
+        doc.setLineWidth(0.2)
+        doc.line(margin, y, pageWidth - margin, y)
       }
-
-      thinLine()
-      y += 2
+      
+      // Draw outer border (left and right) - top and bottom already drawn
+      const itemEndY = y
+      doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
+      doc.setLineWidth(0.2)
+      doc.line(margin, itemStartY, margin, itemEndY) // Left border
+      doc.line(pageWidth - margin, itemStartY, pageWidth - margin, itemEndY) // Right border
+      
+      y = itemEndY + 3 // Slightly more spacing between items
     })
     y += 2
   })
@@ -1868,7 +2011,7 @@ export async function exportIncidentAsPdf(
           const padding = 2
           const imgWidth = boxWidth - (padding * 2)
           const imgHeight = boxHeight - (padding * 2)
-          doc.addImage(att.url, "JPEG", leftColX + padding, y + padding, imgWidth, imgHeight)
+          doc.addImage(att.url, getJsPdfImageFormat(att.url, att.type), leftColX + padding, y + padding, imgWidth, imgHeight)
         } catch (err) {
           // If image fails, just show the box
           doc.setFont("helvetica", "italic")
