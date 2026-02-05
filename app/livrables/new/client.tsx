@@ -58,13 +58,13 @@ export default function NewLivrablePage() {
     
     // Basic Information
     specSection: "",
-    numberValue: "1",
+    numberValue: "",
     revision: "0",
     submittalType: "",
     submittalPackage: "",
     responsibleContractor: "",
     receivedFrom: "",
-    submittalManager: "",
+    submittalManager: "project_manager",
     costCode: "",
     location: "",
     linkedDrawings: "",
@@ -105,10 +105,29 @@ export default function NewLivrablePage() {
   // Validation state
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Generate submittal number
-  const generateSubmittalNumber = useCallback(() => {
-    const timestamp = Date.now().toString(36).toUpperCase()
-    return `SUB-${timestamp.slice(-6)}`
+  // Sortable number: XXXXXX (numbers only). Future: first 3 chars from "Type de livrable".
+  const getNextNumberValue = useCallback(() => {
+    const existing = store?.livrables ?? []
+    const numericValues = existing
+      .map((l) => {
+        const v = l.numberValue ?? l.number ?? "0"
+        const n = parseInt(String(v).replace(/\D/g, ""), 10)
+        return Number.isNaN(n) ? 0 : n
+      })
+    const max = numericValues.length ? Math.max(...numericValues, 0) : 0
+    return String(max + 1)
+  }, [store?.livrables])
+
+  useEffect(() => {
+    if (formData.numberValue === "" && getNextNumberValue) {
+      setFormData((prev) => ({ ...prev, numberValue: getNextNumberValue() }))
+    }
+  }, [getNextNumberValue])
+
+  const formatSortableNumber = useCallback((value: string) => {
+    const num = parseInt(String(value).replace(/\D/g, ""), 10)
+    if (Number.isNaN(num)) return "000000"
+    return String(num).padStart(6, "0")
   }, [])
 
   // Validation
@@ -141,7 +160,7 @@ export default function NewLivrablePage() {
   // Create livrable object
   const createLivrableObject = useCallback(
     (status: FormStatus): Livrable => {
-      const number = generateSubmittalNumber()
+      const number = formatSortableNumber(formData.numberValue)
       // Distribution is stored as AuthUser IDs (same as other forms)
       const distributionList: string[] = [...selectedUserIds]
       selectedGroupIds.forEach((groupId) => {
@@ -206,16 +225,18 @@ export default function NewLivrablePage() {
         syncStatus: "pending",
       }
     },
-    [formData, currentUser, generateSubmittalNumber, selectedUserIds, selectedGroupIds, userGroups, authUsers, workflowSteps]
+    [formData, currentUser, formatSortableNumber, selectedUserIds, selectedGroupIds, userGroups, authUsers, workflowSteps]
   )
 
   const handleSaveDraft = useCallback(async () => {
     setIsSaving(true)
     try {
       const livrable = createLivrableObject("draft")
+      if (typeof addLivrable !== "function") throw new Error("Store not ready")
       addLivrable(livrable)
       toast.success(t("status.savedLocally"))
-      router.push("/livrables")
+      await new Promise((r) => setTimeout(r, 0))
+      router.replace("/livrables")
     } catch (error) {
       toast.error(t("alert.saveDraft.error"))
       console.error(error)
@@ -236,6 +257,7 @@ export default function NewLivrablePage() {
       setIsSubmitting(true)
       try {
         const livrable = createLivrableObject("submitted")
+        if (typeof addLivrable !== "function") throw new Error("Store not ready")
         addLivrable(livrable)
 
         // Send email notifications if enabled
@@ -280,7 +302,8 @@ export default function NewLivrablePage() {
           toast.success(t("alert.saveSuccess.livrable"))
         }
 
-        router.push("/livrables")
+        await new Promise((r) => setTimeout(r, 0))
+        router.replace("/livrables")
       } catch (error) {
         toast.error(t("alert.saveError.livrable"))
         console.error(error)
@@ -407,26 +430,13 @@ export default function NewLivrablePage() {
                 />
               </FormField>
 
-              {/* Spec Section */}
-              <FormField label={t("submittal.specSection")} error={errors.specSection}>
-                <Select value={formData.specSection} onValueChange={(value) => handleFieldChange("specSection", value)}>
-                  <SelectTrigger className="h-12">
-                    <SelectValue placeholder={t("submittal.selectSpecSection")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="section1">{t("submittal.section1")}</SelectItem>
-                    <SelectItem value="section2">{t("submittal.section2")}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormField>
-
-              {/* Number & Revision */}
+              {/* Number & Revision — sortable XXXXXX (future: first 3 chars from Type de livrable) */}
               <FormField label={`${t("livrable.number")} & ${t("livrable.revision")} *`} required error={errors.numberValue || errors.revision}>
                 <div className="flex gap-2">
                   <Input
                     value={formData.numberValue}
                     onChange={(e) => handleFieldChange("numberValue", e.target.value)}
-                    placeholder="1"
+                    placeholder="000001"
                     className={`h-12 flex-1 ${errors.numberValue ? "border-destructive" : ""}`}
                   />
                   <Input
@@ -490,18 +500,14 @@ export default function NewLivrablePage() {
                 </Select>
               </FormField>
 
-              {/* Submittal Manager */}
+              {/* Gestionnaire de livrable — single option */}
               <FormField label={`${t("livrable.livrableManager")} *`} required error={errors.submittalManager}>
                 <Select value={formData.submittalManager} onValueChange={(value) => handleFieldChange("submittalManager", value)}>
                   <SelectTrigger className={`h-12 ${errors.submittalManager ? "border-destructive" : ""}`}>
                     <SelectValue placeholder={t("livrable.selectLivrableManager")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {authUsers.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.name}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="project_manager">{t("livrable.managerOption.projectManager")}</SelectItem>
                   </SelectContent>
                 </Select>
               </FormField>
@@ -577,8 +583,8 @@ export default function NewLivrablePage() {
                 />
               </FormField>
 
-              {/* Final Due Date */}
-              <FormField label={t("submittal.finalDueDate")}>
+              {/* Date de réponse requise */}
+              <FormField label={t("livrable.requiredResponseDate")}>
                 <Input
                   type="date"
                   value={formData.finalDueDate}
@@ -665,104 +671,6 @@ export default function NewLivrablePage() {
                 <Label className="cursor-pointer">{t("livrable.isPrivate")}</Label>
                 <span className="text-sm text-muted-foreground">{t("livrable.isPrivateDesc")}</span>
               </div>
-            </div>
-          </FormSection>
-
-          {/* Submittal Schedule Information */}
-          <FormSection
-            title={t("submittal.scheduleInfo")}
-            collapsible={true}
-            defaultOpen={false}
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Schedule Task - Full Width */}
-              <FormField label={t("livrable.scheduleTask")} className="md:col-span-2">
-                <LivrableCrudCombobox
-                  listKey="scheduleTasks"
-                  value={formData.scheduleTask}
-                  onChange={(value) => handleFieldChange("scheduleTask", value)}
-                  placeholder={t("livrable.selectScheduleTask")}
-                />
-              </FormField>
-
-              {/* Required On-Site Date */}
-              <FormField label={t("submittal.requiredOnSiteDate")}>
-                <Input
-                  type="date"
-                  value={formData.requiredOnSiteDate}
-                  onChange={(e) => handleFieldChange("requiredOnSiteDate", e.target.value)}
-                  className="h-12"
-                />
-              </FormField>
-
-              {/* Lead Time */}
-              <FormField label={t("livrable.leadTime")}>
-                <div className="flex gap-2 items-center">
-                  <Input
-                    type="number"
-                    value={formData.leadTime}
-                    onChange={(e) => handleFieldChange("leadTime", Number.parseInt(e.target.value) || 0)}
-                    className="h-12"
-                  />
-                  <span className="text-sm text-muted-foreground">{t("livrable.leadTimeDays")}</span>
-                </div>
-              </FormField>
-
-              {/* Planned Return Date */}
-              <FormField label={t("submittal.plannedReturnDate")}>
-                <Input
-                  type="date"
-                  value={formData.plannedReturnDate}
-                  onChange={(e) => handleFieldChange("plannedReturnDate", e.target.value)}
-                  className="h-12"
-                />
-              </FormField>
-
-              {/* Design Team Review Time */}
-              <FormField label={t("livrable.designTeamReviewTime")}>
-                <div className="flex gap-2 items-center">
-                  <Input
-                    type="number"
-                    value={formData.designTeamReviewTime}
-                    onChange={(e) => handleFieldChange("designTeamReviewTime", Number.parseInt(e.target.value) || 0)}
-                    className="h-12"
-                  />
-                  <span className="text-sm text-muted-foreground">{t("livrable.designTeamReviewTimeDays")}</span>
-                </div>
-              </FormField>
-
-              {/* Planned Internal Review Completed Date */}
-              <FormField label={t("submittal.plannedInternalReviewCompletedDate")}>
-                <Input
-                  type="date"
-                  value={formData.plannedInternalReviewCompletedDate}
-                  onChange={(e) => handleFieldChange("plannedInternalReviewCompletedDate", e.target.value)}
-                  className="h-12"
-                />
-              </FormField>
-
-              {/* Internal Review Time */}
-              <FormField label={t("livrable.internalReviewTime")}>
-                <div className="flex gap-2 items-center">
-                  <Input
-                    type="number"
-                    value={formData.internalReviewTime}
-                    onChange={(e) => handleFieldChange("internalReviewTime", Number.parseInt(e.target.value) || 0)}
-                    className="h-12"
-                  />
-                  <span className="text-sm text-muted-foreground">{t("livrable.internalReviewTimeDays")}</span>
-                </div>
-              </FormField>
-
-              {/* Planned Submit By Date */}
-              <FormField label={t("submittal.plannedSubmitByDate")}>
-                <Input
-                  type="date"
-                  value={formData.plannedSubmitByDate}
-                  onChange={(e) => handleFieldChange("plannedSubmitByDate", e.target.value)}
-                  className="h-12"
-                />
-              </FormField>
             </div>
           </FormSection>
 

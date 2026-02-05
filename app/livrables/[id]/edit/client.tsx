@@ -438,18 +438,14 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
                 </Select>
               </FormField>
 
-              {/* Livrable Manager */}
+              {/* Gestionnaire de livrable — single option */}
               <FormField label={`${t("livrable.livrableManager")} *`} required error={errors.submittalManager}>
                 <Select value={formData.submittalManager} onValueChange={(v) => handleFieldChange("submittalManager", v)}>
                   <SelectTrigger className={`h-12 ${errors.submittalManager ? "border-destructive" : ""}`}>
                     <SelectValue placeholder={t("livrable.selectLivrableManager")} />
                   </SelectTrigger>
                   <SelectContent>
-                    {authUsers.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.name}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="project_manager">{t("livrable.managerOption.projectManager")}</SelectItem>
                   </SelectContent>
                 </Select>
               </FormField>
@@ -475,7 +471,7 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
               </FormField>
 
               {/* Final Due Date */}
-              <FormField label={t("submittal.finalDueDate")}>
+              <FormField label={t("livrable.requiredResponseDate")}>
                 <Input type="date" value={formData.finalDueDate} onChange={(e) => handleFieldChange("finalDueDate", e.target.value)} className="h-12" />
               </FormField>
 

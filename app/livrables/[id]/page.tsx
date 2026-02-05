@@ -55,9 +55,11 @@ export default function LivrableDetailPage({ params }: { params: Promise<{ id: s
   const creator = users.find((u) => u.id === livrable.creatorId)
   const userNameById = (idOrEmail: string | undefined) => {
     if (!idOrEmail) return "-"
+    if (idOrEmail === "project_manager") return t("livrable.managerOption.projectManager")
     if (idOrEmail.includes("@")) return idOrEmail
     return authUsers.find((u) => u.id === idOrEmail)?.name || idOrEmail
   }
+
   const distributionNames =
     (livrable.distribution || [])
       .map((v: string) => {

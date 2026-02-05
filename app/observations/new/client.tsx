@@ -161,7 +161,7 @@ export default function NewObservation() {
           safetyAnalysis: formData.safetyAnalysis,
           createdAt: new Date(),
           updatedAt: new Date(),
-          syncStatus: "pending",
+          syncStatus: "synced", // Mark as synced after successful save
         }
 
         addObservation(observation)

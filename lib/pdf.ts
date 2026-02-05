@@ -550,9 +550,9 @@ export async function exportObservationAsPdf(
       doc.text(ln, margin, y + (idx * 4))
     })
     
-    // Right half: Project text (right-aligned)
+    // Right half: Project text (right-aligned, bold)
     doc.setFontSize(7)
-    doc.setFont("helvetica", "normal")
+    doc.setFont("helvetica", "bold") // Make "Projet: xxx" bold
     const projText = projectHeaderLine ? `Projet : ${projectHeaderLine}` : ""
     const projLines = doc.splitTextToSize(projText, rightHalfWidth)
     let py = y
@@ -560,6 +560,7 @@ export async function exportObservationAsPdf(
       doc.text(ln, rightHalfEnd, py, { align: "right" })
       py += 3.5
     })
+    doc.setFont("helvetica", "normal") // Reset to normal
     
     y += Math.max(titleLines.length * 4, projLines.length * 3.5) + 2
   }
@@ -616,10 +617,12 @@ export async function exportObservationAsPdf(
   let ry = y + 5
   if (projectHeaderLine) {
     const fullProjectText = projectLocation ? `${projectHeaderLine}\n${projectLocation}` : projectHeaderLine
+    doc.setFont("helvetica", "bold") // Make "Projet: xxx" bold
     doc.splitTextToSize(`Projet : ${fullProjectText}`, 80).forEach((ln: string) => {
       doc.text(ln, pageWidth - margin, ry, { align: "right" })
       ry += 4
     })
+    doc.setFont("helvetica", "normal") // Reset to normal
   } else if (projectLocation) {
     doc.splitTextToSize(projectLocation, 80).forEach((ln: string) => {
       doc.text(ln, pageWidth - margin, ry, { align: "right" })
@@ -687,13 +690,13 @@ export async function exportObservationAsPdf(
     return Array.isArray(observation.distribution) ? observation.distribution.join(", ") : String(observation.distribution || "-")
   }
 
-  // Status translation
+  // Status translation - match what is displayed in the form
   const statusMap: Record<string, string> = {
     "draft": "Brouillon",
     "in-progress": "En Progression",
     "submitted": "Soumis",
-    "open": "Ouvert",
-    "closed": "Fermé"
+    "open": "Initié", // Match form display: status.initiated = "Initié"
+    "closed": "Fermé" // Match form display: status.closed = "Fermé"
   }
   const statusText = statusMap[observation.status] || observation.status || "-"
 
@@ -728,7 +731,7 @@ export async function exportObservationAsPdf(
   ]
 
   // Right column fields
-  const plansLiesValue = (observation as any).plansLies || observation.linkedDrawings || "-"
+  const plansLiesValue = (observation as any).plansLies || observation.linkedDrawings || "" // Leave empty instead of "-"
   const rightFields: Array<[string, string]> = [
     ["Statut", statusText],
     ["Date de création", observation.createdAt ? formatDate(observation.createdAt) : "-"],
@@ -781,44 +784,22 @@ export async function exportObservationAsPdf(
     y += Math.max(5, descLines.length * 4) + rowGap
   }
 
-  // Reference article (Article de référence (CRTC)) - key-value layout (label left, value right)
-  if (observation.referenceArticle) {
-    checkPageBreak(15)
-    doc.setFontSize(8)
-    doc.setFont("helvetica", "bold")
-    doc.text("Article de référence (CRTC)", leftX, y)
-    doc.setFont("helvetica", "normal")
-    const artValue = observation.referenceArticle || "-"
-    const artLines = doc.splitTextToSize(artValue, pageWidth / 2 - labelWidth - 5)
-    artLines.forEach((line: string, idx: number) => {
-      doc.text(line, leftX + labelWidth, y + (idx * 4))
-    })
-    y += Math.max(5, artLines.length * 4) + rowGap
-
-    // Plans liés - directly below Article de référence (CRTC) in key-value format (always show)
-    checkPageBreak(10)
-    doc.setFont("helvetica", "bold")
-    doc.text("Plans liés", leftX, y)
-    doc.setFont("helvetica", "normal")
-    const plansValue = plansLiesValue || "-"
+  // Plans liés - key-value format (always show, leave empty - no hyphen)
+  checkPageBreak(10)
+  doc.setFontSize(8)
+  doc.setFont("helvetica", "bold")
+  doc.text("Plans liés", leftX, y)
+  doc.setFont("helvetica", "normal")
+  const plansValue = plansLiesValue || "" // Leave empty instead of "-"
+  if (plansValue) {
     const plansLines = doc.splitTextToSize(String(plansValue), pageWidth / 2 - labelWidth - 5)
     plansLines.forEach((line: string, idx: number) => {
       doc.text(line, leftX + labelWidth, y + (idx * 4))
     })
     y += Math.max(5, plansLines.length * 4) + rowGap
   } else {
-    // If no Article de référence, still show Plans liés
-    checkPageBreak(10)
-    doc.setFontSize(8)
-    doc.setFont("helvetica", "bold")
-    doc.text("Plans liés", leftX, y)
-    doc.setFont("helvetica", "normal")
-    const plansValue = plansLiesValue || "-"
-    const plansLines = doc.splitTextToSize(String(plansValue), pageWidth / 2 - labelWidth - 5)
-    plansLines.forEach((line: string, idx: number) => {
-      doc.text(line, leftX + labelWidth, y + (idx * 4))
-    })
-    y += Math.max(5, plansLines.length * 4) + rowGap
+    // Empty field - just add spacing
+    y += 5 + rowGap
   }
 
   // Mesures correctives - check if it's a separate field or embedded in description
@@ -852,7 +833,8 @@ export async function exportObservationAsPdf(
     const imgH = 45
     const filenameHeight = 6 // Space for filename below image (3mm text + 3mm spacing)
     const rowSpacing = 4 // Narrow gap between rows (top filename to bottom image)
-    const rowHeight = imgH + filenameHeight + rowSpacing // Total height per row
+    const cellHeight = imgH + filenameHeight // Total height per cell (image + filename)
+    const rowHeight = cellHeight + rowSpacing // Total height per row including spacing
     const rows = Math.ceil(images.length / 2)
     // Calculate actual height: line adjustment (2) + after line (6) + title (6) + title after (6) + images + final spacing (6)
     const estimatedHeight = 2 + 6 + 6 + 6 + rows * rowHeight + 6
@@ -867,37 +849,66 @@ export async function exportObservationAsPdf(
     doc.text("Pièces jointes", margin, y)
     
     y += 6
-    doc.setDrawColor(0, 0, 0)
 
     const baseY = y
+    // Use consistent border color (BORDER_GRAY from inspection PDF)
+    const BORDER_GRAY: [number, number, number] = [210, 210, 210]
+    doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
+    doc.setLineWidth(0.2)
+    
     for (let i = 0; i < images.length; i++) {
       const img = images[i]
       const col = i % 2
       const row = Math.floor(i / 2)
       const x = margin + col * (imgW + imgGap)
-      const imgY = baseY + row * rowHeight
-      // Thin border per image like reference
-      doc.setDrawColor(120, 120, 120)
-      doc.setLineWidth(0.2)
-      doc.rect(x, imgY, imgW, imgH)
-      doc.setDrawColor(0, 0, 0)
+      const cellY = baseY + row * rowHeight
+      
+      // Draw border around the image area first (wider and lighter border)
+      // Use lighter gray color and thicker line width
+      const LIGHT_BORDER_GRAY: [number, number, number] = [230, 230, 230] // Lighter gray for image border
+      const borderPadding = 0.5 // Padding from cell edge
+      const borderX = x + borderPadding
+      const borderY = cellY + borderPadding
+      const borderW = imgW - (borderPadding * 2)
+      const borderH = imgH - (borderPadding * 2)
+      
+      doc.setDrawColor(LIGHT_BORDER_GRAY[0], LIGHT_BORDER_GRAY[1], LIGHT_BORDER_GRAY[2])
+      doc.setLineWidth(0.5) // Wider border (0.5mm instead of 0.2mm)
+      doc.rect(borderX, borderY, borderW, borderH)
+      
+      // Draw image inside the border with margin/padding
+      const imageMargin = 2 // Margin between border and image
+      const imgX = borderX + imageMargin
+      const imgY = borderY + imageMargin
+      const actualImgW = borderW - (imageMargin * 2)
+      const actualImgH = borderH - (imageMargin * 2)
+      
       try {
-        doc.addImage(img.url, getJsPdfImageFormat(img.url, img.type), x + 0.5, imgY + 0.5, imgW - 1, imgH - 1)
+        doc.addImage(img.url, getJsPdfImageFormat(img.url, img.type), imgX, imgY, actualImgW, actualImgH)
       } catch (e) {
         // placeholder
       }
+      
+      // Draw filename below image, centered (borderless - no border around text)
       doc.setFontSize(7)
       doc.setTextColor(0, 0, 255)
       const name = img.name || "GetAttachmentThumbnail.jpg"
-      // Center the filename under each image (matches reference)
       const nameX = x + imgW / 2
-      doc.text(name, nameX, imgY + imgH + 3, { align: "center" })
+      const nameY = cellY + imgH + 3
+      doc.text(name, nameX, nameY, { align: "center" })
+      
+      // Draw underline for filename
       const tw = doc.getTextWidth(name)
       doc.setDrawColor(0, 0, 255)
-      doc.line(nameX - tw / 2, imgY + imgH + 3.5, nameX + tw / 2, imgY + imgH + 3.5)
+      doc.line(nameX - tw / 2, nameY + 0.5, nameX + tw / 2, nameY + 0.5)
+      
+      // Reset colors
       doc.setTextColor(0, 0, 0)
-      doc.setDrawColor(0, 0, 0)
+      doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
+      doc.setLineWidth(0.2) // Reset line width
     }
+    
+    doc.setDrawColor(0, 0, 0)
     y = baseY + rows * rowHeight
     y += 6
   }
@@ -1045,18 +1056,23 @@ export async function exportInspectionAsPdf(
   }
 
   const drawContinuationHeader = () => {
+    // Layout: "Inspection XXXX" on left, "Projet: XXXX" on right (space-between)
+    const leftHalfWidth = (pageWidth - 2 * margin) / 2
+    const rightHalfWidth = (pageWidth - 2 * margin) / 2
+    
     doc.setFont("helvetica", "bold")
     doc.setFontSize(8)
     doc.text(`Inspection N°${inspectionNumber} - Inspection journalière`, margin, 12)
-    doc.setFont("helvetica", "normal")
+    doc.setFont("helvetica", "bold") // Make project text bold
     doc.setFontSize(7)
     const projRight = `Projet : ${projectNumber} ${projectName}`.trim()
-    const projLines = doc.splitTextToSize(projRight, 95)
+    const projLines = doc.splitTextToSize(projRight, rightHalfWidth - 2)
     let py = 12
     projLines.slice(0, 2).forEach((ln: string) => {
       doc.text(ln, pageWidth - margin, py, { align: "right" })
       py += 3.5
     })
+    doc.setFont("helvetica", "normal") // Reset to normal
     // Light gray line color #e3e3e3 (RGB: 227, 227, 227)
     doc.setDrawColor(227, 227, 227)
     doc.setLineWidth(0.3)
@@ -1087,12 +1103,14 @@ export async function exportInspectionAsPdf(
   doc.text("Télécopieur : 514-323-3882", margin + 26, y + 22)
 
   doc.setFontSize(7)
+  doc.setFont("helvetica", "bold") // Make project text bold
   let projY = y + 5
   const projText = `Projet : ${projectNumber} ${projectName}`.trim()
   doc.splitTextToSize(projText, 85).forEach((line: string) => {
     doc.text(line, pageWidth - margin, projY, { align: "right" })
     projY += 3.5
   })
+  doc.setFont("helvetica", "normal") // Reset to normal for location
   if (projectLocation) {
     doc.splitTextToSize(projectLocation, 85).forEach((line: string) => {
       doc.text(line, pageWidth - margin, projY, { align: "right" })
@@ -1169,16 +1187,19 @@ export async function exportInspectionAsPdf(
     const year = String(d.getFullYear()).slice(-2)
     return `${day}/${month}/${year}`
   }
+  // Status mapping: translate to French
   const statusLabel =
     inspection.status === "closed" && inspection.closedById
       ? `Fermé par ${resolveClosedBy()} le ${formatDateShort(inspection.updatedAt ? new Date(inspection.updatedAt) : new Date())}`
-      : inspection.status === "in-progress"
-        ? "En Progression"
-        : inspection.status === "draft"
-          ? "Brouillon"
-          : String(inspection.status || "open").toLowerCase() === "open"
-            ? "open"
-            : String(inspection.status || "-")
+      : inspection.status === "closed"
+        ? "Fermé"
+        : inspection.status === "in-progress"
+          ? "En Progression"
+          : inspection.status === "draft"
+            ? "Brouillon"
+            : String(inspection.status || "open").toLowerCase() === "open"
+              ? "Initié"
+              : String(inspection.status || "-")
 
   const labelWidth = 45
   doc.setFontSize(8)
@@ -1212,7 +1233,7 @@ export async function exportInspectionAsPdf(
       doc.setFont("helvetica", "normal")
       doc.text(String(rv || "-"), rightX + labelWidth, y)
     }
-    y += lineH
+    y += lineH + 3.5 // Add margin-bottom: 15px equivalent (3.5mm * 4.3 ≈ 15px)
   }
   thinLine()
 
@@ -1222,26 +1243,26 @@ export async function exportInspectionAsPdf(
   doc.text("Détails de L'Inspection", margin, y)
   y += 5
   doc.setFontSize(8)
-  const inspectionDate = inspection.inspectionDate ? new Date(inspection.inspectionDate) : (inspection.createdAt ? new Date(inspection.createdAt) : new Date())
-  const dueDate = inspection.dueDate ? new Date(inspection.dueDate) : null
-  doc.setFont("helvetica", "bold")
-  doc.text("Date de l'inspection", leftX, y)
-  doc.setFont("helvetica", "normal")
-  doc.text(formatDateFR(inspectionDate), leftX + labelWidth, y)
-  doc.setFont("helvetica", "bold")
-  doc.text("Date d'échéance", rightX, y)
-  doc.setFont("helvetica", "normal")
-  doc.text(dueDate ? formatDateFR(dueDate) : "-", rightX + labelWidth, y)
-  y += lineH
-  doc.setFont("helvetica", "bold")
-  doc.text("Point de contact", leftX, y)
-  doc.setFont("helvetica", "normal")
-  doc.text(inspection.contactPoint || "-", leftX + labelWidth, y)
-  doc.setFont("helvetica", "bold")
-  doc.text("Entrepreneur responsable", rightX, y)
-  doc.setFont("helvetica", "normal")
-  doc.text(inspection.contractor || "-", rightX + labelWidth, y)
-  y += lineH
+    const inspectionDate = inspection.inspectionDate ? new Date(inspection.inspectionDate) : (inspection.createdAt ? new Date(inspection.createdAt) : new Date())
+    const dueDate = inspection.dueDate ? new Date(inspection.dueDate) : null
+    doc.setFont("helvetica", "bold")
+    doc.text("Date de l'inspection", leftX, y)
+    doc.setFont("helvetica", "normal")
+    doc.text(formatDateFR(inspectionDate), leftX + labelWidth, y)
+    doc.setFont("helvetica", "bold")
+    doc.text("Date d'échéance", rightX, y)
+    doc.setFont("helvetica", "normal")
+    doc.text(dueDate ? formatDateFR(dueDate) : "-", rightX + labelWidth, y)
+    y += lineH + 3.5 // Add margin-bottom: 15px equivalent
+    doc.setFont("helvetica", "bold")
+    doc.text("Point de contact", leftX, y)
+    doc.setFont("helvetica", "normal")
+    doc.text(inspection.contactPoint || "-", leftX + labelWidth, y)
+    doc.setFont("helvetica", "bold")
+    doc.text("Entrepreneur responsable", rightX, y)
+    doc.setFont("helvetica", "normal")
+    doc.text(inspection.contractor || "-", rightX + labelWidth, y)
+    y += lineH + 3.5 // Add margin-bottom: 15px equivalent
   doc.setFont("helvetica", "bold")
   doc.text("Personne(s) assignée(s)", leftX, y)
   doc.setFont("helvetica", "normal")
@@ -1294,7 +1315,8 @@ export async function exportInspectionAsPdf(
     const availableWidth = 70 // Narrower area
     const totalGaps = summaryItems.length - 1
     const gap = totalGaps > 0 ? Math.max(3, (availableWidth - totalWidth) / totalGaps) : 0 // Minimum 3mm gap, narrower spacing
-    let summaryX = pageWidth - margin - availableWidth
+    // Add margin-right: 35px equivalent (35px ≈ 9.2mm)
+    let summaryX = pageWidth - margin - availableWidth - 9.2
     summaryItems.forEach((item, idx) => {
       doc.setFont("helvetica", "bold") // Numbers are bold
       doc.text(`${item.count}`, summaryX, y + 5)
@@ -1326,7 +1348,8 @@ export async function exportInspectionAsPdf(
       // Check if we can fit at least the header on this page
       checkPageBreak(topBlockHeight + 5)
       
-      let itemStartY = y
+      let itemStartY = y // Track the start of this item (for outer borders)
+      const originalItemStartY = y // Keep original start Y for border drawing
       const itemWidth = pageWidth - 2 * margin
       
       // Track which sections have been drawn (for border drawing)
@@ -1337,6 +1360,7 @@ export async function exportInspectionAsPdf(
       let imageSectionStartY = 0
       let imageSectionEndY = 0
       let imageSectionDrawn = false
+      let itemStartPage = (doc as any).internal.getCurrentPageInfo().pageNumber // Track which page the item starts on
       
       // ----- Section 1: Statistics (top grey block) -----
       const statsSectionY = y
@@ -1432,10 +1456,10 @@ export async function exportInspectionAsPdf(
       doc.setLineWidth(0.2)
       doc.line(margin, y, pageWidth - margin, y)
       
-      // ----- Section 2: Text (response + comment) - always has border -----
+      // ----- Section 2: Text (response + comment) - separate borders for each update -----
       textSectionStartY = y
-      // Prepare all text content first
-      const textLines: { type: 'response' | 'comment-header' | 'comment-line', content: string, height: number, namePart?: string, restPart?: string }[] = []
+      // Prepare updates as separate groups (each update gets its own border)
+      const updates: Array<{ type: 'response' | 'comment', lines: Array<{ type: 'response' | 'comment-header' | 'comment-line', content: string, height: number, namePart?: string, restPart?: string }> }> = []
       
       if (hasResponse && response) {
         const responseDate = response.updatedAt || response.createdAt || inspection.updatedAt || inspection.createdAt || new Date()
@@ -1447,7 +1471,10 @@ export async function exportInspectionAsPdf(
         else if (response.response === "not-applicable" || response.response === "na") responseStatus = "N/A"
         const namePart = `${responderName} (${companyName})`
         const restPart = ` a répondu ${responseStatus} le ${dateStr} à ${timeStr} EDT`
-        textLines.push({ type: 'response', content: `${namePart}${restPart}`, height: 4, namePart, restPart })
+        updates.push({
+          type: 'response',
+          lines: [{ type: 'response', content: `${namePart}${restPart}`, height: 4, namePart, restPart }]
+        })
       }
 
       if (response && response.comment) {
@@ -1456,105 +1483,170 @@ export async function exportInspectionAsPdf(
         const commentTimeStr = formatTimeFR(new Date(commentDate))
         const namePart = responderName + " (" + companyName + ")"
         const restPart = " a laissé un commentaire le " + commentDateStr + " à " + commentTimeStr + " EDT"
-        textLines.push({ type: 'comment-header', content: `${namePart}${restPart}`, height: 3.5, namePart, restPart })
-        
         const commentLines = doc.splitTextToSize(response.comment, pageWidth - 2 * margin - 10)
-        commentLines.forEach((line: string) => {
-          textLines.push({ type: 'comment-line', content: line, height: 3.5 })
+        const commentUpdateLines: Array<{ type: 'comment-header' | 'comment-line', content: string, height: number, namePart?: string, restPart?: string }> = [
+          { type: 'comment-header', content: `${namePart}${restPart}`, height: 3.5, namePart, restPart },
+          ...commentLines.map((line: string) => ({ type: 'comment-line' as const, content: line, height: 3.5 }))
+        ]
+        updates.push({
+          type: 'comment',
+          lines: commentUpdateLines
         })
-        textLines.push({ type: 'comment-line', content: '', height: 2 }) // Spacing after comment
       }
       
       // If no content, add blank space
-      if (textLines.length === 0) {
-        textLines.push({ type: 'comment-line', content: '', height: 8 })
+      if (updates.length === 0) {
+        updates.push({
+          type: 'comment',
+          lines: [{ type: 'comment-line', content: '', height: 8 }]
+        })
       }
       
-      // Draw text lines, handling page breaks to fill current page as much as possible
-      let currentTextSectionStartY = y
-      let remainingLines = [...textLines]
-      let pageBeforeText = (doc as any).internal.getCurrentPageInfo().pageNumber
-      
+      // Draw each update with its own border
       doc.setFont("helvetica", "normal")
       doc.setFontSize(7)
+      let pageBeforeText = (doc as any).internal.getCurrentPageInfo().pageNumber
       
-      while (remainingLines.length > 0) {
-        const availableHeight = pageHeight - margin - 15 - y
-        let linesToDraw: typeof remainingLines = []
-        let heightUsed = 0
+      for (let updateIdx = 0; updateIdx < updates.length; updateIdx++) {
+        const update = updates[updateIdx]
+        let updateStartY = y
+        const updateStartPage = (doc as any).internal.getCurrentPageInfo().pageNumber
         
-        // Calculate how many lines can fit on current page
-        for (const line of remainingLines) {
-          if (heightUsed + line.height <= availableHeight - 5) {
-            linesToDraw.push(line)
-            heightUsed += line.height
-          } else {
-            break
-          }
-        }
-        
-        // If no lines fit, force at least one line to next page
-        if (linesToDraw.length === 0 && remainingLines.length > 0) {
-          checkPageBreak(remainingLines[0].height + 5)
-          const pageAfterCheck = (doc as any).internal.getCurrentPageInfo().pageNumber
-          if (pageAfterCheck > pageBeforeText) {
-            itemStartY = y
-            pageBeforeText = pageAfterCheck
-          }
-          currentTextSectionStartY = y
-          // Redraw divider line at top of new page
+        // Draw horizontal divider before this update (except for first update)
+        // This divider becomes the top border for this update box
+        if (updateIdx > 0) {
           doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
           doc.setLineWidth(0.2)
           doc.line(margin, y, pageWidth - margin, y)
-          linesToDraw = [remainingLines[0]]
-          heightUsed = remainingLines[0].height
+          y += 0.5 // Small gap
+          updateStartY = y
         }
         
-        // Draw lines that fit on current page
-        let currentTextY = currentTextSectionStartY + 3.5
-        for (const line of linesToDraw) {
+        const updateLines = update.lines
+        // Calculate total content height for vertical centering (justify-content: center with flex-direction: column)
+        const totalContentHeight = updateLines.reduce((sum, line) => sum + line.height, 0)
+        const padding = 3.5 // Top and bottom padding for centering
+        const minHeight = 8 // Minimum height for border
+        const boxHeight = Math.max(totalContentHeight + padding * 2, minHeight)
+        
+        // Calculate vertical center position (justify-content: center with flex-direction: column)
+        // jsPDF text() uses baseline positioning - the Y coordinate is the baseline of the text
+        // To center a text block vertically: position the first baseline so the text block's midpoint aligns with box center
+        // For font size 7 with line height 3.5-4mm, baseline is approximately 3mm from the top of each line
+        // So: firstBaseline = boxCenter - (totalContentHeight/2 - baselineOffsetFromTopOfFirstLine)
+        const boxCenter = updateStartY + boxHeight / 2
+        const firstLineHeight = updateLines.length > 0 ? updateLines[0].height : 4
+        const baselineOffsetFromTop = firstLineHeight * 0.75 // Baseline is ~75% down from top of line for font size 7
+        const contentStartY = boxCenter - (totalContentHeight / 2) + baselineOffsetFromTop
+        
+        let currentUpdateY = contentStartY
+        let pageBreakY = null // Where page break occurred (if any)
+        let firstPageEndY = null
+        let firstPageContentHeight = 0 // Track content height on first page
+        let originalUpdateStartY = updateStartY
+        
+        // Draw all lines for this update
+        for (let lineIdx = 0; lineIdx < updateLines.length; lineIdx++) {
+          const line = updateLines[lineIdx]
+          const lineHeight = line.height
+          
+          checkPageBreak(lineHeight + 5)
+          const currentPage = (doc as any).internal.getCurrentPageInfo().pageNumber
+          
+          if (currentPage > pageBeforeText) {
+            // Page break occurred
+            pageBeforeText = currentPage
+            const currentItemPage = (doc as any).internal.getCurrentPageInfo().pageNumber
+            
+            // Draw borders for content on previous page (left, right - NO bottom)
+            if (lineIdx > 0 && firstPageEndY === null) {
+              // Calculate box height for first page content (justify-content: center)
+              // Content on first page should be centered within its box
+              const firstPageBoxHeight = Math.max(firstPageContentHeight + padding * 2, minHeight)
+              firstPageEndY = originalUpdateStartY + firstPageBoxHeight
+              const prevPage = currentPage - 1
+              doc.setPage(prevPage)
+              doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
+              doc.setLineWidth(0.2)
+              // Draw left and right borders for the update section on previous page
+              // These are inner borders for the update box, not outer item borders
+              doc.line(margin, originalUpdateStartY, margin, firstPageEndY) // Left border
+              doc.line(pageWidth - margin, originalUpdateStartY, pageWidth - margin, firstPageEndY) // Right border
+              doc.setPage(currentItemPage) // Return to current page
+              // Top border already drawn as divider
+              // NO bottom border
+              // Note: Outer item borders will be drawn at the end of the item
+            }
+            
+            // Reset for new page - NO top border on continuation pages, start 15px from top
+            // 15px ≈ 5.6mm (15 / 2.83465, since 1mm ≈ 2.83465px at 72dpi)
+            const continuationOffset = 5.6
+            y = margin + continuationOffset // Start 15px from top on continuation pages
+            pageBreakY = y
+            const remainingLines = updateLines.slice(lineIdx)
+            const remainingContentHeight = remainingLines.reduce((sum, l) => sum + l.height, 0)
+            const newBoxHeight = Math.max(remainingContentHeight + padding * 2, minHeight)
+            // Center remaining content within new box height using same baseline calculation
+            const newBoxCenter = y + newBoxHeight / 2
+            const remainingFirstLineHeight = remainingLines.length > 0 ? remainingLines[0].height : 4
+            const remainingBaselineOffset = remainingFirstLineHeight * 0.75
+            currentUpdateY = newBoxCenter - (remainingContentHeight / 2) + remainingBaselineOffset
+            updateStartY = y
+          } else {
+            // Track content height on first page
+            firstPageContentHeight += lineHeight
+          }
+          
+          // Draw the line content
           if (line.type === 'response' && line.namePart && line.restPart) {
             doc.setFont("helvetica", "bold")
-            doc.text(line.namePart, margin + 2, currentTextY)
+            doc.text(line.namePart, margin + 2, currentUpdateY)
             const nameW = doc.getTextWidth(line.namePart)
             doc.setFont("helvetica", "normal")
-            doc.text(line.restPart, margin + 2 + nameW, currentTextY)
+            doc.text(line.restPart, margin + 2 + nameW, currentUpdateY)
           } else if (line.type === 'comment-header' && line.namePart && line.restPart) {
             doc.setFont("helvetica", "bold")
-            doc.text(line.namePart, margin + 2, currentTextY)
+            doc.text(line.namePart, margin + 2, currentUpdateY)
             doc.setFont("helvetica", "normal")
-            doc.text(line.restPart, margin + 2 + doc.getTextWidth(line.namePart), currentTextY)
+            doc.text(line.restPart, margin + 2 + doc.getTextWidth(line.namePart), currentUpdateY)
           } else if (line.content) {
-            doc.text(line.content, margin + 2, currentTextY)
+            doc.text(line.content, margin + 2, currentUpdateY)
           }
-          currentTextY += line.height
+          
+          currentUpdateY += lineHeight
         }
         
-        // Draw borders for this portion
-        const currentTextSectionEndY = currentTextY
+        // Calculate box end Y (justify-content: center - box height = content + padding)
+        let updateEndY: number
+        if (pageBreakY) {
+          // Content spans pages - calculate box height for content on final page
+          const remainingLines = updateLines.slice(updateLines.length - (updateLines.length - Math.floor((currentUpdateY - pageBreakY) / 3.5)))
+          const actualRemainingHeight = remainingLines.reduce((sum, l) => sum + l.height, 0) || (currentUpdateY - pageBreakY - padding)
+          const finalBoxHeight = Math.max(actualRemainingHeight + padding * 2, minHeight)
+          updateEndY = pageBreakY + finalBoxHeight
+        } else {
+          // Content fits on one page - box end is start + box height
+          updateEndY = updateStartY + boxHeight
+        }
+        
+        // Draw borders for the final part of this update
         doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
         doc.setLineWidth(0.2)
-        doc.line(margin, currentTextSectionStartY, margin, currentTextSectionEndY)
-        doc.line(pageWidth - margin, currentTextSectionStartY, pageWidth - margin, currentTextSectionEndY)
         
-        // Remove drawn lines from remaining
-        remainingLines = remainingLines.slice(linesToDraw.length)
-        
-        // If there are more lines, move to next page
-        if (remainingLines.length > 0) {
-          checkPageBreak(remainingLines[0].height + 5)
-          const pageAfterCheck = (doc as any).internal.getCurrentPageInfo().pageNumber
-          if (pageAfterCheck > pageBeforeText) {
-            itemStartY = y
-            pageBeforeText = pageAfterCheck
-          }
-          currentTextSectionStartY = y
-          // Redraw divider line at top of new page
-          doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
-          doc.setLineWidth(0.2)
-          doc.line(margin, y, pageWidth - margin, y)
+        if (pageBreakY) {
+          // Update spanned pages - draw borders for content on final page
+          // Top border is the divider line (already drawn at pageBreakY), don't draw it again
+          doc.line(margin, pageBreakY, margin, updateEndY) // Left border
+          doc.line(pageWidth - margin, pageBreakY, pageWidth - margin, updateEndY) // Right border
+          // NO bottom border
+          y = updateEndY
         } else {
-          y = currentTextSectionEndY
+          // Update fits on one page - content is already centered
+          doc.line(margin, updateStartY, margin, updateEndY) // Left border
+          doc.line(pageWidth - margin, updateStartY, pageWidth - margin, updateEndY) // Right border
+          // Top border already drawn as divider
+          // NO bottom border
+          y = updateEndY
         }
       }
       
@@ -1616,10 +1708,10 @@ export async function exportInspectionAsPdf(
                 if (pageAfterCheck > pageBeforeImages) {
                   itemStartY = y
                   pageBeforeImages = pageAfterCheck
-                  // Redraw divider line at top of new page
-                  doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
-                  doc.setLineWidth(0.2)
-                  doc.line(margin, y, pageWidth - margin, y)
+                  // NO top border on continuation pages, start 15px from top
+                  // 15px ≈ 5.6mm (15 / 2.83465, since 1mm ≈ 2.83465px at 72dpi)
+                  const continuationOffset = 5.6
+                  y = margin + continuationOffset
                   imageSectionStartY = y
                   currentImageY = y + 3.5
                   // Redraw photo header on new page
@@ -1684,10 +1776,53 @@ export async function exportInspectionAsPdf(
       
       // Draw outer border (left and right) - top and bottom already drawn
       const itemEndY = y
+      const itemEndPage = (doc as any).internal.getCurrentPageInfo().pageNumber
       doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
       doc.setLineWidth(0.2)
-      doc.line(margin, itemStartY, margin, itemEndY) // Left border
-      doc.line(pageWidth - margin, itemStartY, pageWidth - margin, itemEndY) // Right border
+      
+      // Draw borders on all pages the item spans
+      // Note: Top border is already drawn as part of statistics section rect on first page only
+      // Bottom border is already drawn for text/image sections
+      if (itemStartPage === itemEndPage) {
+        // Item fits on one page - draw left and right borders
+        doc.line(margin, originalItemStartY, margin, itemEndY) // Left border
+        doc.line(pageWidth - margin, originalItemStartY, pageWidth - margin, itemEndY) // Right border
+      } else {
+        // Item spans multiple pages - draw left and right borders on each page
+        // 15px ≈ 5.6mm (15 / 2.83465, since 1mm ≈ 2.83465px at 72dpi)
+        const continuationOffset = 5.6 // 15px offset from top on continuation pages
+        // 30px ≈ 10.6mm (30 / 2.83465)
+        const borderExtensionDown = 10.6 // 30px extension downward
+        for (let pageNum = itemStartPage; pageNum <= itemEndPage; pageNum++) {
+          doc.setPage(pageNum)
+          doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2]) // Ensure correct border color
+          doc.setLineWidth(0.2)
+          // On first page, start from originalItemStartY; on continuation pages, start 15px from top (no top border)
+          let pageStartY = pageNum === itemStartPage ? originalItemStartY : margin + continuationOffset
+          // On last page, end at itemEndY; on other pages, end at bottom margin
+          let pageEndY = pageNum === itemEndPage ? itemEndY : pageHeight - margin - 15
+          
+          if (pageNum === itemStartPage) {
+            // First page - extend borders 30px downward from bottom
+            const extendedBottomY = pageEndY + borderExtensionDown
+            doc.line(margin, pageStartY, margin, extendedBottomY) // Left border extended downward
+            doc.line(pageWidth - margin, pageStartY, pageWidth - margin, extendedBottomY) // Right border extended downward
+          } else {
+            // Continuation pages - extend borders downward from top, but remove 15px from top
+            // Original extension was 30px, removing 15px leaves 15px extension
+            // 15px ≈ 5.6mm (15 / 2.83465)
+            const reducedExtension = 5.6 // 15px extension (30px - 15px = 15px)
+            const extendedTopY = pageStartY - reducedExtension
+            // Don't draw borders above the continuation header area (y = 18mm)
+            // Start borders from pageStartY (where content begins) instead of extending upward
+            const actualStartY = pageStartY
+            doc.line(margin, actualStartY, margin, pageEndY) // Left border
+            doc.line(pageWidth - margin, actualStartY, pageWidth - margin, pageEndY) // Right border
+          }
+        }
+        // Return to the last page
+        doc.setPage(itemEndPage)
+      }
       
       y = itemEndY + 3 // Slightly more spacing between items
     })
@@ -1856,10 +1991,12 @@ export async function exportIncidentAsPdf(
           : ""
     if (projText) {
       const projLines = doc.splitTextToSize(projText, projColW)
+      doc.setFont("helvetica", "bold") // Make project text bold
       projLines.forEach((ln: string) => {
         doc.text(ln, projColX, ry, { align: "right" })
         ry += 3.5
       })
+      doc.setFont("helvetica", "normal") // Reset to normal
     }
   }
   if (projectLocation) {
@@ -1981,7 +2118,14 @@ export async function exportIncidentAsPdf(
   ]
 
   const createdStr = formatDate(incident.createdAt)
-  const statusMap: Record<string, string> = { open: "Ouvert", closed: "Fermé", draft: "Brouillon", "in-progress": "En cours", submitted: "Soumis" }
+  // Status mapping: "open" -> "Initié", "closed" -> "Fermé" (matching form choices)
+  const statusMap: Record<string, string> = { 
+    open: "Initié", 
+    closed: "Fermé", 
+    draft: "Brouillon", 
+    "in-progress": "En cours", 
+    submitted: "Soumis" 
+  }
   const statusStr = statusMap[incident.status] ?? incident.status ?? ""
   const eventTimeStr = formatTime(incident.eventTime)
   const distLines = formatDistribution()
@@ -2107,11 +2251,12 @@ export async function exportIncidentAsPdf(
       // Large box for embedded image/document
       const boxWidth = contentWidth
       const boxHeight = 50
-      checkPageBreak(boxHeight + 8)
+      checkPageBreak(boxHeight + 15) // Extra space for filename
       
-      // Draw border box
-      doc.setDrawColor(SEP_GRAY[0], SEP_GRAY[1], SEP_GRAY[2])
-      doc.setLineWidth(0.2)
+      // Draw border box with proper framing - use darker border for better visibility
+      const borderColor: [number, number, number] = [150, 150, 150] // Medium gray border for better visibility
+      doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2])
+      doc.setLineWidth(0.3) // Slightly thicker for better visibility
       doc.rect(leftColX, y, boxWidth, boxHeight)
       
       // Try to embed image/document inside the box
@@ -2119,27 +2264,89 @@ export async function exportIncidentAsPdf(
         try {
           // Calculate image dimensions to fit in box with padding
           const padding = 2
-          const imgWidth = boxWidth - (padding * 2)
-          const imgHeight = boxHeight - (padding * 2)
-          doc.addImage(att.url, getJsPdfImageFormat(att.url, att.type), leftColX + padding, y + padding, imgWidth, imgHeight)
+          const maxImgWidth = boxWidth - (padding * 2)
+          const maxImgHeight = boxHeight - (padding * 2)
+          
+          // Calculate proper image dimensions to fit in box with padding
+          const imgX = leftColX + padding
+          const imgY = y + padding
+          
+          // Try to get image dimensions if possible (for data URLs, this should work)
+          try {
+            const img = new Image()
+            img.src = att.url
+            if (img.complete && img.naturalWidth > 0) {
+              // Image is already loaded, calculate proper scaling
+              const imgAspectRatio = img.naturalWidth / img.naturalHeight
+              const boxAspectRatio = maxImgWidth / maxImgHeight
+              
+              let imgWidth = maxImgWidth
+              let imgHeight = maxImgHeight
+              
+              if (imgAspectRatio > boxAspectRatio) {
+                // Image is wider - fit to width
+                imgHeight = maxImgWidth / imgAspectRatio
+              } else {
+                // Image is taller - fit to height
+                imgWidth = maxImgHeight * imgAspectRatio
+              }
+              
+              // Center the image in the box
+              const centeredX = leftColX + padding + (maxImgWidth - imgWidth) / 2
+              const centeredY = y + padding + (maxImgHeight - imgHeight) / 2
+              
+              doc.addImage(
+                att.url, 
+                getJsPdfImageFormat(att.url, att.type), 
+                centeredX, 
+                centeredY, 
+                imgWidth, 
+                imgHeight
+              )
+            } else {
+              // Image not loaded yet, use full space (will be stretched but visible)
+              doc.addImage(
+                att.url, 
+                getJsPdfImageFormat(att.url, att.type), 
+                imgX, 
+                imgY, 
+                maxImgWidth, 
+                maxImgHeight
+              )
+            }
+          } catch {
+            // Fallback: use full available space
+            doc.addImage(
+              att.url, 
+              getJsPdfImageFormat(att.url, att.type), 
+              imgX, 
+              imgY, 
+              maxImgWidth, 
+              maxImgHeight
+            )
+          }
         } catch (err) {
-          // If image fails, just show the box
+          // If image fails to load or add, show placeholder text centered
           doc.setFont("helvetica", "italic")
           doc.setFontSize(7)
           doc.setTextColor(150, 150, 150)
-          doc.text("Image non disponible", leftColX + 5, y + boxHeight / 2)
+          const placeholderText = "Image non disponible"
+          const textWidth = doc.getTextWidth(placeholderText)
+          doc.text(placeholderText, leftColX + (boxWidth - textWidth) / 2, y + boxHeight / 2)
           doc.setTextColor(0, 0, 0)
         }
       } else {
-        // For non-image attachments, show placeholder text
+        // For non-image attachments, show placeholder text centered
         doc.setFont("helvetica", "italic")
         doc.setFontSize(7)
         doc.setTextColor(150, 150, 150)
-        doc.text("Document joint", leftColX + 5, y + boxHeight / 2)
+        const placeholderText = "Document joint"
+        const textWidth = doc.getTextWidth(placeholderText)
+        doc.text(placeholderText, leftColX + (boxWidth - textWidth) / 2, y + boxHeight / 2)
         doc.setTextColor(0, 0, 0)
       }
       
-      y += boxHeight + 3
+      y += boxHeight + 4
       
       // Filename below the box (blue + underlined, centered like reference PDF)
       doc.setFont("helvetica", "normal")

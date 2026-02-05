@@ -27,6 +27,7 @@ import type { Inspection, InspectionItemResponse, Attachment } from "@/lib/types
 import { DistributionSelector } from "@/components/forms"
 import { ProjectNoCombobox } from "@/components/project-no-combobox"
 import { InspectionTypeCrudCombobox } from "@/components/inspection-type-crud-combobox"
+import { LivrableCrudCombobox } from "@/components/livrable-crud-combobox"
 import { sendFormNotificationEmails, collectEmailAddresses } from "@/lib/email-service"
 
 export default function EditInspectionPage({ params }: { params: Promise<{ id: string }> }) {
@@ -206,7 +207,8 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
           responses: responsesArray,
           attachments: formData.attachments,
           updatedAt: new Date(),
-          syncStatus: "pending",
+          // Keep existing syncStatus if it's synced, otherwise set to pending
+          syncStatus: inspection?.syncStatus === "synced" ? "pending" : (inspection?.syncStatus || "pending"),
         }
 
         updateInspection(id, updatedInspection)
@@ -257,8 +259,7 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
         router.push(`/inspections/${id}`)
       } catch (error) {
         console.error("Error updating inspection:", error)
-        alert(t("alert.saveError.inspection"))
-      } finally {
+        toast.error(t("alert.saveError.inspection") || "Erreur lors de la sauvegarde de l'inspection")
         setIsSubmitting(false)
       }
     },
@@ -430,21 +431,12 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
               </Select>
             </FormField>
             <FormField label="Lieu">
-              <Select
+              <LivrableCrudCombobox
+                listKey="locations"
                 value={formData.lieu || ""}
-                onValueChange={(value) => setFormData((prev) => ({ ...prev, lieu: value }))}
-              >
-                <SelectTrigger className="h-12">
-                  <SelectValue placeholder="Lieu" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(livrableOptionLists?.locations || []).map((loc: { id: string; label: string }) => (
-                    <SelectItem key={loc.id} value={loc.label}>
-                      {loc.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(value) => setFormData((prev) => ({ ...prev, lieu: value }))}
+                placeholder="Lieu"
+              />
             </FormField>
           </div>
 
@@ -458,6 +450,16 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
               />
             </FormField>
           </div>
+
+          <FormField label={t("form.description") || "Description"}>
+            <Textarea
+              value={formData.description}
+              onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+              placeholder={t("form.descriptionPlaceholder") || "Description"}
+              rows={4}
+              className="resize-none"
+            />
+          </FormField>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField label="Section du devis">

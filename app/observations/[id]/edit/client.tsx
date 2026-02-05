@@ -186,7 +186,7 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
           attachments: formData.attachments,
           safetyAnalysis: formData.safetyAnalysis,
           updatedAt: new Date(),
-          syncStatus: "pending",
+          syncStatus: "synced", // Mark as synced after successful save
         }
 
         updateObservation(id, updatedObservation)
@@ -478,10 +478,12 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
             />
           </FormField>
 
-          <AttachmentUpload
-            attachments={formData.attachments}
-            onChange={(attachments) => setFormData((prev) => ({ ...prev, attachments }))}
-          />
+          <FormField label={t("form.attachments")}>
+            <AttachmentUpload
+              attachments={formData.attachments}
+              onChange={(attachments) => setFormData((prev) => ({ ...prev, attachments }))}
+            />
+          </FormField>
         </FormSection>
 
         {/* Distribution - Assign Users & Groups */}

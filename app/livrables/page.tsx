@@ -43,16 +43,16 @@ export default function LivrablesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<string | null>(null)
 
-  const filtered = livrables.filter((livrable) => {
-    const matchesSearch =
-      livrable.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      livrable.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      livrable.number.toLowerCase().includes(searchTerm.toLowerCase())
-
-    const matchesStatus = !filterStatus || livrable.status === filterStatus
-
-    return matchesSearch && matchesStatus
-  })
+  const filtered = livrables
+    .filter((livrable) => {
+      const matchesSearch =
+        livrable.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (livrable.description ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (livrable.number ?? "").toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesStatus = !filterStatus || livrable.status === filterStatus
+      return matchesSearch && matchesStatus
+    })
+    .sort((a, b) => (a.number ?? "").localeCompare(b.number ?? "", undefined, { numeric: true }))
 
   const handleExportPDF = async (livrable: any) => {
     try {
