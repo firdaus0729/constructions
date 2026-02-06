@@ -27,6 +27,7 @@ import { sendFormNotificationEmails, collectEmailAddresses } from "@/lib/email-s
 import { toast } from "sonner"
 import { ProjectNoCombobox } from "@/components/project-no-combobox"
 import { InspectionTypeCrudCombobox } from "@/components/inspection-type-crud-combobox"
+import { LivrableCrudCombobox } from "@/components/livrable-crud-combobox"
 
 export default function NewInspection() {
   const router = useRouter()
@@ -84,10 +85,9 @@ export default function NewInspection() {
     async (e: React.FormEvent) => {
       e.preventDefault()
 
-      if (!validateForm()) {
-        alert(t("alert.fixErrors"))
-        return
-      }
+      // Allow saving even if form is not fully completed
+      // Only show errors but don't prevent saving
+      validateForm()
 
       setIsSubmitting(true)
 
@@ -189,9 +189,9 @@ export default function NewInspection() {
             )
 
             if (emailResult.success && emailResult.sent > 0) {
-              toast.success(`Inspection créée et ${emailResult.sent} email(s) envoyé(s)`)
+              toast.success(t("toast.inspectionCreatedWithEmails" as any, { count: emailResult.sent }))
             } else if (emailResult.failed > 0) {
-              toast.warning(`Inspection créée mais ${emailResult.failed} email(s) ont échoué`)
+              toast.warning(t("toast.inspectionCreatedEmailsFailed" as any, { count: emailResult.failed }))
             }
           }
         } else {
@@ -402,11 +402,19 @@ export default function NewInspection() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField label={t("field.location")}>
-              <Input
-                value={formData.projectLocation}
-                onChange={(e) => setFormData((prev) => ({ ...prev, projectLocation: e.target.value }))}
+              <LivrableCrudCombobox
+                listKey="locations"
+                value={formData.projectLocation || ""}
+                onChange={(value) => setFormData((prev) => ({ ...prev, projectLocation: value }))}
                 placeholder={t("field.location")}
-                className="h-10"
+              />
+            </FormField>
+            <FormField label="Lieu">
+              <LivrableCrudCombobox
+                listKey="locations"
+                value={formData.lieu || ""}
+                onChange={(value) => setFormData((prev) => ({ ...prev, lieu: value }))}
+                placeholder="Lieu"
               />
             </FormField>
           </div>
@@ -417,14 +425,6 @@ export default function NewInspection() {
                 value={formData.metier}
                 onChange={(e) => setFormData((prev) => ({ ...prev, metier: e.target.value }))}
                 placeholder="Métier"
-                className="h-10"
-              />
-            </FormField>
-            <FormField label="Lieu">
-              <Input
-                value={formData.lieu}
-                onChange={(e) => setFormData((prev) => ({ ...prev, lieu: e.target.value }))}
-                placeholder="Lieu"
                 className="h-10"
               />
             </FormField>

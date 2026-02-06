@@ -149,8 +149,8 @@ export default function ObservationDetailPage({ params }: { params: Promise<{ id
       <div id="form-detail" className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto space-y-6">
         {/* Header info */}
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-info/10">
-            <Eye className="h-6 w-6 text-info" />
+          <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-[#051DF7] shrink-0">
+            <Eye className="h-6 w-6 text-white" />
           </div>
           <div>
             <div className="flex items-center gap-2">

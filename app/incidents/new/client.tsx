@@ -285,9 +285,9 @@ export default function NewIncidentPage() {
             )
 
             if (emailResult.success && emailResult.sent > 0) {
-              toast.success(`Incident créé et ${emailResult.sent} email(s) envoyé(s)`)
+              toast.success(t("toast.incidentCreatedWithEmails" as any, { count: emailResult.sent }))
             } else if (emailResult.failed > 0) {
-              toast.warning(`Incident créé mais ${emailResult.failed} email(s) ont échoué`)
+              toast.warning(t("toast.incidentCreatedEmailsFailed" as any, { count: emailResult.failed }))
             }
           }
         } else {

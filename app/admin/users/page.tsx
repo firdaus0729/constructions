@@ -83,7 +83,7 @@ export default function UsersPage() {
     }
 
     addAuthUser(newUser)
-    toast.success(`User ${newUserName} created successfully`)
+    toast.success(t("admin.userCreated", { name: newUserName }))
 
     // Reset form
     setNewUserEmail("")
@@ -271,13 +271,13 @@ export default function UsersPage() {
                             onClick={() => {
                               // Prevent deleting your own account
                               if (user && currentUser.email === user.email) {
-                                toast.error("You cannot delete your own account")
+                                toast.error(t("admin.cannotDeleteOwnAccount"))
                                 return
                               }
                               
-                              if (confirm(`Delete user ${currentUser.name}?`)) {
+                              if (confirm(t("admin.confirmDeleteUser", { name: currentUser.name }))) {
                                 deleteAuthUser(currentUser.id)
-                                toast.success(`${t("name")}: ${currentUser.name} deleted`)
+                                toast.success(t("admin.userDeleted", { name: currentUser.name }))
                               }
                             }}
                             className="text-destructive hover:text-destructive hover:bg-destructive/10"

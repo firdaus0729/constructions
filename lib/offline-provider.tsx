@@ -82,7 +82,7 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
       setLastSyncTime(new Date())
       toast.success(t("status.syncedSuccessfully"))
     } catch (error) {
-      toast.error("Sync failed. Will retry when connection is restored.")
+      toast.error(t("status.syncFailed"))
     } finally {
       setIsSyncingLocal(false)
       setSyncing(false)

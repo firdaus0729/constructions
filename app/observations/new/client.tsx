@@ -24,6 +24,7 @@ import { useLocale } from "@/lib/locale-context"
 import { sendFormNotificationEmails, collectEmailAddresses } from "@/lib/email-service"
 import { toast } from "sonner"
 import { ProjectNoCombobox } from "@/components/project-no-combobox"
+import { LivrableCrudCombobox } from "@/components/livrable-crud-combobox"
 
 export default function NewObservation() {
   const router = useRouter()
@@ -55,7 +56,6 @@ export default function NewObservation() {
     creatorId: string
     concernedCompany: string
     referenceArticle: string
-    origin: string
     location: string
     cnsstSection: string
     trade: string
@@ -79,7 +79,6 @@ export default function NewObservation() {
     creatorId: currentUser?.id || "",
     concernedCompany: "",
     referenceArticle: "",
-    origin: "",
     location: "",
     cnsstSection: "",
     trade: "",
@@ -153,7 +152,6 @@ export default function NewObservation() {
           concernedCompany: formData.concernedCompany,
           description: formData.description,
           referenceArticle: formData.referenceArticle,
-          origin: formData.origin || undefined,
           location: formData.location || undefined,
           cnsstSection: formData.cnsstSection || undefined,
           trade: formData.trade || undefined,
@@ -200,9 +198,9 @@ export default function NewObservation() {
             )
 
             if (emailResult.success && emailResult.sent > 0) {
-              toast.success(`Observation créée et ${emailResult.sent} email(s) envoyé(s)`)
+              toast.success(t("toast.observationCreatedWithEmails" as any, { count: emailResult.sent }))
             } else if (emailResult.failed > 0) {
-              toast.warning(`Observation créée mais ${emailResult.failed} email(s) ont échoué`)
+              toast.warning(t("toast.observationCreatedEmailsFailed" as any, { count: emailResult.failed }))
             }
           }
         }
@@ -423,18 +421,12 @@ export default function NewObservation() {
             />
           </FormField>
 
-          <FormField label={t("observation.origin")}>
-            <Input
-              value={formData.origin}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, origin: e.target.value }))}
-              placeholder={t("observation.originPlaceholder")}
-            />
-          </FormField>
           <FormField label={t("observation.location")}>
-            <Input
-              value={formData.location}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
-              placeholder={t("observation.locationPlaceholder")}
+            <LivrableCrudCombobox
+              listKey="locations"
+              value={formData.location || ""}
+              onChange={(value) => setFormData((prev) => ({ ...prev, location: value }))}
+              placeholder={t("observation.locationPlaceholder") || "Lieu"}
             />
           </FormField>
           <FormField label={t("observation.cnsstSection")}>

@@ -75,6 +75,18 @@ export default function LivrableDetailPage({ params }: { params: Promise<{ id: s
       .map((s) => s.trim())
       .filter(Boolean)
 
+  // Safe date formatting helper
+  const safeFormatDate = (dateValue: any, format: string): string => {
+    if (!dateValue) return "-"
+    try {
+      const date = dateValue instanceof Date ? dateValue : new Date(dateValue)
+      if (isNaN(date.getTime())) return "-"
+      return formatLocalized(date, format, locale)
+    } catch {
+      return "-"
+    }
+  }
+
   return (
     <AppShell>
       <FormHeader
@@ -140,35 +152,16 @@ export default function LivrableDetailPage({ params }: { params: Promise<{ id: s
               </div>
             )}
 
-            {livrable.submittalPackage && (
-              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                <FileText className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">{t("livrable.livrablePackage")}</p>
-                  <p className="font-medium">{livrable.submittalPackage || "-"}</p>
-                </div>
-              </div>
-            )}
-
             {livrable.receivedDate && (
               <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
                 <Calendar className="h-5 w-5 text-muted-foreground" />
                 <div>
                   <p className="text-xs text-muted-foreground">{t("livrable.receivedDate")}</p>
-                  <p className="font-medium">{formatLocalized(new Date(livrable.receivedDate), "MMMM d, yyyy", locale)}</p>
+                  <p className="font-medium">{safeFormatDate(livrable.receivedDate, "MMMM d, yyyy")}</p>
                 </div>
               </div>
             )}
 
-            {livrable.costCode && (
-              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                <FileText className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">{t("livrable.costCode")}</p>
-                  <p className="font-medium">{livrable.costCode}</p>
-                </div>
-              </div>
-            )}
 
             {livrable.location && (
               <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
@@ -212,15 +205,6 @@ export default function LivrableDetailPage({ params }: { params: Promise<{ id: s
               </div>
             </div>
 
-            {livrable.ballInCourt && (
-              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg md:col-span-2">
-                <FileText className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">{t("livrable.ballInCourt")}</p>
-                  <p className="font-medium">{livrable.ballInCourt}</p>
-                </div>
-              </div>
-            )}
 
             <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
               <FileText className="h-5 w-5 text-muted-foreground" />
@@ -237,19 +221,15 @@ export default function LivrableDetailPage({ params }: { params: Promise<{ id: s
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
               <p className="text-xs text-muted-foreground">{t("livrable.submitBy")}</p>
-              <p className="font-medium">{livrable.submitBy ? formatLocalized(new Date(livrable.submitBy), "MMMM d, yyyy", locale) : "-"}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">{t("submittal.finalDueDate")}</p>
-              <p className="font-medium">{livrable.finalDueDate ? formatLocalized(new Date(livrable.finalDueDate), "MMMM d, yyyy", locale) : "-"}</p>
+              <p className="font-medium">{safeFormatDate(livrable.submitBy, "MMMM d, yyyy")}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">{t("livrable.issueDate")}</p>
-              <p className="font-medium">{livrable.issueDate ? formatLocalized(new Date(livrable.issueDate), "MMMM d, yyyy", locale) : "-"}</p>
+              <p className="font-medium">{safeFormatDate(livrable.issueDate, "MMMM d, yyyy")}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">{t("submittal.receivedDate")}</p>
-              <p className="font-medium">{livrable.receivedDate ? formatLocalized(new Date(livrable.receivedDate), "MMMM d, yyyy", locale) : "-"}</p>
+              <p className="font-medium">{safeFormatDate(livrable.receivedDate, "MMMM d, yyyy")}</p>
             </div>
           </div>
         </FormSection>
@@ -263,7 +243,7 @@ export default function LivrableDetailPage({ params }: { params: Promise<{ id: s
             </div>
             <div>
               <p className="text-xs text-muted-foreground">{t("submittal.requiredOnSiteDate")}</p>
-              <p className="font-medium">{livrable.requiredOnSiteDate ? formatLocalized(new Date(livrable.requiredOnSiteDate), "MMMM d, yyyy", locale) : "-"}</p>
+              <p className="font-medium">{safeFormatDate(livrable.requiredOnSiteDate, "MMMM d, yyyy")}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">{t("livrable.leadTime")}</p>
@@ -271,7 +251,7 @@ export default function LivrableDetailPage({ params }: { params: Promise<{ id: s
             </div>
             <div>
               <p className="text-xs text-muted-foreground">{t("submittal.plannedReturnDate")}</p>
-              <p className="font-medium">{livrable.plannedReturnDate ? formatLocalized(new Date(livrable.plannedReturnDate), "MMMM d, yyyy", locale) : "-"}</p>
+              <p className="font-medium">{safeFormatDate(livrable.plannedReturnDate, "MMMM d, yyyy")}</p>
             </div>
           </div>
         </FormSection>
@@ -281,15 +261,15 @@ export default function LivrableDetailPage({ params }: { params: Promise<{ id: s
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
               <p className="text-xs text-muted-foreground">{t("submittal.anticipatedDeliveryDate")}</p>
-              <p className="font-medium">{livrable.anticipatedDeliveryDate ? formatLocalized(new Date(livrable.anticipatedDeliveryDate), "MMMM d, yyyy", locale) : "-"}</p>
+              <p className="font-medium">{safeFormatDate(livrable.anticipatedDeliveryDate, "MMMM d, yyyy")}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">{t("livrable.confirmedDeliveryDate")}</p>
-              <p className="font-medium">{livrable.confirmedDeliveryDate ? formatLocalized(new Date(livrable.confirmedDeliveryDate), "MMMM d, yyyy", locale) : "-"}</p>
+              <p className="font-medium">{safeFormatDate(livrable.confirmedDeliveryDate, "MMMM d, yyyy")}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">{t("submittal.actualDeliveryDate")}</p>
-              <p className="font-medium">{livrable.actualDeliveryDate ? formatLocalized(new Date(livrable.actualDeliveryDate), "MMMM d, yyyy", locale) : "-"}</p>
+              <p className="font-medium">{safeFormatDate(livrable.actualDeliveryDate, "MMMM d, yyyy")}</p>
             </div>
           </div>
         </FormSection>
@@ -330,19 +310,19 @@ export default function LivrableDetailPage({ params }: { params: Promise<{ id: s
         )}
 
         {/* Workflow Steps */}
-        {livrable.workflowSteps && livrable.workflowSteps.length > 0 && (
+        {livrable.workflowSteps && Array.isArray(livrable.workflowSteps) && livrable.workflowSteps.length > 0 && (
           <FormSection title={t("livrable.workflowSteps")}>
             <div className="space-y-2">
-              {livrable.workflowSteps.map((step) => (
-                <div key={step.id} className="p-4 bg-muted/50 rounded-lg">
+              {livrable.workflowSteps.map((step: any) => (
+                <div key={step?.id || Math.random()} className="p-4 bg-muted/50 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">{step.name}</p>
-                      <p className="text-sm text-muted-foreground">{step.role}</p>
+                      <p className="font-medium">{step?.name || "-"}</p>
+                      <p className="text-sm text-muted-foreground">{step?.role || "-"}</p>
                     </div>
-                    {step.dueDate && (
+                    {step?.dueDate && (
                       <p className="text-sm text-muted-foreground">
-                        {formatLocalized(new Date(step.dueDate), "MMM d, yyyy", locale)}
+                        {safeFormatDate(step.dueDate, "MMM d, yyyy")}
                       </p>
                     )}
                   </div>
@@ -353,18 +333,20 @@ export default function LivrableDetailPage({ params }: { params: Promise<{ id: s
         )}
 
         {/* Attachments */}
-        {livrable.attachments.length > 0 && (
+        {livrable.attachments && Array.isArray(livrable.attachments) && livrable.attachments.length > 0 && (
           <FormSection title={t("form.attachments")}>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {livrable.attachments.map((attachment) => (
+              {livrable.attachments.map((attachment: any) => (
                 <button
-                  key={attachment.id}
+                  key={attachment?.id || Math.random()}
                   type="button"
-                  onClick={() => window.open(attachment.url, "_blank")}
+                  onClick={() => attachment?.url && window.open(attachment.url, "_blank")}
                   className="p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer text-left"
                 >
-                  <p className="text-sm font-medium truncate">{attachment.name}</p>
-                  <p className="text-xs text-muted-foreground">{(attachment.size / 1024).toFixed(1)} KB</p>
+                  <p className="text-sm font-medium truncate">{attachment?.name || "-"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {attachment?.size ? `${(attachment.size / 1024).toFixed(1)} KB` : "-"}
+                  </p>
                 </button>
               ))}
             </div>

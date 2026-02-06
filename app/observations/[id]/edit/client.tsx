@@ -22,6 +22,7 @@ import { ObservationTypeCrudCombobox } from "@/components/observation-type-crud-
 import { ProjectNoCombobox } from "@/components/project-no-combobox"
 import { IncidentOptionCrudCombobox } from "@/components/incident-crud-combobox"
 import { ObservationContributingBehaviorCrudCombobox } from "@/components/observation-contributing-behavior-crud-combobox"
+import { LivrableCrudCombobox } from "@/components/livrable-crud-combobox"
 
 export default function EditObservation({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -58,7 +59,6 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
     creatorId: string
     concernedCompany: string
     referenceArticle: string
-    origin: string
     location: string
     cnsstSection: string
     trade: string
@@ -82,7 +82,6 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
     creatorId: observation?.creatorId || "",
     concernedCompany: observation?.concernedCompany || "",
     referenceArticle: observation?.referenceArticle || "",
-    origin: (observation as any)?.origin || "",
     location: (observation as any)?.location || "",
     cnsstSection: (observation as any)?.cnsstSection || "",
     trade: (observation as any)?.trade || "",
@@ -113,7 +112,6 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
         completionDate: toDateStr(observation.completionDate),
         concernedCompany: observation.concernedCompany || "",
         referenceArticle: observation.referenceArticle || "",
-        origin: (observation as any).origin || "",
         location: (observation as any).location || "",
         cnsstSection: (observation as any).cnsstSection || "",
         trade: (observation as any).trade || "",
@@ -178,7 +176,6 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
           completionDate: formData.completionDate ? new Date(formData.completionDate) : null,
           concernedCompany: formData.concernedCompany,
           referenceArticle: formData.referenceArticle,
-          origin: formData.origin || undefined,
           location: formData.location || undefined,
           cnsstSection: formData.cnsstSection || undefined,
           trade: formData.trade || undefined,
@@ -356,18 +353,12 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
             />
           </FormField>
 
-          <FormField label={t("observation.origin")}>
-            <Input
-              value={formData.origin}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, origin: e.target.value }))}
-              placeholder={t("observation.originPlaceholder")}
-            />
-          </FormField>
           <FormField label={t("observation.location")}>
-            <Input
-              value={formData.location}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
-              placeholder={t("observation.locationPlaceholder")}
+            <LivrableCrudCombobox
+              listKey="locations"
+              value={formData.location || ""}
+              onChange={(value) => setFormData((prev) => ({ ...prev, location: value }))}
+              placeholder={t("observation.locationPlaceholder") || "Lieu"}
             />
           </FormField>
           <FormField label={t("observation.cnsstSection")}>

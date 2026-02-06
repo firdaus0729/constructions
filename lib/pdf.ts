@@ -493,19 +493,19 @@ export async function exportObservationAsPdf(
 
   // Resolve Danger and Condition contributive from incident options (same as incident form)
   const getDangerLabel = (dangerId: string): string => {
-    if (!dangerId) return "-"
+    if (!dangerId) return ""
     const dangerOption = (incidentOptionLists.danger || []).find((d: any) => d.id === dangerId)
     return dangerOption?.label || dangerId
   }
 
   const getContributingConditionLabel = (conditionId: string): string => {
-    if (!conditionId) return "-"
+    if (!conditionId) return ""
     const conditionOption = (incidentOptionLists.contributingCondition || []).find((c: any) => c.id === conditionId)
     return conditionOption?.label || conditionId
   }
 
   const getContributingBehaviorLabel = (behaviorId: string): string => {
-    if (!behaviorId) return "-"
+    if (!behaviorId) return ""
     const behaviorOption = observationOptionLists.contributingBehavior?.find((b: any) => b.id === behaviorId)
     return behaviorOption?.label || behaviorId
   }
@@ -552,7 +552,7 @@ export async function exportObservationAsPdf(
     
     // Right half: Project text (right-aligned, bold)
     doc.setFontSize(7)
-    doc.setFont("helvetica", "bold") // Make "Projet: xxx" bold
+    doc.setFont("helvetica", "bold") // "Projet: xxx" text should be bold
     const projText = projectHeaderLine ? `Projet : ${projectHeaderLine}` : ""
     const projLines = doc.splitTextToSize(projText, rightHalfWidth)
     let py = y
@@ -560,7 +560,6 @@ export async function exportObservationAsPdf(
       doc.text(ln, rightHalfEnd, py, { align: "right" })
       py += 3.5
     })
-    doc.setFont("helvetica", "normal") // Reset to normal
     
     y += Math.max(titleLines.length * 4, projLines.length * 3.5) + 2
   }
@@ -575,10 +574,47 @@ export async function exportObservationAsPdf(
 
   let y = margin
 
+  // Parse dates as local dates to avoid timezone issues (day before problem)
+  const parseLocalDate = (dateStr: string | Date | null | undefined): Date | null => {
+    if (!dateStr) return null
+    if (dateStr instanceof Date) {
+      // If it's already a Date, create a new one with local date components to avoid timezone issues
+      return new Date(dateStr.getFullYear(), dateStr.getMonth(), dateStr.getDate())
+    }
+    // If it's a date string like "2024-01-15" or "2024-01-15T00:00:00.000Z", parse it as local date
+    if (typeof dateStr === "string") {
+      // Try to extract date parts from ISO string or simple date string
+      const dateMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/)
+      if (dateMatch) {
+        const year = parseInt(dateMatch[1], 10)
+        const month = parseInt(dateMatch[2], 10) - 1 // Month is 0-indexed
+        const day = parseInt(dateMatch[3], 10)
+        return new Date(year, month, day)
+      }
+      // Try parsing as other formats
+      const parts = dateStr.split(/[-/]/)
+      if (parts.length === 3) {
+        const year = parseInt(parts[0], 10)
+        const month = parseInt(parts[1], 10) - 1 // Month is 0-indexed
+        const day = parseInt(parts[2], 10)
+        if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+          return new Date(year, month, day)
+        }
+      }
+      // Fallback: try parsing as Date and extract local components
+      const d = new Date(dateStr)
+      if (!isNaN(d.getTime())) {
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate())
+      }
+    }
+    return null
+  }
+
   // Helper function to format date as "DD mmm. YYYY"
   const formatDate = (date: Date | string | null | undefined): string => {
     if (!date) return ""
-    const d = new Date(date)
+    const d = parseLocalDate(date)
+    if (!d) return ""
     const months = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."]
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
   }
@@ -586,7 +622,8 @@ export async function exportObservationAsPdf(
   // Helper function to format date/time as "DD/MM/YYYY à HH h MM EDT" or "FDT"
   const formatDateTime = (date: Date | string | null | undefined, useFDT: boolean = false): string => {
     if (!date) return ""
-    const d = new Date(date)
+    const d = parseLocalDate(date)
+    if (!d) return ""
     const day = String(d.getDate()).padStart(2, "0")
     const month = String(d.getMonth() + 1).padStart(2, "0")
     const year = d.getFullYear()
@@ -616,14 +653,22 @@ export async function exportObservationAsPdf(
   doc.setFontSize(8)
   let ry = y + 5
   if (projectHeaderLine) {
-    const fullProjectText = projectLocation ? `${projectHeaderLine}\n${projectLocation}` : projectHeaderLine
-    doc.setFont("helvetica", "bold") // Make "Projet: xxx" bold
-    doc.splitTextToSize(`Projet : ${fullProjectText}`, 80).forEach((ln: string) => {
+    // Render "Projet : {projectHeaderLine}" in bold
+    doc.setFont("helvetica", "bold") // "Projet: xxx" text should be bold
+    doc.splitTextToSize(`Projet : ${projectHeaderLine}`, 80).forEach((ln: string) => {
       doc.text(ln, pageWidth - margin, ry, { align: "right" })
       ry += 4
     })
-    doc.setFont("helvetica", "normal") // Reset to normal
+    // Render location separately in normal font (if exists)
+    if (projectLocation) {
+      doc.setFont("helvetica", "normal") // Location should not be bold
+      doc.splitTextToSize(projectLocation, 80).forEach((ln: string) => {
+        doc.text(ln, pageWidth - margin, ry, { align: "right" })
+        ry += 4
+      })
+    }
   } else if (projectLocation) {
+    doc.setFont("helvetica", "normal")
     doc.splitTextToSize(projectLocation, 80).forEach((ln: string) => {
       doc.text(ln, pageWidth - margin, ry, { align: "right" })
       ry += 4
@@ -666,18 +711,18 @@ export async function exportObservationAsPdf(
     if (observation.creatorName) return observation.creatorName
     const users = getStoreUsers()
     const user = users.find((u: any) => u.id === observation.creatorId)
-    return user?.name ?? observation.creatorId ?? "-"
+    return user?.name ?? observation.creatorId ?? ""
   }
 
   const getAssignedPersonName = () => {
     if (observation.assignedPersonName) return observation.assignedPersonName
     const users = getStoreUsers()
     const user = users.find((u: any) => u.id === observation.assignedPersonId)
-    return user?.name ?? observation.assignedPersonId ?? "-"
+    return user?.name ?? observation.assignedPersonId ?? ""
   }
 
   const formatDistribution = (): string => {
-    if (!observation.distribution || observation.distribution.length === 0) return "-"
+    if (!observation.distribution || observation.distribution.length === 0) return ""
     const users = getStoreUsers()
     if (Array.isArray(observation.distribution) && users.length > 0) {
       return observation.distribution
@@ -687,7 +732,7 @@ export async function exportObservationAsPdf(
         })
         .join("\n")
     }
-    return Array.isArray(observation.distribution) ? observation.distribution.join(", ") : String(observation.distribution || "-")
+    return Array.isArray(observation.distribution) ? observation.distribution.join(", ") : String(observation.distribution || "")
   }
 
   // Status translation - match what is displayed in the form
@@ -698,7 +743,7 @@ export async function exportObservationAsPdf(
     "open": "Initié", // Match form display: status.initiated = "Initié"
     "closed": "Fermé" // Match form display: status.closed = "Fermé"
   }
-  const statusText = statusMap[observation.status] || observation.status || "-"
+  const statusText = statusMap[observation.status] || observation.status || ""
 
   // Priority translation (original PDF uses "Urgent" for high priority)
   const priorityMap: Record<string, string> = {
@@ -708,7 +753,7 @@ export async function exportObservationAsPdf(
     "critical": "Urgent",
     "urgent": "Urgent"
   }
-  const priorityText = priorityMap[observation.priority] || observation.priority || "-"
+  const priorityText = priorityMap[observation.priority] || observation.priority || ""
 
   const leftX = margin
   const rightX = pageWidth / 2 + 5
@@ -719,12 +764,21 @@ export async function exportObservationAsPdf(
 
   // Left column fields (exact order from original PDF)
   const leftFields: Array<[string, string]> = [
-    ["Origine", observation.origin || "-"],
+    ["Origine", ""], // Origine value must be empty
     ["Créé par", `${getCreatorName()} (Construction Interlag)`],
     ["Personne assignée", `${getAssignedPersonName()} (Construction Interlag)`],
-    ["Date de notification", (observation.date ? formatDate(observation.date) : observation.notificationDate ? formatDate(observation.notificationDate) : observation.createdAt ? formatDate(observation.createdAt) : "-")],
-    ["Lieu", observation.location || observation.projectLocation || (observation as any).lieu || "-"],
-    ["Date d'échéance", observation.dueDate ? formatDate(observation.dueDate) : "-"],
+    ["Date de notification", (() => {
+      const dateValue = observation.date || observation.notificationDate || observation.createdAt
+      if (!dateValue) return ""
+      const parsedDate = parseLocalDate(dateValue)
+      return parsedDate ? formatDate(parsedDate) : ""
+    })()],
+    ["Lieu", observation.location || observation.projectLocation || (observation as any).lieu || ""],
+    ["Date d'échéance", (() => {
+      if (!observation.dueDate) return ""
+      const parsedDate = parseLocalDate(observation.dueDate)
+      return parsedDate ? formatDate(parsedDate) : ""
+    })()],
     ["Condition contributive", getContributingConditionLabel(observation.safetyAnalysis?.contributingCondition || "")],
     ["Danger", getDangerLabel(observation.safetyAnalysis?.danger || "")],
     ["Section du devis", observation.cnsstSection || "SSE - SANTÉ SÉCURITÉ ENVIRONNEMENT"],
@@ -734,7 +788,11 @@ export async function exportObservationAsPdf(
   const plansLiesValue = (observation as any).plansLies || observation.linkedDrawings || "" // Leave empty instead of "-"
   const rightFields: Array<[string, string]> = [
     ["Statut", statusText],
-    ["Date de création", observation.createdAt ? formatDate(observation.createdAt) : "-"],
+    ["Date de création", (() => {
+      if (!observation.createdAt) return ""
+      const parsedDate = parseLocalDate(observation.createdAt)
+      return parsedDate ? formatDate(parsedDate) : ""
+    })()],
     ["Distribution", formatDistribution()],
     ["Priorité", priorityText],
     ["Métier", observation.trade || "Charge de projet"],
@@ -748,7 +806,7 @@ export async function exportObservationAsPdf(
     doc.setFont("helvetica", "bold")
     doc.text(label, leftX, leftY)
     doc.setFont("helvetica", "normal")
-    const vLines = doc.splitTextToSize(String(value || "-"), pageWidth / 2 - labelWidth - 5)
+    const vLines = doc.splitTextToSize(String(value || ""), pageWidth / 2 - labelWidth - 5)
     vLines.forEach((line: string, idx: number) => {
       doc.text(line, leftX + labelWidth, leftY + (idx * 4))
     })
@@ -760,7 +818,7 @@ export async function exportObservationAsPdf(
     doc.setFont("helvetica", "bold")
     doc.text(label, rightX, rightY)
     doc.setFont("helvetica", "normal")
-    const vLines = doc.splitTextToSize(String(value || "-"), pageWidth / 2 - labelWidth - 5)
+    const vLines = doc.splitTextToSize(String(value || ""), pageWidth / 2 - labelWidth - 5)
     vLines.forEach((line: string, idx: number) => {
       doc.text(line, rightX + labelWidth, rightY + (idx * 4))
     })
@@ -776,7 +834,7 @@ export async function exportObservationAsPdf(
     doc.setFont("helvetica", "bold")
     doc.text("Description", leftX, y)
     doc.setFont("helvetica", "normal")
-    const descValue = observation.description || "-"
+    const descValue = observation.description || ""
     const descLines = doc.splitTextToSize(descValue, pageWidth / 2 - labelWidth - 5)
     descLines.forEach((line: string, idx: number) => {
       doc.text(line, leftX + labelWidth, y + (idx * 4))
@@ -1065,7 +1123,14 @@ export async function exportInspectionAsPdf(
     doc.text(`Inspection N°${inspectionNumber} - Inspection journalière`, margin, 12)
     doc.setFont("helvetica", "bold") // Make project text bold
     doc.setFontSize(7)
-    const projRight = `Projet : ${projectNumber} ${projectName}`.trim()
+    let projRight = ""
+    if (projectNumber && projectName) {
+      projRight = `Projet : Numéro de projet: ${projectNumber}, Nom: ${projectName}`
+    } else if (projectNumber) {
+      projRight = `Projet : Numéro de projet: ${projectNumber}`
+    } else if (projectName) {
+      projRight = `Projet : Nom: ${projectName}`
+    }
     const projLines = doc.splitTextToSize(projRight, rightHalfWidth - 2)
     let py = 12
     projLines.slice(0, 2).forEach((ln: string) => {
@@ -1105,11 +1170,20 @@ export async function exportInspectionAsPdf(
   doc.setFontSize(7)
   doc.setFont("helvetica", "bold") // Make project text bold
   let projY = y + 5
-  const projText = `Projet : ${projectNumber} ${projectName}`.trim()
-  doc.splitTextToSize(projText, 85).forEach((line: string) => {
-    doc.text(line, pageWidth - margin, projY, { align: "right" })
-    projY += 3.5
-  })
+  let projText = ""
+  if (projectNumber && projectName) {
+    projText = `Projet : Numéro de projet: ${projectNumber}, Nom: ${projectName}`
+  } else if (projectNumber) {
+    projText = `Projet : Numéro de projet: ${projectNumber}`
+  } else if (projectName) {
+    projText = `Projet : Nom: ${projectName}`
+  }
+  if (projText) {
+    doc.splitTextToSize(projText, 85).forEach((line: string) => {
+      doc.text(line, pageWidth - margin, projY, { align: "right" })
+      projY += 3.5
+    })
+  }
   doc.setFont("helvetica", "normal") // Reset to normal for location
   if (projectLocation) {
     doc.splitTextToSize(projectLocation, 85).forEach((line: string) => {
@@ -1174,10 +1248,7 @@ export async function exportInspectionAsPdf(
   y = sumY + boxH + 6 // Add spacing after summary boxes
 
   // ----- Détails de l'inspection (table-like) -----
-  doc.setFontSize(9)
-  doc.setFont("helvetica", "bold")
-  doc.text("Détails de l'inspection", margin, y)
-  y += 5
+  // Removed "Détails de l'inspection" heading as requested
   const leftX = margin
   const rightX = pageWidth / 2 + 2
   const lineH = 4.2
@@ -1197,25 +1268,25 @@ export async function exportInspectionAsPdf(
           ? "En Progression"
           : inspection.status === "draft"
             ? "Brouillon"
-            : String(inspection.status || "open").toLowerCase() === "open"
+              : String(inspection.status || "open").toLowerCase() === "open"
               ? "Initié"
-              : String(inspection.status || "-")
+              : String(inspection.status || "")
 
   const labelWidth = 45
   doc.setFontSize(8)
   doc.setFont("helvetica", "normal")
   const detailsLeft: Array<[string, string]> = [
-    ["Type", inspection.type || "-"],
-    ["Métier", inspection.metier || "-"],
-    ["Section du devis", inspection.sectionDevis || "-"],
-    ["Plans liés", inspection.plansLies || "-"],
-    ["Description", inspection.description || "-"],
-    ["Pièces jointes", inspection.attachments?.length > 0 ? `${inspection.attachments.length}` : "-"],
+    ["Type", inspection.type || ""],
+    ["Métier", inspection.metier || ""],
+    ["Section du devis", inspection.sectionDevis || ""],
+    ["Plans liés", inspection.plansLies || ""],
+    ["Description", inspection.description || ""],
+    ["Pièces jointes", inspection.attachments?.length > 0 ? `${inspection.attachments.length}` : ""],
   ]
   const detailsRight: Array<[string, string]> = [
     ["Statut", statusLabel],
-    ["Lieu", inspection.lieu || "-"],
-    ["Créé par", responderName || "-"],
+    ["Lieu", inspection.lieu || ""],
+    ["Créé par", responderName || ""],
   ]
   const maxLines = Math.max(detailsLeft.length, detailsRight.length)
   for (let i = 0; i < maxLines; i++) {
@@ -1225,43 +1296,76 @@ export async function exportInspectionAsPdf(
       doc.setFont("helvetica", "bold")
       doc.text(ll, leftX, y)
       doc.setFont("helvetica", "normal")
-      doc.text(String(lv || "-"), leftX + labelWidth, y)
+      doc.text(String(lv || ""), leftX + labelWidth, y)
     }
     if (rl) {
       doc.setFont("helvetica", "bold")
       doc.text(rl, rightX, y)
       doc.setFont("helvetica", "normal")
-      doc.text(String(rv || "-"), rightX + labelWidth, y)
+      doc.text(String(rv || ""), rightX + labelWidth, y)
     }
     y += lineH + 3.5 // Add margin-bottom: 15px equivalent (3.5mm * 4.3 ≈ 15px)
   }
   thinLine()
 
-  // ----- Détails de L'Inspection (heading + thin line only, no full grey row) -----
-  doc.setFontSize(9)
-  doc.setFont("helvetica", "bold")
-  doc.text("Détails de L'Inspection", margin, y)
-  y += 5
+  // ----- Date fields (removed "Détails de L'Inspection" heading as requested) -----
   doc.setFontSize(8)
-    const inspectionDate = inspection.inspectionDate ? new Date(inspection.inspectionDate) : (inspection.createdAt ? new Date(inspection.createdAt) : new Date())
-    const dueDate = inspection.dueDate ? new Date(inspection.dueDate) : null
+    // Parse dates as local dates to avoid timezone issues (day before problem)
+    const parseLocalDate = (dateStr: string | Date | null | undefined): Date | null => {
+      if (!dateStr) return null
+      if (dateStr instanceof Date) {
+        // If it's already a Date, create a new one with local date components to avoid timezone issues
+        return new Date(dateStr.getFullYear(), dateStr.getMonth(), dateStr.getDate())
+      }
+      // If it's a date string like "2024-01-15" or "2024-01-15T00:00:00.000Z", parse it as local date
+      if (typeof dateStr === "string") {
+        // Try to extract date parts from ISO string or simple date string
+        const dateMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/)
+        if (dateMatch) {
+          const year = parseInt(dateMatch[1], 10)
+          const month = parseInt(dateMatch[2], 10) - 1 // Month is 0-indexed
+          const day = parseInt(dateMatch[3], 10)
+          return new Date(year, month, day)
+        }
+        // Try parsing as other formats
+        const parts = dateStr.split(/[-/]/)
+        if (parts.length === 3) {
+          const year = parseInt(parts[0], 10)
+          const month = parseInt(parts[1], 10) - 1 // Month is 0-indexed
+          const day = parseInt(parts[2], 10)
+          if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+            return new Date(year, month, day)
+          }
+        }
+        // Fallback: try parsing as Date and extract local components
+        const d = new Date(dateStr)
+        if (!isNaN(d.getTime())) {
+          return new Date(d.getFullYear(), d.getMonth(), d.getDate())
+        }
+      }
+      return null
+    }
+    const inspectionDate = inspection.inspectionDate 
+      ? parseLocalDate(inspection.inspectionDate) 
+      : (inspection.createdAt ? parseLocalDate(inspection.createdAt) : new Date())
+    const dueDate = inspection.dueDate ? parseLocalDate(inspection.dueDate) : null
     doc.setFont("helvetica", "bold")
     doc.text("Date de l'inspection", leftX, y)
     doc.setFont("helvetica", "normal")
-    doc.text(formatDateFR(inspectionDate), leftX + labelWidth, y)
+    doc.text(inspectionDate ? formatDateFR(inspectionDate) : "", leftX + labelWidth, y)
     doc.setFont("helvetica", "bold")
     doc.text("Date d'échéance", rightX, y)
     doc.setFont("helvetica", "normal")
-    doc.text(dueDate ? formatDateFR(dueDate) : "-", rightX + labelWidth, y)
+    doc.text(dueDate ? formatDateFR(dueDate) : "", rightX + labelWidth, y)
     y += lineH + 3.5 // Add margin-bottom: 15px equivalent
     doc.setFont("helvetica", "bold")
     doc.text("Point de contact", leftX, y)
     doc.setFont("helvetica", "normal")
-    doc.text(inspection.contactPoint || "-", leftX + labelWidth, y)
+    doc.text(inspection.contactPoint || "", leftX + labelWidth, y)
     doc.setFont("helvetica", "bold")
     doc.text("Entrepreneur responsable", rightX, y)
     doc.setFont("helvetica", "normal")
-    doc.text(inspection.contractor || "-", rightX + labelWidth, y)
+    doc.text(inspection.contractor || "", rightX + labelWidth, y)
     y += lineH + 3.5 // Add margin-bottom: 15px equivalent
   doc.setFont("helvetica", "bold")
   doc.text("Personne(s) assignée(s)", leftX, y)
@@ -1272,8 +1376,8 @@ export async function exportInspectionAsPdf(
           .map((d: any) => (typeof d === "string" ? d : d?.email || d?.userId || ""))
           .filter(Boolean)
           .join(", ")
-      : "-"
-  doc.splitTextToSize(assigned || "-", pageWidth - 2 * margin - 50).forEach((ln: string) => {
+      : ""
+  doc.splitTextToSize(assigned || "", pageWidth - 2 * margin - 50).forEach((ln: string) => {
     doc.text(ln, leftX + labelWidth, y)
     y += 4
   })
@@ -1525,9 +1629,9 @@ export async function exportInspectionAsPdf(
         const updateLines = update.lines
         // Calculate total content height for vertical centering (justify-content: center with flex-direction: column)
         const totalContentHeight = updateLines.reduce((sum, line) => sum + line.height, 0)
-        const padding = 3.5 // Top and bottom padding for centering
+        const padding = 3.5 // 10px total margin (3.5mm ≈ 10px at 72dpi) - applied as single padding value
         const minHeight = 8 // Minimum height for border
-        const boxHeight = Math.max(totalContentHeight + padding * 2, minHeight)
+        const boxHeight = Math.max(totalContentHeight + padding, minHeight)
         
         // Calculate vertical center position (justify-content: center with flex-direction: column)
         // jsPDF text() uses baseline positioning - the Y coordinate is the baseline of the text
@@ -1562,7 +1666,7 @@ export async function exportInspectionAsPdf(
             if (lineIdx > 0 && firstPageEndY === null) {
               // Calculate box height for first page content (justify-content: center)
               // Content on first page should be centered within its box
-              const firstPageBoxHeight = Math.max(firstPageContentHeight + padding * 2, minHeight)
+              const firstPageBoxHeight = Math.max(firstPageContentHeight + padding, minHeight)
               firstPageEndY = originalUpdateStartY + firstPageBoxHeight
               const prevPage = currentPage - 1
               doc.setPage(prevPage)
@@ -1585,12 +1689,12 @@ export async function exportInspectionAsPdf(
             pageBreakY = y
             const remainingLines = updateLines.slice(lineIdx)
             const remainingContentHeight = remainingLines.reduce((sum, l) => sum + l.height, 0)
-            const newBoxHeight = Math.max(remainingContentHeight + padding * 2, minHeight)
-            // Center remaining content within new box height using same baseline calculation
-            const newBoxCenter = y + newBoxHeight / 2
+            const newBoxHeight = Math.max(remainingContentHeight + padding, minHeight)
+            // Position remaining content with minimal top padding (10px total = 3.5mm)
             const remainingFirstLineHeight = remainingLines.length > 0 ? remainingLines[0].height : 4
             const remainingBaselineOffset = remainingFirstLineHeight * 0.75
-            currentUpdateY = newBoxCenter - (remainingContentHeight / 2) + remainingBaselineOffset
+            const remainingTopPadding = padding / 2 // Half of total padding for top
+            currentUpdateY = y + remainingTopPadding + remainingBaselineOffset
             updateStartY = y
           } else {
             // Track content height on first page
@@ -1622,7 +1726,7 @@ export async function exportInspectionAsPdf(
           // Content spans pages - calculate box height for content on final page
           const remainingLines = updateLines.slice(updateLines.length - (updateLines.length - Math.floor((currentUpdateY - pageBreakY) / 3.5)))
           const actualRemainingHeight = remainingLines.reduce((sum, l) => sum + l.height, 0) || (currentUpdateY - pageBreakY - padding)
-          const finalBoxHeight = Math.max(actualRemainingHeight + padding * 2, minHeight)
+          const finalBoxHeight = Math.max(actualRemainingHeight + padding, minHeight)
           updateEndY = pageBreakY + finalBoxHeight
         } else {
           // Content fits on one page - box end is start + box height
@@ -1664,7 +1768,7 @@ export async function exportInspectionAsPdf(
           
           let imageSectionStartY = y
           imageSectionDrawn = true
-          let currentImageY = imageSectionStartY + 3.5
+          let currentImageY = imageSectionStartY + 3.5 + 1 // 3.5mm base + 3.5mm (10px) extra top margin
           
           const photoDate = response.updatedAt || response.createdAt || new Date()
           const photoDateStr = formatDateFR(new Date(photoDate))
@@ -1713,7 +1817,7 @@ export async function exportInspectionAsPdf(
                   const continuationOffset = 5.6
                   y = margin + continuationOffset
                   imageSectionStartY = y
-                  currentImageY = y + 3.5
+                  currentImageY = y + 3.5 + 1 // 3.5mm base + 3.5mm (10px) extra top margin
                   // Redraw photo header on new page
                   doc.setFont("helvetica", "bold")
                   doc.text(responderName + " (" + companyName + ")", margin + 2, currentImageY)
@@ -2238,132 +2342,133 @@ export async function exportIncidentAsPdf(
   y += 4 * (descLines.length || 1)
   y += 4
 
-  // ----- Pièces jointes: large embedded image/document box + filename below -----
+  // ----- Pièces jointes: 2x2 grid layout with proper framing (like observation PDF) -----
   const attachments = incident.attachments || []
   if (attachments.length > 0) {
-    checkPageBreak(60)
-    doc.setFont("helvetica", "bold")
-    doc.setFontSize(9)
-    doc.text("Pièces jointes", leftColX, y)
-    y += 6
+    // Filter images and non-images separately
+    const images = attachments.filter((a: any) => a.type?.startsWith("image/")) || []
+    const otherAttachments = attachments.filter((a: any) => !a.type?.startsWith("image/")) || []
     
-    for (const att of attachments) {
-      // Large box for embedded image/document
-      const boxWidth = contentWidth
-      const boxHeight = 50
-      checkPageBreak(boxHeight + 15) // Extra space for filename
+    if (images.length > 0) {
+      const imgGap = 6
+      const imgW = (contentWidth - imgGap) / 2
+      const imgH = 45
+      const filenameHeight = 6 // Space for filename below image
+      const rowSpacing = 4 // Gap between rows
+      const cellHeight = imgH + filenameHeight // Total height per cell (image + filename)
+      const rowHeight = cellHeight + rowSpacing // Total height per row including spacing
+      const rows = Math.ceil(images.length / 2)
+      // Calculate actual height: title (6) + title after (6) + images + final spacing (6)
+      const estimatedHeight = 6 + 6 + rows * rowHeight + 6
+      checkPageBreak(estimatedHeight)
       
-      // Draw border box with proper framing - use darker border for better visibility
-      const borderColor: [number, number, number] = [150, 150, 150] // Medium gray border for better visibility
-      doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2])
-      doc.setLineWidth(0.3) // Slightly thicker for better visibility
-      doc.rect(leftColX, y, boxWidth, boxHeight)
+      doc.setFont("helvetica", "bold")
+      doc.setFontSize(9)
+      doc.text("Pièces jointes", leftColX, y)
+      y += 6
       
-      // Try to embed image/document inside the box
-      if (att.type?.startsWith("image/")) {
+      const baseY = y
+      // Use consistent border color
+      const BORDER_GRAY: [number, number, number] = [210, 210, 210]
+      const LIGHT_BORDER_GRAY: [number, number, number] = [230, 230, 230] // Lighter gray for image border
+      doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
+      doc.setLineWidth(0.2)
+      
+      for (let i = 0; i < images.length; i++) {
+        const img = images[i]
+        const col = i % 2
+        const row = Math.floor(i / 2)
+        const x = leftColX + col * (imgW + imgGap)
+        const cellY = baseY + row * rowHeight
+        
+        // Draw border around the image area
+        const borderPadding = 0.5 // Padding from cell edge
+        const borderX = x + borderPadding
+        const borderY = cellY + borderPadding
+        const borderW = imgW - (borderPadding * 2)
+        const borderH = imgH - (borderPadding * 2)
+        
+        doc.setDrawColor(LIGHT_BORDER_GRAY[0], LIGHT_BORDER_GRAY[1], LIGHT_BORDER_GRAY[2])
+        doc.setLineWidth(0.5) // Wider border
+        doc.rect(borderX, borderY, borderW, borderH)
+        
+        // Draw image inside the border with margin/padding
+        const imageMargin = 2 // Margin between border and image
+        const imgX = borderX + imageMargin
+        const imgY = borderY + imageMargin
+        const actualImgW = borderW - (imageMargin * 2)
+        const actualImgH = borderH - (imageMargin * 2)
+        
         try {
-          // Calculate image dimensions to fit in box with padding
-          const padding = 2
-          const maxImgWidth = boxWidth - (padding * 2)
-          const maxImgHeight = boxHeight - (padding * 2)
-          
-          // Calculate proper image dimensions to fit in box with padding
-          const imgX = leftColX + padding
-          const imgY = y + padding
-          
-          // Try to get image dimensions if possible (for data URLs, this should work)
-          try {
-            const img = new Image()
-            img.src = att.url
-            if (img.complete && img.naturalWidth > 0) {
-              // Image is already loaded, calculate proper scaling
-              const imgAspectRatio = img.naturalWidth / img.naturalHeight
-              const boxAspectRatio = maxImgWidth / maxImgHeight
-              
-              let imgWidth = maxImgWidth
-              let imgHeight = maxImgHeight
-              
-              if (imgAspectRatio > boxAspectRatio) {
-                // Image is wider - fit to width
-                imgHeight = maxImgWidth / imgAspectRatio
-              } else {
-                // Image is taller - fit to height
-                imgWidth = maxImgHeight * imgAspectRatio
-              }
-              
-              // Center the image in the box
-              const centeredX = leftColX + padding + (maxImgWidth - imgWidth) / 2
-              const centeredY = y + padding + (maxImgHeight - imgHeight) / 2
-              
-              doc.addImage(
-                att.url, 
-                getJsPdfImageFormat(att.url, att.type), 
-                centeredX, 
-                centeredY, 
-                imgWidth, 
-                imgHeight
-              )
-            } else {
-              // Image not loaded yet, use full space (will be stretched but visible)
-              doc.addImage(
-                att.url, 
-                getJsPdfImageFormat(att.url, att.type), 
-                imgX, 
-                imgY, 
-                maxImgWidth, 
-                maxImgHeight
-              )
-            }
-          } catch {
-            // Fallback: use full available space
-            doc.addImage(
-              att.url, 
-              getJsPdfImageFormat(att.url, att.type), 
-              imgX, 
-              imgY, 
-              maxImgWidth, 
-              maxImgHeight
-            )
-          }
-        } catch (err) {
-          // If image fails to load or add, show placeholder text centered
+          doc.addImage(img.url, getJsPdfImageFormat(img.url, img.type), imgX, imgY, actualImgW, actualImgH)
+        } catch (e) {
+          // If image fails to load, show placeholder text centered
           doc.setFont("helvetica", "italic")
           doc.setFontSize(7)
           doc.setTextColor(150, 150, 150)
           const placeholderText = "Image non disponible"
           const textWidth = doc.getTextWidth(placeholderText)
-          doc.text(placeholderText, leftColX + (boxWidth - textWidth) / 2, y + boxHeight / 2)
+          doc.text(placeholderText, borderX + (borderW - textWidth) / 2, borderY + borderH / 2)
           doc.setTextColor(0, 0, 0)
         }
-      } else {
-        // For non-image attachments, show placeholder text centered
-        doc.setFont("helvetica", "italic")
+        
+        // Draw filename below image, centered (blue + underlined)
+        doc.setFont("helvetica", "normal")
         doc.setFontSize(7)
-        doc.setTextColor(150, 150, 150)
-        const placeholderText = "Document joint"
-        const textWidth = doc.getTextWidth(placeholderText)
-        doc.text(placeholderText, leftColX + (boxWidth - textWidth) / 2, y + boxHeight / 2)
+        const name = img.name || "Pièce jointe"
+        const nameX = x + imgW / 2
+        const nameY = cellY + imgH + 3
+        doc.setTextColor(LINK_BLUE[0], LINK_BLUE[1], LINK_BLUE[2])
+        doc.text(name, nameX, nameY, { align: "center" })
+        
+        // Draw underline for filename
+        const tw = doc.getTextWidth(name)
+        doc.setDrawColor(LINK_BLUE[0], LINK_BLUE[1], LINK_BLUE[2])
+        doc.setLineWidth(0.2)
+        doc.line(nameX - tw / 2, nameY + 0.5, nameX + tw / 2, nameY + 0.5)
+        
+        // Reset colors
         doc.setTextColor(0, 0, 0)
+        doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
+        doc.setLineWidth(0.2)
       }
       
-      y += boxHeight + 4
-      
-      // Filename below the box (blue + underlined, centered like reference PDF)
-      doc.setFont("helvetica", "normal")
-      doc.setFontSize(7)
-      const name = att.name || "Pièce jointe"
-      doc.setTextColor(LINK_BLUE[0], LINK_BLUE[1], LINK_BLUE[2])
-      doc.text(name, pageWidth / 2, y, { align: "center" })
-      const textW = doc.getTextWidth(name)
-      doc.setDrawColor(LINK_BLUE[0], LINK_BLUE[1], LINK_BLUE[2])
-      doc.setLineWidth(0.2)
-      doc.line(pageWidth / 2 - textW / 2, y + 0.8, pageWidth / 2 + textW / 2, y + 0.8)
-      doc.setTextColor(0, 0, 0)
       doc.setDrawColor(0, 0, 0)
+      y = baseY + rows * rowHeight
       y += 6
     }
-    y += 4
-    thinLine()
+    
+    // Non-image attachments (file names only)
+    if (otherAttachments.length > 0) {
+      if (images.length === 0) {
+        // Only show title if there were no images
+        checkPageBreak(10 + otherAttachments.length * 4)
+        doc.setFont("helvetica", "bold")
+        doc.setFontSize(9)
+        doc.text("Pièces jointes", leftColX, y)
+        y += 6
+      }
+      
+      doc.setFont("helvetica", "normal")
+      doc.setFontSize(7)
+      otherAttachments.forEach((att: any) => {
+        const name = att.name || "Document joint"
+        doc.setTextColor(LINK_BLUE[0], LINK_BLUE[1], LINK_BLUE[2])
+        doc.text(name, leftColX, y)
+        const textW = doc.getTextWidth(name)
+        doc.setDrawColor(LINK_BLUE[0], LINK_BLUE[1], LINK_BLUE[2])
+        doc.setLineWidth(0.2)
+        doc.line(leftColX, y + 0.8, leftColX + textW, y + 0.8)
+        doc.setTextColor(0, 0, 0)
+        doc.setDrawColor(0, 0, 0)
+        y += 4
+      })
+    }
+    
+    if (attachments.length > 0) {
+      y += 4
+      thinLine()
+    }
   }
 
   // ----- Informations sur l'enquête (2 columns: Left (Danger, Condition contributive), Right (Comportement contributif)) -----

@@ -119,10 +119,10 @@ export default function IncidentDetailPage({ params }: { params: Promise<{ id: s
         onExportPdf={async () => {
           try {
             await exportIncidentAsPdf(incident, undefined, { projects, users })
-            toast.success("Incident exported as PDF successfully")
+            toast.success(t("toast.pdfExportSuccess.incident" as any))
           } catch (e) {
             console.error("PDF export error:", e)
-            toast.error("Failed to export incident as PDF")
+            toast.error(t("toast.pdfExportError.incident" as any))
           }
         }}
       />

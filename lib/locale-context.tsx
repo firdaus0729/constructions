@@ -50,6 +50,7 @@ const translations = {
     "status.waitingForSync": "Waiting for synchronization",
     "status.savedLocally": "Saved locally",
     "status.syncedSuccessfully": "Synced successfully",
+    "status.syncFailed": "Sync failed. Will retry when connection is restored.",
     "status.draft": "Draft",
     "status.submitted": "Submitted",
     "status.open": "Open",
@@ -387,7 +388,18 @@ const translations = {
     "toast.livrableCreatedEmailsFailed": "Livrable created but {count} email(s) failed",
     "toast.pdfExportSuccess.observation": "Observation exported as PDF successfully",
     "toast.pdfExportError.observation": "Failed to export observation as PDF",
+    "toast.pdfExportSuccess.incident": "Incident exported as PDF successfully",
+    "toast.pdfExportError.incident": "Failed to export incident as PDF",
     "toast.pdfExportError.generic": "Failed to export PDF",
+    "toast.observationCreatedWithEmails": "Observation created and {count} email(s) sent",
+    "toast.observationCreatedEmailsFailed": "Observation created but {count} email(s) failed",
+    "toast.incidentCreatedWithEmails": "Incident created and {count} email(s) sent",
+    "toast.incidentCreatedEmailsFailed": "Incident created but {count} email(s) failed",
+    "toast.inspectionCreatedWithEmails": "Inspection created and {count} email(s) sent",
+    "toast.inspectionCreatedEmailsFailed": "Inspection created but {count} email(s) failed",
+    "toast.inspectionUpdatedWithEmails": "Inspection updated and {count} email(s) sent",
+    "toast.inspectionUpdatedEmailsFailed": "Inspection updated but {count} email(s) failed",
+    "toast.incidentDeleted": "Incident deleted",
 
     // Inspection form
     "inspection.title": "Inspection Form",
@@ -569,6 +581,7 @@ const translations = {
     // Confirm dialogs
     "confirm.deleteObservation": "Delete this observation?",
     "confirm.deleteInspection": "Delete this inspection?",
+    "confirm.deleteIncident": "Delete this incident?",
 
     // Observation form labels
     "observation.concernedCompanyLabel": "Concerned Company/Contractor",
@@ -707,6 +720,10 @@ const translations = {
     "totalUsers": "{count} users total",
     "noUsersYet": "No users created yet",
     "createUser": "Create User",
+    "admin.userCreated": "User {name} created successfully",
+    "admin.userDeleted": "User {name} deleted",
+    "admin.cannotDeleteOwnAccount": "You cannot delete your own account",
+    "admin.confirmDeleteUser": "Delete user {name}?",
     "emailAlreadyExists": "Email already exists",
     "allFieldsRequired": "All fields are required",
     "failedToAddUser": "Failed to add user",
@@ -826,6 +843,7 @@ const translations = {
     "status.waitingForSync": "En attente de synchronisation",
     "status.savedLocally": "Sauvegardé localement",
     "status.syncedSuccessfully": "Synchronisé avec succès",
+    "status.syncFailed": "Échec de la synchronisation. Nouvelle tentative lorsque la connexion sera rétablie.",
     "status.draft": "Brouillon",
     "status.submitted": "Soumis",
     "status.open": "Ouvert",
@@ -1182,7 +1200,18 @@ const translations = {
     "toast.livrableCreatedEmailsFailed": "Livrable créé mais {count} courriel(s) ont échoué",
     "toast.pdfExportSuccess.observation": "Observation exportée en PDF avec succès",
     "toast.pdfExportError.observation": "Échec de l'exportation de l'observation en PDF",
+    "toast.pdfExportSuccess.incident": "Incident exporté en PDF avec succès",
+    "toast.pdfExportError.incident": "Échec de l'exportation de l'incident en PDF",
     "toast.pdfExportError.generic": "Échec de l'exportation du PDF",
+    "toast.observationCreatedWithEmails": "Observation créée et {count} email(s) envoyé(s)",
+    "toast.observationCreatedEmailsFailed": "Observation créée mais {count} email(s) ont échoué",
+    "toast.incidentCreatedWithEmails": "Incident créé et {count} email(s) envoyé(s)",
+    "toast.incidentCreatedEmailsFailed": "Incident créé mais {count} email(s) ont échoué",
+    "toast.inspectionCreatedWithEmails": "Inspection créée et {count} email(s) envoyé(s)",
+    "toast.inspectionCreatedEmailsFailed": "Inspection créée mais {count} email(s) ont échoué",
+    "toast.inspectionUpdatedWithEmails": "Inspection mise à jour et {count} email(s) envoyé(s)",
+    "toast.inspectionUpdatedEmailsFailed": "Inspection mise à jour mais {count} email(s) ont échoué",
+    "toast.incidentDeleted": "Incident supprimé",
 
     // Inspection form
     "inspection.title": "Formulaire d'inspection",
@@ -1351,9 +1380,13 @@ const translations = {
     "empty.noObservations": "Aucune observation",
     "empty.noInspections": "Aucune inspection",
     "empty.createFirst": "Créez la première observation pour commencer",
+    "empty.createFirstObservation": "Créez la première observation pour commencer",
+    "empty.createFirstInspection": "Créez la première inspection pour commencer",
     "empty.adjustFilters": "Essayez d'ajuster votre recherche ou vos filtres",
     "empty.noMatchingInspections": "Aucune inspection correspondante",
     "empty.noIncidents": "Aucun incident enregistré",
+    "empty.noMatchingIncidents": "Aucun incident correspondant",
+    "empty.createFirstIncident": "Créez le premier incident pour commencer",
     "empty.reportIncidents": "Signalez les incidents pour suivre et enquêter sur les événements de sécurité",
 
     // List views
@@ -1366,6 +1399,7 @@ const translations = {
     // Confirm dialogs
     "confirm.deleteObservation": "Supprimer cette observation ?",
     "confirm.deleteInspection": "Supprimer cette inspection ?",
+    "confirm.deleteIncident": "Supprimer cet incident ?",
 
     // Observation form labels
     "observation.concernedCompanyLabel": "Entreprise/Entrepreneur concerné",
@@ -1505,6 +1539,10 @@ const translations = {
     "totalUsers": "{count} utilisateurs au total",
     "noUsersYet": "Aucun utilisateur créé",
     "createUser": "Créer un utilisateur",
+    "admin.userCreated": "Utilisateur {name} créé avec succès",
+    "admin.userDeleted": "Utilisateur {name} supprimé",
+    "admin.cannotDeleteOwnAccount": "Vous ne pouvez pas supprimer votre propre compte",
+    "admin.confirmDeleteUser": "Supprimer l'utilisateur {name}?",
     "emailAlreadyExists": "Email existe déjà",
     "allFieldsRequired": "Tous les champs sont obligatoires",
     "failedToAddUser": "Impossible d'ajouter l'utilisateur",

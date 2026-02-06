@@ -145,10 +145,9 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
     async (e: React.FormEvent) => {
       e.preventDefault()
 
-      if (!validateForm()) {
-        toast.error(t("alert.fixErrors"))
-        return
-      }
+      // Allow saving even if form is not fully completed
+      // Only show errors but don't prevent saving
+      validateForm()
 
       setIsSubmitting(true)
 
@@ -244,9 +243,9 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
             )
 
             if (emailResult.success && emailResult.sent > 0) {
-              toast.success(`Inspection mise à jour et ${emailResult.sent} email(s) envoyé(s)`)
+              toast.success(t("toast.inspectionUpdatedWithEmails" as any, { count: emailResult.sent }))
             } else if (emailResult.failed > 0) {
-              toast.warning(`Inspection mise à jour mais ${emailResult.failed} email(s) ont échoué`)
+              toast.warning(t("toast.inspectionUpdatedEmailsFailed" as any, { count: emailResult.failed }))
             } else {
               toast.success(t("alert.saveSuccess.inspection"))
             }
@@ -414,21 +413,12 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField label={t("field.location")}>
-              <Select
+              <LivrableCrudCombobox
+                listKey="locations"
                 value={formData.projectLocation || ""}
-                onValueChange={(value) => setFormData((prev) => ({ ...prev, projectLocation: value }))}
-              >
-                <SelectTrigger className="h-12">
-                  <SelectValue placeholder={t("livrable.selectLocation")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {(livrableOptionLists?.locations || []).map((loc: { id: string; label: string }) => (
-                    <SelectItem key={loc.id} value={loc.label}>
-                      {loc.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(value) => setFormData((prev) => ({ ...prev, projectLocation: value }))}
+                placeholder={t("field.location")}
+              />
             </FormField>
             <FormField label="Lieu">
               <LivrableCrudCombobox

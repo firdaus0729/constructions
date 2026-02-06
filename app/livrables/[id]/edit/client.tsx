@@ -71,20 +71,16 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
     numberValue: livrable?.numberValue || "1",
     revision: livrable?.revision || "0",
     submittalType: livrable?.submittalType || "",
-    submittalPackage: livrable?.submittalPackage || "",
     responsibleContractor: livrable?.responsibleContractor || "",
     receivedFrom: livrable?.receivedFrom || "",
     submittalManager: livrable?.submittalManager || "",
-    costCode: livrable?.costCode || "",
     location: livrable?.location || "",
     linkedDrawings: livrable?.linkedDrawings || "",
-    ballInCourt: livrable?.ballInCourt || "",
     isPrivate: Boolean(livrable?.isPrivate),
 
     submitBy: toDateInput(livrable?.submitBy),
     receivedDate: toDateInput(livrable?.receivedDate),
     issueDate: toDateInput(livrable?.issueDate),
-    finalDueDate: toDateInput(livrable?.finalDueDate),
 
     scheduleTask: livrable?.scheduleTask || "",
     requiredOnSiteDate: toDateInput(livrable?.requiredOnSiteDate),
@@ -211,9 +207,11 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
   }
 
   const onSave = async (status: FormStatus) => {
-    if (!validate()) {
-      toast.error(t("alert.fixErrors"))
-      return
+    // Validate but allow saving even if validation fails
+    const isValid = validate()
+    if (!isValid) {
+      toast.warning(t("alert.fixErrors"))
+      // Continue saving anyway - don't return
     }
     setIsSaving(true)
     try {
@@ -229,20 +227,16 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
         numberValue: formData.numberValue,
         revision: formData.revision,
         submittalType: formData.submittalType,
-        submittalPackage: formData.submittalPackage,
         responsibleContractor: formData.responsibleContractor,
         receivedFrom: formData.receivedFrom,
         submittalManager: formData.submittalManager,
-        costCode: formData.costCode,
         location: formData.location,
         linkedDrawings: formData.linkedDrawings,
-        ballInCourt: formData.ballInCourt,
         isPrivate: formData.isPrivate,
 
         submitBy: formData.submitBy ? new Date(formData.submitBy) : null,
         receivedDate: formData.receivedDate ? new Date(formData.receivedDate) : null,
         issueDate: formData.issueDate ? new Date(formData.issueDate) : null,
-        finalDueDate: formData.finalDueDate ? new Date(formData.finalDueDate) : null,
 
         scheduleTask: formData.scheduleTask,
         requiredOnSiteDate: formData.requiredOnSiteDate ? new Date(formData.requiredOnSiteDate) : null,
@@ -389,21 +383,16 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
               </FormField>
 
               <FormField label={t("livrable.livrableType")}>
-                <LivrableCrudCombobox
-                  listKey="types"
-                  value={formData.submittalType}
-                  onChange={(v) => handleFieldChange("submittalType", v)}
-                  placeholder={t("livrable.selectLivrableType")}
-                />
-              </FormField>
-
-              <FormField label={t("livrable.livrablePackage")}>
-                <LivrableCrudCombobox
-                  listKey="packages"
-                  value={formData.submittalPackage}
-                  onChange={(v) => handleFieldChange("submittalPackage", v)}
-                  placeholder={t("livrable.selectLivrablePackage")}
-                />
+                <Select value={formData.submittalType} onValueChange={(v) => handleFieldChange("submittalType", v)}>
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder={t("livrable.selectLivrableType")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="QRT">QRT</SelectItem>
+                    <SelectItem value="DMT">DMT</SelectItem>
+                    <SelectItem value="PRO">PRO</SelectItem>
+                  </SelectContent>
+                </Select>
               </FormField>
 
               {/* Responsible Contractor */}
@@ -470,19 +459,6 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
                 <Input type="date" value={formData.issueDate} onChange={(e) => handleFieldChange("issueDate", e.target.value)} className="h-12" />
               </FormField>
 
-              {/* Final Due Date */}
-              <FormField label={t("livrable.requiredResponseDate")}>
-                <Input type="date" value={formData.finalDueDate} onChange={(e) => handleFieldChange("finalDueDate", e.target.value)} className="h-12" />
-              </FormField>
-
-              <FormField label={t("livrable.costCode")}>
-                <LivrableCrudCombobox
-                  listKey="costCodes"
-                  value={formData.costCode}
-                  onChange={(v) => handleFieldChange("costCode", v)}
-                  placeholder={t("livrable.selectCostCode")}
-                />
-              </FormField>
 
               <FormField label={t("livrable.location")}>
                 <LivrableCrudCombobox
@@ -525,10 +501,6 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
                 </div>
               </FormField>
 
-              {/* Ball In Court */}
-              <FormField label={t("livrable.ballInCourt")} className="md:col-span-2">
-                <Input value={formData.ballInCourt} onChange={(e) => handleFieldChange("ballInCourt", e.target.value)} className="h-12" />
-              </FormField>
 
               <div className="md:col-span-2 flex items-center gap-2 p-4 bg-muted/50 rounded-lg">
                 <Switch checked={formData.isPrivate} onCheckedChange={(checked) => handleFieldChange("isPrivate", checked)} />

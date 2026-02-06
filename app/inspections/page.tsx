@@ -230,7 +230,7 @@ export default function InspectionsPage() {
                           variant="destructive"
                           size="sm"
                           onClick={() => {
-                            if (confirm("Delete this inspection?")) {
+                            if (confirm(t("confirm.deleteInspection"))) {
                               deleteInspection(inspection.id)
                             }
                           }}

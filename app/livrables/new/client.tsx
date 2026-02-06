@@ -61,21 +61,17 @@ export default function NewLivrablePage() {
     numberValue: "",
     revision: "0",
     submittalType: "",
-    submittalPackage: "",
     responsibleContractor: "",
     receivedFrom: "",
     submittalManager: "project_manager",
-    costCode: "",
     location: "",
     linkedDrawings: "",
-    ballInCourt: "",
     isPrivate: false,
     
     // Dates
     submitBy: "",
     receivedDate: "",
     issueDate: "",
-    finalDueDate: "",
     
     // Schedule Information
     scheduleTask: "",
@@ -105,26 +101,47 @@ export default function NewLivrablePage() {
   // Validation state
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Sortable number: XXXXXX (numbers only). Future: first 3 chars from "Type de livrable".
-  const getNextNumberValue = useCallback(() => {
+  // Auto-generate number based on type: TYPE-000001 format
+  const getNextNumberValue = useCallback((type: string) => {
+    if (!type) return ""
     const existing = store?.livrables ?? []
-    const numericValues = existing
+    const typePrefix = type.toUpperCase()
+    
+    // Find all numbers for this type (format: TYPE-000001)
+    const typeNumbers = existing
       .map((l) => {
-        const v = l.numberValue ?? l.number ?? "0"
-        const n = parseInt(String(v).replace(/\D/g, ""), 10)
-        return Number.isNaN(n) ? 0 : n
+        const numValue = l.numberValue ?? l.number ?? ""
+        // Check if number starts with the type prefix
+        if (typeof numValue === "string" && numValue.startsWith(typePrefix + "-")) {
+          const numPart = numValue.replace(typePrefix + "-", "")
+          const n = parseInt(numPart.replace(/\D/g, ""), 10)
+          return Number.isNaN(n) ? 0 : n
+        }
+        return 0
       })
-    const max = numericValues.length ? Math.max(...numericValues, 0) : 0
-    return String(max + 1)
+      .filter(n => n > 0)
+    
+    const max = typeNumbers.length ? Math.max(...typeNumbers, 0) : 0
+    const nextNum = max + 1
+    return `${typePrefix}-${String(nextNum).padStart(6, "0")}`
   }, [store?.livrables])
 
+  // Auto-generate number when type changes
   useEffect(() => {
-    if (formData.numberValue === "" && getNextNumberValue) {
-      setFormData((prev) => ({ ...prev, numberValue: getNextNumberValue() }))
+    if (formData.submittalType) {
+      const generatedNumber = getNextNumberValue(formData.submittalType)
+      if (generatedNumber) {
+        setFormData((prev) => ({ ...prev, numberValue: generatedNumber }))
+      }
     }
-  }, [getNextNumberValue])
+  }, [formData.submittalType, getNextNumberValue])
 
   const formatSortableNumber = useCallback((value: string) => {
+    // If value already contains type prefix (e.g., QRT-000001), return as is
+    if (value.includes("-")) {
+      return value
+    }
+    // Otherwise, format as before for backward compatibility
     const num = parseInt(String(value).replace(/\D/g, ""), 10)
     if (Number.isNaN(num)) return "000000"
     return String(num).padStart(6, "0")
@@ -185,21 +202,17 @@ export default function NewLivrablePage() {
         numberValue: formData.numberValue,
         revision: formData.revision,
         submittalType: formData.submittalType,
-        submittalPackage: formData.submittalPackage,
         responsibleContractor: formData.responsibleContractor,
         receivedFrom: formData.receivedFrom,
         submittalManager: formData.submittalManager,
-        costCode: formData.costCode,
         location: formData.location,
         linkedDrawings: formData.linkedDrawings,
-        ballInCourt: formData.ballInCourt,
         isPrivate: formData.isPrivate,
         
         // Dates
         submitBy: formData.submitBy ? new Date(formData.submitBy) : null,
         receivedDate: formData.receivedDate ? new Date(formData.receivedDate) : null,
         issueDate: formData.issueDate ? new Date(formData.issueDate) : null,
-        finalDueDate: formData.finalDueDate ? new Date(formData.finalDueDate) : null,
         
         // Schedule Information
         scheduleTask: formData.scheduleTask,
@@ -249,9 +262,11 @@ export default function NewLivrablePage() {
     async (e: React.FormEvent) => {
       e.preventDefault()
 
-      if (!validateForm()) {
-        toast.error(t("alert.fixErrors"))
-        return
+      // Validate but allow saving even if validation fails
+      const isValid = validateForm()
+      if (!isValid) {
+        toast.warning(t("alert.fixErrors"))
+        // Continue saving anyway - don't return
       }
 
       setIsSubmitting(true)
@@ -430,14 +445,15 @@ export default function NewLivrablePage() {
                 />
               </FormField>
 
-              {/* Number & Revision — sortable XXXXXX (future: first 3 chars from Type de livrable) */}
+              {/* Number & Revision — auto-generated as TYPE-000001 */}
               <FormField label={`${t("livrable.number")} & ${t("livrable.revision")} *`} required error={errors.numberValue || errors.revision}>
                 <div className="flex gap-2">
                   <Input
                     value={formData.numberValue}
                     onChange={(e) => handleFieldChange("numberValue", e.target.value)}
-                    placeholder="000001"
+                    placeholder="QRT-000001"
                     className={`h-12 flex-1 ${errors.numberValue ? "border-destructive" : ""}`}
+                    readOnly={!!formData.submittalType}
                   />
                   <Input
                     value={formData.revision}
@@ -450,22 +466,16 @@ export default function NewLivrablePage() {
 
               {/* Type de livrable */}
               <FormField label={t("livrable.livrableType")} error={errors.submittalType}>
-                <LivrableCrudCombobox
-                  listKey="types"
-                  value={formData.submittalType}
-                  onChange={(value) => handleFieldChange("submittalType", value)}
-                  placeholder={t("livrable.selectLivrableType")}
-                />
-              </FormField>
-
-              {/* Paquet de livrable */}
-              <FormField label={t("livrable.livrablePackage")} error={errors.submittalPackage}>
-                <LivrableCrudCombobox
-                  listKey="packages"
-                  value={formData.submittalPackage}
-                  onChange={(value) => handleFieldChange("submittalPackage", value)}
-                  placeholder={t("livrable.selectLivrablePackage")}
-                />
+                <Select value={formData.submittalType} onValueChange={(value) => handleFieldChange("submittalType", value)}>
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder={t("livrable.selectLivrableType")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="QRT">QRT</SelectItem>
+                    <SelectItem value="DMT">DMT</SelectItem>
+                    <SelectItem value="PRO">PRO</SelectItem>
+                  </SelectContent>
+                </Select>
               </FormField>
 
               {/* Responsible Contractor */}
@@ -583,25 +593,6 @@ export default function NewLivrablePage() {
                 />
               </FormField>
 
-              {/* Date de réponse requise */}
-              <FormField label={t("livrable.requiredResponseDate")}>
-                <Input
-                  type="date"
-                  value={formData.finalDueDate}
-                  onChange={(e) => handleFieldChange("finalDueDate", e.target.value)}
-                  className="h-12"
-                />
-              </FormField>
-
-              {/* Cost Code */}
-              <FormField label={t("livrable.costCode")}>
-                <LivrableCrudCombobox
-                  listKey="costCodes"
-                  value={formData.costCode}
-                  onChange={(value) => handleFieldChange("costCode", value)}
-                  placeholder={t("livrable.selectCostCode")}
-                />
-              </FormField>
 
               {/* Location */}
               <FormField label={t("livrable.location")}>
@@ -652,15 +643,6 @@ export default function NewLivrablePage() {
                 </div>
               </FormField>
 
-              {/* Ball In Court */}
-              <FormField label={t("livrable.ballInCourt")} className="md:col-span-2">
-                <Input
-                  value={formData.ballInCourt}
-                  onChange={(e) => handleFieldChange("ballInCourt", e.target.value)}
-                  placeholder="--"
-                  className="h-12"
-                />
-              </FormField>
 
               {/* Private Checkbox */}
               <div className="md:col-span-2 flex items-center gap-2 p-4 bg-muted/50 rounded-lg">

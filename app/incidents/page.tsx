@@ -63,10 +63,10 @@ export default function IncidentsPage() {
   const handleExportPDF = async (incident: (typeof incidents)[0]) => {
     try {
       await exportIncidentAsPdf(incident, undefined, { projects, users })
-      toast.success("Incident exported as PDF successfully")
+      toast.success(t("toast.pdfExportSuccess.incident" as any))
     } catch (error) {
       console.error("PDF export error:", error)
-      toast.error("Failed to export incident as PDF")
+      toast.error(t("toast.pdfExportError.incident" as any))
     }
   }
 
@@ -241,8 +241,9 @@ export default function IncidentsPage() {
                         variant="destructive"
                         size="sm"
                         onClick={() => {
-                          if (confirm("Delete this incident?")) {
+                          if (confirm(t("confirm.deleteIncident"))) {
                             deleteIncident(incident.id)
+                            toast.success(t("toast.incidentDeleted"))
                           }
                         }}
                         className="gap-2"

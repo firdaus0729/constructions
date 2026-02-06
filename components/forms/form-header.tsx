@@ -13,9 +13,10 @@ interface FormHeaderProps {
   onExportPdf?: () => void
   onEdit?: () => void
   isSaving?: boolean
+  showLogo?: boolean
 }
 
-export function FormHeader({ title, backHref, onSaveDraft, saveDraftLabel, onExportPdf, onEdit, isSaving }: FormHeaderProps) {
+export function FormHeader({ title, backHref, onSaveDraft, saveDraftLabel, onExportPdf, onEdit, isSaving, showLogo }: FormHeaderProps) {
   const { t } = useLocale()
   const resolvedBackHref = backHref ?? "/"
 
@@ -29,6 +30,9 @@ export function FormHeader({ title, backHref, onSaveDraft, saveDraftLabel, onExp
               <span className="sr-only">{t("action.back")}</span>
             </Link>
           </Button>
+          {showLogo && (
+            <img src="/logo.png" alt="Logo" className="h-10 w-10 rounded-full" />
+          )}
           <h1 className="text-lg font-semibold truncate">{title}</h1>
         </div>
         <div className="flex items-center gap-2">

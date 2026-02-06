@@ -39,7 +39,7 @@ const getStatusTranslationKey = (status: string): string => {
 
 export default function LivrablesPage() {
   const { livrables, deleteLivrable, projects, users } = useAppStore()
-  const { t } = useLocale()
+  const { t, locale } = useLocale()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<string | null>(null)
 
@@ -101,20 +101,21 @@ export default function LivrablesPage() {
           </div>
           <div className="flex gap-2 flex-wrap">
             {[
-              { key: "draft", label: "status.draft" },
-              { key: "open", label: "status.open" },
-              { key: "in-progress", label: "status.inProgress" },
-              { key: "submitted", label: "status.submitted" },
-              { key: "closed", label: "status.closed" }
-            ].map((status) => (
+              { key: "open", label: "status.initiated" },
+              { key: "closed", label: "status.closed" },
+            ].map((s) => (
               <Button
-                key={status.key}
-                variant={filterStatus === status.key ? "default" : "outline"}
+                key={s.key}
+                variant="outline"
                 size="sm"
-                onClick={() => setFilterStatus(filterStatus === status.key ? null : status.key)}
-                className="capitalize text-xs"
+                onClick={() => setFilterStatus(filterStatus === s.key ? null : s.key)}
+                className={cn(
+                  "text-xs",
+                  filterStatus === s.key && "border-[#3FAEFC] bg-[#3FAEFC]/10 text-[#3FAEFC]",
+                  "hover:border-[#64BCDE] hover:bg-[#64BCDE]/10 hover:text-[#64BCDE]"
+                )}
               >
-                {t(status.label as any)}
+                {t(s.label as any)}
               </Button>
             ))}
           </div>
