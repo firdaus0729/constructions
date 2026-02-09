@@ -57,9 +57,7 @@ export default function NewLivrablePage() {
     status: "draft" as FormStatus,
     
     // Basic Information
-    specSection: "",
     numberValue: "",
-    revision: "0",
     submittalType: "",
     responsibleContractor: "",
     receivedFrom: "",
@@ -160,9 +158,6 @@ export default function NewLivrablePage() {
     if (!formData.numberValue.trim()) {
       newErrors.numberValue = t("alert.required")
     }
-    if (!formData.revision.trim()) {
-      newErrors.revision = t("alert.required")
-    }
     if (!formData.submittalManager) {
       newErrors.submittalManager = t("alert.required")
     }
@@ -198,9 +193,7 @@ export default function NewLivrablePage() {
         description: formData.description,
         
         // Basic Information
-        specSection: formData.specSection,
         numberValue: formData.numberValue,
-        revision: formData.revision,
         submittalType: formData.submittalType,
         responsibleContractor: formData.responsibleContractor,
         receivedFrom: formData.receivedFrom,
@@ -445,23 +438,15 @@ export default function NewLivrablePage() {
                 />
               </FormField>
 
-              {/* Number & Revision — auto-generated as TYPE-000001 */}
-              <FormField label={`${t("livrable.number")} & ${t("livrable.revision")} *`} required error={errors.numberValue || errors.revision}>
-                <div className="flex gap-2">
-                  <Input
-                    value={formData.numberValue}
-                    onChange={(e) => handleFieldChange("numberValue", e.target.value)}
-                    placeholder="QRT-000001"
-                    className={`h-12 flex-1 ${errors.numberValue ? "border-destructive" : ""}`}
-                    readOnly={!!formData.submittalType}
-                  />
-                  <Input
-                    value={formData.revision}
-                    onChange={(e) => handleFieldChange("revision", e.target.value)}
-                    placeholder="0"
-                    className={`h-12 w-24 ${errors.revision ? "border-destructive" : ""}`}
-                  />
-                </div>
+              {/* Number — auto-generated as TYPE-000001 */}
+              <FormField label={`${t("livrable.number")} & ${t("livrable.revision")} *`} required error={errors.numberValue}>
+                <Input
+                  value={formData.numberValue}
+                  onChange={(e) => handleFieldChange("numberValue", e.target.value)}
+                  placeholder="QRT-000001"
+                  className={`h-12 flex-1 ${errors.numberValue ? "border-destructive" : ""}`}
+                  readOnly={!!formData.submittalType}
+                />
               </FormField>
 
               {/* Type de livrable */}
@@ -524,15 +509,12 @@ export default function NewLivrablePage() {
 
               {/* Status */}
               <FormField label={`${t("submittal.status")} *`} required error={errors.status}>
-                <Select value={formData.status} onValueChange={(value: any) => handleFieldChange("status", value)}>
+                <Select value={formData.status === "closed" ? "closed" : "open"} onValueChange={(value: any) => handleFieldChange("status", value)}>
                   <SelectTrigger className={`h-12 ${errors.status ? "border-destructive" : ""}`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="draft">{t("status.draft")}</SelectItem>
-                    <SelectItem value="in-progress">{t("status.inProgress")}</SelectItem>
-                    <SelectItem value="submitted">{t("status.submitted")}</SelectItem>
-                    <SelectItem value="open">{t("status.open")}</SelectItem>
+                    <SelectItem value="open">{t("status.initiated" as any)}</SelectItem>
                     <SelectItem value="closed">{t("status.closed")}</SelectItem>
                   </SelectContent>
                 </Select>
@@ -540,7 +522,14 @@ export default function NewLivrablePage() {
 
               {/* Project */}
               <FormField label={t("form.project")} required error={errors.projectId}>
-                <Select value={formData.projectId} onValueChange={(value) => handleFieldChange("projectId", value)}>
+                <Select value={formData.projectId} onValueChange={(value) => {
+                  const p = projects?.find((pp: any) => pp.id === value)
+                  handleFieldChange("projectId", value)
+                  // Always update location when project changes
+                  if (p) {
+                    handleFieldChange("location", p.location || "")
+                  }
+                }}>
                   <SelectTrigger className={`h-12 ${errors.projectId ? "border-destructive" : ""}`}>
                     <SelectValue placeholder={t("livrable.selectProject")} />
                   </SelectTrigger>
@@ -556,11 +545,21 @@ export default function NewLivrablePage() {
 
               {/* Creator */}
               <FormField label={t("form.createdBy")}>
-                <Input
-                  value={currentUser?.name || ""}
-                  disabled
-                  className="h-12 bg-muted"
-                />
+                <Select
+                  value={formData.creatorId || ""}
+                  onValueChange={(value) => handleFieldChange("creatorId", value)}
+                >
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder={t("form.createdBy")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {authUsers.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </FormField>
 
               {/* Submit By */}

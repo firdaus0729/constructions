@@ -48,7 +48,13 @@ export default function NewIncidentPage() {
   useEffect(() => {
     if (projects?.length === 1) {
       const p = projects[0]
-      setFormData((prev) => (prev.projectId ? prev : { ...prev, projectId: p.id, projectNumber: p.code || p.id }))
+      setFormData((prev) => (prev.projectId ? prev : { 
+        ...prev, 
+        projectId: p.id, 
+        projectNumber: p.code || p.id,
+        // Auto-populate location from project if not already set
+        location: prev.location || p.location || ""
+      }))
     }
   }, [projects])
 
@@ -377,10 +383,13 @@ export default function NewIncidentPage() {
                   value={formData.projectId}
                   onChange={(projectId) => {
                     const p = projects.find((pp) => pp.id === projectId)
+                    if (!p) return
                     setFormData((prev) => ({
                       ...prev,
                       projectId: projectId || "",
-                      projectNumber: p?.code || "",
+                      projectNumber: p.code || "",
+                      // Always update location when project changes
+                      location: p.location || "",
                     }))
                   }}
                   placeholder={t("incident.selectProject")}
@@ -442,6 +451,7 @@ export default function NewIncidentPage() {
               {/* Location */}
               <FormField label={t("incident.location")} required error={errors.location}>
                 <LivrableCrudCombobox
+                  key={formData.projectId}
                   listKey="locations"
                   value={formData.location}
                   onChange={(value) => handleFieldChange("location", value)}

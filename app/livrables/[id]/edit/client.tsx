@@ -25,12 +25,11 @@ import type { Attachment, FormStatus, LivrableWorkflowStep } from "@/lib/types"
 import { collectEmailAddresses, sendFormNotificationEmails } from "@/lib/email-service"
 import { GripVertical, Mail, X } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { toDateOnlyString } from "@/lib/utils"
 
 const toDateInput = (d: any) => {
   if (!d) return ""
-  const dt = new Date(d)
-  if (Number.isNaN(dt.getTime())) return ""
-  return dt.toISOString().slice(0, 10)
+  return toDateOnlyString(d)
 }
 
 export default function EditLivrablePage({ params }: { params: Promise<{ id: string }> }) {
@@ -65,11 +64,9 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
     title: livrable?.title || "",
     projectId: livrable?.projectId || "",
     creatorId: livrable?.creatorId || currentUser?.id || "",
-    status: (livrable?.status || "draft") as FormStatus,
+    status: (livrable?.status === "closed" ? "closed" : "open") as FormStatus,
 
-    specSection: livrable?.specSection || "",
     numberValue: livrable?.numberValue || "1",
-    revision: livrable?.revision || "0",
     submittalType: livrable?.submittalType || "",
     responsibleContractor: livrable?.responsibleContractor || "",
     receivedFrom: livrable?.receivedFrom || "",
@@ -190,7 +187,6 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
     if (!formData.title.trim()) next.title = t("alert.required")
     if (!formData.projectId) next.projectId = t("alert.required")
     if (!formData.numberValue.trim()) next.numberValue = t("alert.required")
-    if (!formData.revision.trim()) next.revision = t("alert.required")
     if (!formData.submittalManager) next.submittalManager = t("alert.required")
     if (!formData.status) next.status = t("alert.required")
     setErrors(next)
@@ -223,9 +219,7 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
         description: formData.description,
         attachments: formData.attachments,
 
-        specSection: formData.specSection,
         numberValue: formData.numberValue,
-        revision: formData.revision,
         submittalType: formData.submittalType,
         responsibleContractor: formData.responsibleContractor,
         receivedFrom: formData.receivedFrom,
@@ -319,41 +313,28 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
                 <Input value={formData.title} onChange={(e) => handleFieldChange("title", e.target.value)} className="h-12" />
               </FormField>
 
-              {/* Spec Section */}
-              <FormField label={t("submittal.specSection")}>
-                <Select value={formData.specSection} onValueChange={(v) => handleFieldChange("specSection", v)}>
-                  <SelectTrigger className="h-12">
-                    <SelectValue placeholder={t("submittal.selectSpecSection")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="section1">Section 1</SelectItem>
-                    <SelectItem value="section2">Section 2</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormField>
-
               {/* Number & Revision */}
               <FormField
                 label={`${t("livrable.number")} & ${t("livrable.revision")} *`}
                 required
-                error={errors.numberValue || errors.revision}
+                error={errors.numberValue}
               >
-                <div className="flex gap-2">
-                  <Input
-                    value={formData.numberValue}
-                    onChange={(e) => handleFieldChange("numberValue", e.target.value)}
-                    className={`h-12 flex-1 ${errors.numberValue ? "border-destructive" : ""}`}
-                  />
-                  <Input
-                    value={formData.revision}
-                    onChange={(e) => handleFieldChange("revision", e.target.value)}
-                    className={`h-12 w-24 ${errors.revision ? "border-destructive" : ""}`}
-                  />
-                </div>
+                <Input
+                  value={formData.numberValue}
+                  onChange={(e) => handleFieldChange("numberValue", e.target.value)}
+                  className={`h-12 flex-1 ${errors.numberValue ? "border-destructive" : ""}`}
+                />
               </FormField>
 
               <FormField label={t("form.project")} required error={errors.projectId}>
-                <Select value={formData.projectId} onValueChange={(v) => handleFieldChange("projectId", v)}>
+                <Select value={formData.projectId} onValueChange={(v) => {
+                  const p = projects.find((pp: any) => pp.id === v)
+                  handleFieldChange("projectId", v)
+                  // Always update location when project changes
+                  if (p) {
+                    handleFieldChange("location", p.location || "")
+                  }
+                }}>
                   <SelectTrigger className={`h-12 ${errors.projectId ? "border-destructive" : ""}`}>
                     <SelectValue placeholder={t("livrable.selectProject")} />
                   </SelectTrigger>
@@ -368,15 +349,12 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
               </FormField>
 
               <FormField label={`${t("submittal.status")} *`} required error={errors.status}>
-                <Select value={formData.status} onValueChange={(v: any) => handleFieldChange("status", v)}>
+                <Select value={formData.status === "closed" ? "closed" : "open"} onValueChange={(v: any) => handleFieldChange("status", v)}>
                   <SelectTrigger className={`h-12 ${errors.status ? "border-destructive" : ""}`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="draft">{t("status.draft")}</SelectItem>
-                    <SelectItem value="in-progress">{t("status.inProgress")}</SelectItem>
-                    <SelectItem value="submitted">{t("status.submitted")}</SelectItem>
-                    <SelectItem value="open">{t("status.open")}</SelectItem>
+                    <SelectItem value="open">{t("status.initiated" as any)}</SelectItem>
                     <SelectItem value="closed">{t("status.closed")}</SelectItem>
                   </SelectContent>
                 </Select>
@@ -441,7 +419,21 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
 
               {/* Created By */}
               <FormField label={t("form.createdBy")}>
-                <Input value={authUsers.find((u) => u.id === formData.creatorId)?.name || currentUser?.name || ""} disabled className="h-12 bg-muted" />
+                <Select
+                  value={formData.creatorId || ""}
+                  onValueChange={(value) => handleFieldChange("creatorId", value)}
+                >
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder={t("form.createdBy")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {authUsers.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </FormField>
 
               {/* Submit By */}
@@ -462,6 +454,7 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
 
               <FormField label={t("livrable.location")}>
                 <LivrableCrudCombobox
+                  key={formData.projectId}
                   listKey="locations"
                   value={formData.location}
                   onChange={(v) => handleFieldChange("location", v)}
@@ -510,91 +503,6 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
             </div>
           </FormSection>
 
-          {/* Informations sur le calendrier de livrable */}
-          <FormSection title={t("submittal.scheduleInfo")} collapsible={true} defaultOpen={false}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField label={t("livrable.scheduleTask")} className="md:col-span-2">
-                <LivrableCrudCombobox
-                  listKey="scheduleTasks"
-                  value={formData.scheduleTask}
-                  onChange={(v) => handleFieldChange("scheduleTask", v)}
-                  placeholder={t("livrable.selectScheduleTask")}
-                />
-              </FormField>
-
-              <FormField label={t("submittal.requiredOnSiteDate")}>
-                <Input
-                  type="date"
-                  value={formData.requiredOnSiteDate}
-                  onChange={(e) => handleFieldChange("requiredOnSiteDate", e.target.value)}
-                  className="h-12"
-                />
-              </FormField>
-
-              <FormField label={t("livrable.leadTime")}>
-                <div className="flex gap-2 items-center">
-                  <Input
-                    type="number"
-                    value={formData.leadTime}
-                    onChange={(e) => handleFieldChange("leadTime", Number.parseInt(e.target.value) || 0)}
-                    className="h-12"
-                  />
-                  <span className="text-sm text-muted-foreground">{t("livrable.leadTimeDays")}</span>
-                </div>
-              </FormField>
-
-              <FormField label={t("submittal.plannedReturnDate")}>
-                <Input
-                  type="date"
-                  value={formData.plannedReturnDate}
-                  onChange={(e) => handleFieldChange("plannedReturnDate", e.target.value)}
-                  className="h-12"
-                />
-              </FormField>
-
-              <FormField label={t("livrable.designTeamReviewTime")}>
-                <div className="flex gap-2 items-center">
-                  <Input
-                    type="number"
-                    value={formData.designTeamReviewTime}
-                    onChange={(e) => handleFieldChange("designTeamReviewTime", Number.parseInt(e.target.value) || 0)}
-                    className="h-12"
-                  />
-                  <span className="text-sm text-muted-foreground">{t("livrable.designTeamReviewTimeDays")}</span>
-                </div>
-              </FormField>
-
-              <FormField label={t("submittal.plannedInternalReviewCompletedDate")}>
-                <Input
-                  type="date"
-                  value={formData.plannedInternalReviewCompletedDate}
-                  onChange={(e) => handleFieldChange("plannedInternalReviewCompletedDate", e.target.value)}
-                  className="h-12"
-                />
-              </FormField>
-
-              <FormField label={t("livrable.internalReviewTime")}>
-                <div className="flex gap-2 items-center">
-                  <Input
-                    type="number"
-                    value={formData.internalReviewTime}
-                    onChange={(e) => handleFieldChange("internalReviewTime", Number.parseInt(e.target.value) || 0)}
-                    className="h-12"
-                  />
-                  <span className="text-sm text-muted-foreground">{t("livrable.internalReviewTimeDays")}</span>
-                </div>
-              </FormField>
-
-              <FormField label={t("submittal.plannedSubmitByDate")}>
-                <Input
-                  type="date"
-                  value={formData.plannedSubmitByDate}
-                  onChange={(e) => handleFieldChange("plannedSubmitByDate", e.target.value)}
-                  className="h-12"
-                />
-              </FormField>
-            </div>
-          </FormSection>
 
           {/* Delivery Information */}
           <FormSection title={t("livrable.deliveryInfo")} collapsible={true} defaultOpen={false}>

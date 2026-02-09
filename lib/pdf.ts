@@ -579,21 +579,27 @@ export async function exportObservationAsPdf(
     if (!dateStr) return null
     if (dateStr instanceof Date) {
       // If it's already a Date, create a new one with local date components to avoid timezone issues
-      return new Date(dateStr.getFullYear(), dateStr.getMonth(), dateStr.getDate())
+      // Use UTC methods to get the actual date values without timezone conversion
+      const utcYear = dateStr.getUTCFullYear()
+      const utcMonth = dateStr.getUTCMonth()
+      const utcDay = dateStr.getUTCDate()
+      return new Date(utcYear, utcMonth, utcDay)
     }
     // If it's a date string like "2024-01-15" or "2024-01-15T00:00:00.000Z", parse it as local date
     if (typeof dateStr === "string") {
-      // Try to extract date parts from ISO string or simple date string
+      // Try to extract date parts from ISO string or simple date string (YYYY-MM-DD format)
       const dateMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/)
       if (dateMatch) {
         const year = parseInt(dateMatch[1], 10)
         const month = parseInt(dateMatch[2], 10) - 1 // Month is 0-indexed
         const day = parseInt(dateMatch[3], 10)
+        // Create date in local timezone to preserve the selected date
         return new Date(year, month, day)
       }
-      // Try parsing as other formats
+      // Try parsing as other formats (MM/DD/YYYY or DD/MM/YYYY)
       const parts = dateStr.split(/[-/]/)
       if (parts.length === 3) {
+        // Assume YYYY-MM-DD or YYYY/MM/DD format
         const year = parseInt(parts[0], 10)
         const month = parseInt(parts[1], 10) - 1 // Month is 0-indexed
         const day = parseInt(parts[2], 10)
@@ -601,10 +607,14 @@ export async function exportObservationAsPdf(
           return new Date(year, month, day)
         }
       }
-      // Fallback: try parsing as Date and extract local components
+      // Fallback: try parsing as Date and extract UTC components to avoid timezone shift
       const d = new Date(dateStr)
       if (!isNaN(d.getTime())) {
-        return new Date(d.getFullYear(), d.getMonth(), d.getDate())
+        // Use UTC methods to preserve the actual date selected
+        const utcYear = d.getUTCFullYear()
+        const utcMonth = d.getUTCMonth()
+        const utcDay = d.getUTCDate()
+        return new Date(utcYear, utcMonth, utcDay)
       }
     }
     return null
@@ -1026,24 +1036,20 @@ export async function exportObservationAsPdf(
   doc.text(`Statut modifié : ${statusText}`, boxX + 3, boxY + 6.5)
   y += Math.max(12, (activityDateStr ? 8 : 4)) // Adjust based on content height
 
-  // Footer: thin dark line above, then company | Page X sur Y | Imprimé le
+  // Footer: company | Page X sur Y | Imprimé le (no line, black text)
   const pageCount = (doc as any).internal.getNumberOfPages()
   const footerY = pageHeight - 8
 
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i)
-    doc.setDrawColor(100, 100, 100)
-    doc.setLineWidth(0.2)
-    doc.line(margin, footerY - 2, pageWidth - margin, footerY - 2)
-    doc.setDrawColor(0, 0, 0)
+    // Removed the gray line above footer
     doc.setFontSize(6)
-    doc.setTextColor(100, 100, 100)
+    doc.setTextColor(0, 0, 0) // Black text instead of gray
     doc.text("Construction Interlag", margin, footerY + 2)
     doc.text(`Page ${i} sur ${pageCount}`, pageWidth / 2, footerY + 2, { align: "center" })
     // Use FDT for page 2+, EDT for page 1 (matching original PDF)
     const printDateStr = formatDateTime(new Date(), i > 1)
     doc.text(`Imprimé le : ${printDateStr}`, pageWidth - margin, footerY + 2, { align: "right" })
-    doc.setTextColor(0, 0, 0)
   }
 
   doc.save(finalFilename)
@@ -1213,6 +1219,8 @@ export async function exportInspectionAsPdf(
     const r = allResponses.find((rr: any) => rr.itemId === item.id)
     return !r || r.response == null || r.response === undefined
   }).length
+  // Calculate answered items (items that have been filled in)
+  const answeredItems = totalItems - unanswered
 
   const sumY = y + 3 // Add spacing after title line
   const boxH = 18
@@ -1231,7 +1239,7 @@ export async function exportInspectionAsPdf(
   }
   doc.setDrawColor(0, 0, 0)
   doc.setTextColor(0, 0, 0) // Black text
-  const summaryValues = [`${totalItems}/${totalItems}`, `${conforming}`, `${nonConforming}`, `${notApplicable}`, `${unanswered}`]
+  const summaryValues = [`${answeredItems}/${totalItems}`, `${conforming}`, `${nonConforming}`, `${notApplicable}`, `${unanswered}`]
   const summaryLabels = ["Articles inspectés", "Conforme", "Déficient", "S.O.", "Neutre"]
   summaryValues.forEach((val, idx) => {
     const centerX = margin + idx * (boxW + gap) + boxW / 2
@@ -1315,21 +1323,27 @@ export async function exportInspectionAsPdf(
       if (!dateStr) return null
       if (dateStr instanceof Date) {
         // If it's already a Date, create a new one with local date components to avoid timezone issues
-        return new Date(dateStr.getFullYear(), dateStr.getMonth(), dateStr.getDate())
+        // Use UTC methods to get the actual date values without timezone conversion
+        const utcYear = dateStr.getUTCFullYear()
+        const utcMonth = dateStr.getUTCMonth()
+        const utcDay = dateStr.getUTCDate()
+        return new Date(utcYear, utcMonth, utcDay)
       }
       // If it's a date string like "2024-01-15" or "2024-01-15T00:00:00.000Z", parse it as local date
       if (typeof dateStr === "string") {
-        // Try to extract date parts from ISO string or simple date string
+        // Try to extract date parts from ISO string or simple date string (YYYY-MM-DD format)
         const dateMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/)
         if (dateMatch) {
           const year = parseInt(dateMatch[1], 10)
           const month = parseInt(dateMatch[2], 10) - 1 // Month is 0-indexed
           const day = parseInt(dateMatch[3], 10)
+          // Create date in local timezone to preserve the selected date
           return new Date(year, month, day)
         }
-        // Try parsing as other formats
+        // Try parsing as other formats (MM/DD/YYYY or DD/MM/YYYY)
         const parts = dateStr.split(/[-/]/)
         if (parts.length === 3) {
+          // Assume YYYY-MM-DD or YYYY/MM/DD format
           const year = parseInt(parts[0], 10)
           const month = parseInt(parts[1], 10) - 1 // Month is 0-indexed
           const day = parseInt(parts[2], 10)
@@ -1337,10 +1351,14 @@ export async function exportInspectionAsPdf(
             return new Date(year, month, day)
           }
         }
-        // Fallback: try parsing as Date and extract local components
+        // Fallback: try parsing as Date and extract UTC components to avoid timezone shift
         const d = new Date(dateStr)
         if (!isNaN(d.getTime())) {
-          return new Date(d.getFullYear(), d.getMonth(), d.getDate())
+          // Use UTC methods to preserve the actual date selected
+          const utcYear = d.getUTCFullYear()
+          const utcMonth = d.getUTCMonth()
+          const utcDay = d.getUTCDate()
+          return new Date(utcYear, utcMonth, utcDay)
         }
       }
       return null
@@ -1710,9 +1728,11 @@ export async function exportInspectionAsPdf(
             doc.text(line.restPart, margin + 2 + nameW, currentUpdateY)
           } else if (line.type === 'comment-header' && line.namePart && line.restPart) {
             doc.setFont("helvetica", "bold")
+            const nameW = doc.getTextWidth(line.namePart)
             doc.text(line.namePart, margin + 2, currentUpdateY)
             doc.setFont("helvetica", "normal")
-            doc.text(line.restPart, margin + 2 + doc.getTextWidth(line.namePart), currentUpdateY)
+            // Add small gap between name and rest part to prevent overlap
+            doc.text(line.restPart, margin + 2 + nameW + 0.5, currentUpdateY)
           } else if (line.content) {
             doc.text(line.content, margin + 2, currentUpdateY)
           }
@@ -1786,9 +1806,12 @@ export async function exportInspectionAsPdf(
           
           // Draw photo header (only once, at the start)
           doc.setFont("helvetica", "bold")
-          doc.text(responderName + " (" + companyName + ")", margin + 2, currentImageY)
+          const nameText = responderName + " (" + companyName + ")"
+          const nameWidth = doc.getTextWidth(nameText)
+          doc.text(nameText, margin + 2, currentImageY)
           doc.setFont("helvetica", "normal")
-          doc.text(` a ajouté ${photos.length} photo${photos.length > 1 ? "s" : ""} via mobile le ${photoDateStr} à ${photoTimeStr} EDT`, margin + 2 + doc.getTextWidth(responderName + " (" + companyName + ")"), currentImageY)
+          // Add small gap between name and rest part to prevent overlap
+          doc.text(` a ajouté ${photos.length} photo${photos.length > 1 ? "s" : ""} via mobile le ${photoDateStr} à ${photoTimeStr} EDT`, margin + 2 + nameWidth + 0.5, currentImageY)
           currentImageY += 4.5
           
           // Process images row by row, filling current page as much as possible
@@ -1820,9 +1843,12 @@ export async function exportInspectionAsPdf(
                   currentImageY = y + 3.5 + 1 // 3.5mm base + 3.5mm (10px) extra top margin
                   // Redraw photo header on new page
                   doc.setFont("helvetica", "bold")
-                  doc.text(responderName + " (" + companyName + ")", margin + 2, currentImageY)
+                  const nameTextCont = responderName + " (" + companyName + ")"
+                  const nameWidthCont = doc.getTextWidth(nameTextCont)
+                  doc.text(nameTextCont, margin + 2, currentImageY)
                   doc.setFont("helvetica", "normal")
-                  doc.text(` a ajouté ${photos.length} photo${photos.length > 1 ? "s" : ""} via mobile le ${photoDateStr} à ${photoTimeStr} EDT`, margin + 2 + doc.getTextWidth(responderName + " (" + companyName + ")"), currentImageY)
+                  // Add small gap between name and rest part to prevent overlap
+                  doc.text(` a ajouté ${photos.length} photo${photos.length > 1 ? "s" : ""} via mobile le ${photoDateStr} à ${photoTimeStr} EDT`, margin + 2 + nameWidthCont + 0.5, currentImageY)
                   currentImageY += 4.5
                 }
                 currentPageImageY = currentImageY
@@ -1943,15 +1969,12 @@ export async function exportInspectionAsPdf(
 
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i)
-    doc.setDrawColor(SEP_GRAY[0], SEP_GRAY[1], SEP_GRAY[2])
-    doc.setLineWidth(0.2)
-    doc.line(margin, footerY - 2, pageWidth - margin, footerY - 2)
+    // Removed the gray line above footer
     doc.setFontSize(6)
-    doc.setTextColor(100, 100, 100)
+    doc.setTextColor(0, 0, 0) // Black text instead of gray
     doc.text("Construction Interlag", margin, footerY + 2)
     doc.text(`Page ${i} sur ${pageCount}`, pageWidth / 2, footerY + 2, { align: "center" })
     doc.text(printedStr, pageWidth - margin, footerY + 2, { align: "right" })
-    doc.setTextColor(0, 0, 0)
   }
 
   doc.save(finalFilename)
@@ -2516,7 +2539,7 @@ export async function exportIncidentAsPdf(
   
   y = Math.max(leftInvY + invRowH, rightInvY + invRowH) + 6
 
-  // ----- Footer: thin dark line, then company | Page X sur Y | Imprimé le DD/MM/YYYY à HH h MM EDT -----
+  // ----- Footer: company | Page X sur Y | Imprimé le DD/MM/YYYY à HH h MM EDT (no line, black text) -----
   const pageCount = (doc as any).internal.getNumberOfPages()
   const footerY = pageHeight - 8
   const printedStr = (() => {
@@ -2531,16 +2554,13 @@ export async function exportIncidentAsPdf(
 
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i)
-    doc.setDrawColor(0, 0, 0)
-    doc.setLineWidth(0.2)
-    doc.line(margin, footerY - 2, pageWidth - margin, footerY - 2)
+    // Removed the gray line above footer
     doc.setFontSize(6)
-    doc.setTextColor(100, 100, 100)
+    doc.setTextColor(0, 0, 0) // Black text instead of gray
     doc.setFont("helvetica", "normal")
     doc.text("Construction Interlag", margin, footerY + 2)
     doc.text(`Page ${i} sur ${pageCount}`, pageWidth / 2, footerY + 2, { align: "center" })
     doc.text(printedStr, pageWidth - margin, footerY + 2, { align: "right" })
-    doc.setTextColor(0, 0, 0)
   }
 
   doc.save(finalFilename)

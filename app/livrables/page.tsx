@@ -18,23 +18,16 @@ import { toast } from "sonner"
 import { exportLivrableAsPdf } from "@/lib/pdf"
 
 const statusVariants: Record<string, string> = {
-  draft: "bg-blue-500 text-white",
-  open: "bg-red-500 text-white",
-  "in-progress": "bg-yellow-500 text-white",
-  closed: "bg-green-600 text-white",
-  submitted: "bg-purple-500 text-white",
+  open: "bg-[#27F54D] text-white",
+  closed: "bg-[#999999] text-white",
 }
 
 // Helper function to convert status key to translation key
+// Only "open" (Initié) and "closed" (Fermé) are allowed
 const getStatusTranslationKey = (status: string): string => {
-  const statusMap: Record<string, string> = {
-    "draft": "status.draft",
-    "open": "status.open",
-    "in-progress": "status.inProgress",
-    "closed": "status.closed",
-    "submitted": "status.submitted"
-  }
-  return statusMap[status] || `status.${status}`
+  // Normalize status: map "submitted", "draft", "in-progress" to "open" (Initié)
+  const normalizedStatus = status === "closed" ? "closed" : "open"
+  return normalizedStatus === "closed" ? "status.closed" : "status.initiated"
 }
 
 export default function LivrablesPage() {
@@ -163,7 +156,7 @@ export default function LivrablesPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="font-semibold">{livrable.title || livrable.number}</span>
-                          <Badge variant="secondary" className={cn("text-xs", statusVariants[livrable.status])}>
+                          <Badge variant="secondary" className={cn("text-xs", statusVariants[livrable.status === "closed" ? "closed" : "open"])}>
                             {t(getStatusTranslationKey(livrable.status) as any)}
                           </Badge>
                         </div>

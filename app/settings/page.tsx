@@ -44,7 +44,7 @@ export default function SettingsPage() {
   const { locale, setLocale, t } = useLocale()
   const { theme, setTheme } = useTheme()
   const { isOnline, isSyncing, syncNow } = useOffline()
-  const { observations, incidents, inspections, projects, addProject, updateProject, deleteProject, sessionDurationMinutes, setSessionDurationMinutes } = useAppStore()
+  const { observations, incidents, inspections, livrables, projects, addProject, updateProject, deleteProject, sessionDurationMinutes, setSessionDurationMinutes } = useAppStore()
   const [projectDialogOpen, setProjectDialogOpen] = React.useState(false)
   const [editingProjectId, setEditingProjectId] = React.useState<string | null>(null)
   const [projectForm, setProjectForm] = React.useState({ code: "", name: "", location: "" })
@@ -66,11 +66,12 @@ export default function SettingsPage() {
   >("types")
   const [livrableOptsTitle, setLivrableOptsTitle] = React.useState("")
 
-  const totalForms = observations.length + incidents.length + inspections.length
+  const totalForms = observations.length + incidents.length + inspections.length + livrables.length
   const pendingSync = [
     ...observations.filter((o) => o.syncStatus === "pending"),
     ...incidents.filter((i) => i.syncStatus === "pending"),
     ...inspections.filter((i) => i.syncStatus === "pending"),
+    ...livrables.filter((l) => l.syncStatus === "pending"),
   ].length
 
   return (
@@ -130,11 +131,14 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between gap-4">
                 <Label htmlFor="session-duration">{t("settings.session.logoutAfter")}</Label>
                 <Select
-                  value={String(sessionDurationMinutes ?? 60)}
-                  onValueChange={(v) => setSessionDurationMinutes(Number(v))}
+                  value={sessionDurationMinutes !== undefined && sessionDurationMinutes !== null ? String(sessionDurationMinutes) : "60"}
+                  onValueChange={(v) => {
+                    const minutes = Number(v)
+                    setSessionDurationMinutes(minutes)
+                  }}
                 >
                   <SelectTrigger id="session-duration" className="w-48">
-                    <SelectValue />
+                    <SelectValue placeholder={t("settings.session.1h")} />
                   </SelectTrigger>
                   <SelectContent>
                     {SESSION_DURATION_OPTIONS.map((opt) => (

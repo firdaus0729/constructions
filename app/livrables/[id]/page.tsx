@@ -15,22 +15,15 @@ import { cn, distanceToNowLocalized, formatLocalized } from "@/lib/utils"
 import { exportLivrableAsPdf } from "@/lib/pdf"
 
 const statusVariants = {
-  draft: "bg-muted text-muted-foreground",
-  submitted: "bg-primary/10 text-primary",
-  open: "bg-warning/10 text-warning-foreground",
-  closed: "bg-accent/10 text-accent",
-  "in-progress": "bg-info/10 text-info",
+  open: "bg-[#27F54D] text-white",
+  closed: "bg-[#999999] text-white",
 }
 
+// Only "open" (Initié) and "closed" (Fermé) are allowed
 const getStatusTranslationKey = (status: string): string => {
-  const statusMap: Record<string, string> = {
-    "draft": "status.draft",
-    "open": "status.open",
-    "in-progress": "status.inProgress",
-    "closed": "status.closed",
-    "submitted": "status.submitted",
-  }
-  return statusMap[status] || `status.${status}`
+  // Normalize status: map "submitted", "draft", "in-progress" to "open" (Initié)
+  const normalizedStatus = status === "closed" ? "closed" : "open"
+  return normalizedStatus === "closed" ? "status.closed" : "status.initiated"
 }
 
 export default function LivrableDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -75,13 +68,12 @@ export default function LivrableDetailPage({ params }: { params: Promise<{ id: s
       .map((s) => s.trim())
       .filter(Boolean)
 
-  // Safe date formatting helper
+  // Safe date formatting helper - uses formatDateOnlyLocalized to avoid timezone issues
   const safeFormatDate = (dateValue: any, format: string): string => {
     if (!dateValue) return "-"
     try {
-      const date = dateValue instanceof Date ? dateValue : new Date(dateValue)
-      if (isNaN(date.getTime())) return "-"
-      return formatLocalized(date, format, locale)
+      // Use formatDateOnlyLocalized to avoid one-day offset issues
+      return formatDateOnlyLocalized(dateValue, format, locale)
     } catch {
       return "-"
     }
@@ -113,7 +105,7 @@ export default function LivrableDetailPage({ params }: { params: Promise<{ id: s
           <div>
             <div className="flex items-center gap-2">
               <span className="font-mono text-sm text-muted-foreground">{livrable.number}</span>
-              <Badge variant="secondary" className={cn(statusVariants[livrable.status])}>
+              <Badge variant="secondary" className={cn(statusVariants[livrable.status === "closed" ? "closed" : "open"])}>
                 {t(getStatusTranslationKey(livrable.status) as any)}
               </Badge>
             </div>

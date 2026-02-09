@@ -55,6 +55,7 @@ export default function DashboardPage() {
             href="/livrables/new"
             icon={FileText}
             variant="default"
+            iconClassName="!bg-[#B5B5B5] !text-white"
           />
         </div>
 

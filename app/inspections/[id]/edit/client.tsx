@@ -39,10 +39,52 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
   
   const inspection = inspections?.find((i) => i.id === id)
 
+  // Helper function to clean description value (remove translation keys)
+  const cleanDescription = (desc: string | undefined | null): string => {
+    if (!desc || typeof desc !== "string") return ""
+    const trimmed = desc.trim()
+    // If the description is a translation key or placeholder text, treat it as empty
+    if (
+      trimmed === "" ||
+      trimmed.startsWith("form.") ||
+      trimmed.includes("Placeholder") ||
+      trimmed.includes("descriptionPlaceholder") ||
+      trimmed === "form.descriptionPlaceholder" ||
+      trimmed.toLowerCase().includes("placeholder")
+    ) {
+      return ""
+    }
+    return trimmed
+  }
+
   // Form state
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
-  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([])
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>(() => {
+    if (!inspection?.distribution) return []
+    // Initialize from inspection distribution
+    const userIds: string[] = []
+    inspection.distribution.forEach((email) => {
+      const user = authUsers?.find((u) => u.email === email)
+      if (user) userIds.push(user.id)
+    })
+    return userIds
+  })
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>(() => {
+    if (!inspection?.distribution) return []
+    // Initialize from inspection distribution
+    const groupIds: string[] = []
+    inspection.distribution.forEach((email) => {
+      userGroups?.forEach((group) => {
+        if (group.members?.some((memberId) => {
+          const member = authUsers?.find((u) => u.id === memberId)
+          return member?.email === email
+        })) {
+          if (!groupIds.includes(group.id)) groupIds.push(group.id)
+        }
+      })
+    })
+    return groupIds
+  })
   const [sendNotifications, setSendNotifications] = useState(true)
 
   // Form data
@@ -82,13 +124,13 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
     contractor: (inspection as any)?.contractor || "",
     createdBy: (inspection as any)?.createdBy || currentUser?.name || "Unknown",
     creatorId: inspection?.creatorId || currentUser?.id || "",
-    description: inspection?.description || "",
+    description: cleanDescription(inspection?.description),
     status: inspection?.status === "closed" ? "closed" : "open",
     responses: inspection?.responses?.reduce((acc, resp) => {
       acc[resp.itemId] = resp
       return acc
     }, {} as Record<string, InspectionItemResponse>) || {},
-    attachments: [],
+    attachments: inspection?.attachments || [],
   }))
 
   // Sync form data when inspection loads
@@ -110,16 +152,53 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
         contractor: (inspection as any)?.contractor || "",
         createdBy: (inspection as any)?.createdBy || currentUser?.name || "Unknown",
         creatorId: inspection?.creatorId || currentUser?.id || "",
-        description: inspection.description,
+        description: cleanDescription(inspection.description),
         status: inspection.status === "closed" ? "closed" : "open",
         responses: inspection.responses?.reduce((acc, resp) => {
           acc[resp.itemId] = resp
           return acc
         }, {} as Record<string, InspectionItemResponse>) || {},
-        attachments: [],
+        attachments: inspection.attachments || [],
       })
+      
+      // Initialize distribution from inspection
+      if (inspection.distribution) {
+        const userIds: string[] = []
+        const groupIds: string[] = []
+        
+        inspection.distribution.forEach((email) => {
+          const user = authUsers?.find((u) => u.email === email)
+          if (user) {
+            userIds.push(user.id)
+          } else {
+            // Check if email belongs to a group member
+            userGroups?.forEach((group) => {
+              if (group.members?.some((memberId) => {
+                const member = authUsers?.find((u) => u.id === memberId)
+                return member?.email === email
+              })) {
+                if (!groupIds.includes(group.id)) groupIds.push(group.id)
+              }
+            })
+          }
+        })
+        
+        setSelectedUserIds(userIds)
+        setSelectedGroupIds(groupIds)
+      }
     }
-  }, [inspection?.id])
+  }, [inspection?.id, authUsers, userGroups])
+
+  // Clean description if it contains placeholder text - run on mount and when description changes
+  useEffect(() => {
+    const cleaned = cleanDescription(formData.description)
+    if (formData.description !== cleaned) {
+      setFormData((prev) => ({
+        ...prev,
+        description: cleaned,
+      }))
+    }
+  }, [formData.description])
 
   // Validation state
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -152,6 +231,10 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
       setIsSubmitting(true)
 
       try {
+        // Ensure we have the inspection before proceeding
+        if (!inspection) {
+          throw new Error("Inspection not found")
+        }
         // Convert responses object to array
         const responsesArray: InspectionItemResponse[] = Object.entries(formData.responses).map(
           ([itemId, response]) => ({
@@ -183,7 +266,7 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
         })
 
         const updatedInspection: Inspection = {
-          ...inspection!,
+          ...inspection,
           documentTitle: formData.documentTitle,
           type: formData.type,
           projectId: formData.projectId,
@@ -200,16 +283,17 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
           contractor: formData.contractor,
           createdBy: formData.createdBy || (inspection as any)?.createdBy,
           creatorId: formData.creatorId || inspection?.creatorId || currentUser?.id || "",
-          description: formData.description,
+          description: cleanDescription(formData.description),
           status: (formData.status === "closed" ? "closed" : "open") as Inspection["status"],
           distribution: distributionList.map((d) => d.email || "").filter(Boolean),
           responses: responsesArray,
-          attachments: formData.attachments,
+          attachments: formData.attachments || [],
           updatedAt: new Date(),
-          // Keep existing syncStatus if it's synced, otherwise set to pending
-          syncStatus: inspection?.syncStatus === "synced" ? "pending" : (inspection?.syncStatus || "pending"),
+          // Set syncStatus to pending when form is updated (will be synced later)
+          syncStatus: "pending" as const,
         }
 
+        // Update inspection in store
         updateInspection(id, updatedInspection)
 
         if (sendNotifications) {
@@ -258,11 +342,20 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
         router.push(`/inspections/${id}`)
       } catch (error) {
         console.error("Error updating inspection:", error)
-        toast.error(t("alert.saveError.inspection") || "Erreur lors de la sauvegarde de l'inspection")
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        toast.error(
+          t("alert.saveError.inspection") || "Erreur lors de l'enregistrement de l'inspection. Veuillez réessayer.",
+          {
+            description: errorMessage,
+          }
+        )
+        setIsSubmitting(false)
+      } finally {
+        // Ensure submitting state is reset even if navigation fails
         setIsSubmitting(false)
       }
     },
-    [formData, validateForm, updateInspection, id, selectedUserIds, selectedGroupIds, authUsers, userGroups, inspection, sendNotifications, router, t],
+    [formData, validateForm, updateInspection, id, selectedUserIds, selectedGroupIds, authUsers, userGroups, inspection, sendNotifications, router, t, currentUser],
   )
 
   const handleItemResponse = (
@@ -403,7 +496,8 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
                     ...prev,
                     projectId: projectId || "",
                     projectNumber: p.code,
-                    projectLocation: prev.projectLocation || p.location,
+                    // Always update location when project changes
+                    projectLocation: p.location || "",
                   }))
                 }}
                 placeholder={t("observation.projectNumber")}
@@ -414,6 +508,7 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField label={t("field.location")}>
               <LivrableCrudCombobox
+                key={formData.projectId}
                 listKey="locations"
                 value={formData.projectLocation || ""}
                 onChange={(value) => setFormData((prev) => ({ ...prev, projectLocation: value }))}
@@ -443,9 +538,41 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
 
           <FormField label={t("form.description") || "Description"}>
             <Textarea
-              value={formData.description}
-              onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-              placeholder={t("form.descriptionPlaceholder") || "Description"}
+              value={(() => {
+                const desc = formData.description || ""
+                // Always clean the description before displaying - check for placeholder text
+                if (desc && (
+                  desc === "form.descriptionPlaceholder" ||
+                  desc.trim() === "form.descriptionPlaceholder" ||
+                  desc.includes("form.descriptionPlaceholder") ||
+                  (desc.startsWith("form.") && desc.includes("Placeholder"))
+                )) {
+                  // If it's placeholder text, update formData and return empty
+                  if (formData.description === desc) {
+                    // Use a ref or state update to avoid infinite loop
+                    setTimeout(() => {
+                      setFormData((prev) => {
+                        if (prev.description === desc) {
+                          return { ...prev, description: "" }
+                        }
+                        return prev
+                      })
+                    }, 0)
+                  }
+                  return ""
+                }
+                return desc
+              })()}
+              onChange={(e) => {
+                const newValue = e.target.value
+                // Only clean if it's exactly the placeholder text, otherwise allow user input
+                if (newValue === "form.descriptionPlaceholder" || newValue.trim() === "form.descriptionPlaceholder") {
+                  setFormData((prev) => ({ ...prev, description: "" }))
+                } else {
+                  setFormData((prev) => ({ ...prev, description: newValue }))
+                }
+              }}
+              placeholder="Description détaillée de l'inspection."
               rows={4}
               className="resize-none"
             />
@@ -682,6 +809,17 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
             </FormSection>
           )
         })}
+
+        {/* Attachments */}
+        <FormSection title={`${t("form.attachments")} - ${t("field.photos")}`} defaultOpen>
+          <AttachmentUpload
+            attachments={formData.attachments}
+            onChange={(attachments) => {
+              setFormData((prev) => ({ ...prev, attachments }))
+            }}
+            maxFiles={10}
+          />
+        </FormSection>
 
         {/* Distribution / Assignment */}
         <FormSection title={t("form.distribution")} defaultOpen>

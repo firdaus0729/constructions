@@ -392,7 +392,8 @@ export default function NewInspection() {
                     ...prev,
                     projectId: projectId || "",
                     projectNumber: p.code,
-                    projectLocation: prev.projectLocation || p.location,
+                    // Always update location when project changes
+                    projectLocation: p.location || "",
                   }))
                 }}
                 placeholder={t("observation.projectNumber")}
@@ -403,6 +404,7 @@ export default function NewInspection() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField label={t("field.location")}>
               <LivrableCrudCombobox
+                key={formData.projectId}
                 listKey="locations"
                 value={formData.projectLocation || ""}
                 onChange={(value) => setFormData((prev) => ({ ...prev, projectLocation: value }))}

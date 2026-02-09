@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { useLocale } from "@/lib/locale-context"
 import { exportObservationAsPdf } from "@/lib/pdf"
 import { useAppStore } from "@/lib/store"
-import { cn, distanceToNowLocalized, formatLocalized } from "@/lib/utils"
+import { cn, distanceToNowLocalized, formatLocalized, formatDateOnlyLocalized } from "@/lib/utils"
 
 // Initié #27F54D, Fermé #999999, Élevé #BD2D2D
 const STATUS_BADGE: Record<string, string> = {
@@ -217,8 +217,8 @@ export default function ObservationDetailPage({ params }: { params: Promise<{ id
                 <div>
                   <p className="text-xs text-muted-foreground">{t("observation.dueDateMeasure")}</p>
                   <p className="font-medium">
-                    {formatLocalized(
-                      observation.dueDate instanceof Date ? observation.dueDate : new Date(observation.dueDate),
+                    {formatDateOnlyLocalized(
+                      observation.dueDate,
                       "MMM d, yyyy",
                       locale
                     )}

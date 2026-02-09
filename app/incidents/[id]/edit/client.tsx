@@ -75,14 +75,17 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
     isPrivate: boolean
     date: string
     attachments: Attachment[]
-  }>(() => ({
-    title: incident?.title || "",
-    projectId: incident?.projectId || (projects && Array.isArray(projects) && projects.length > 0 ? projects[0]?.id : ""),
-    projectNumber: (incident as any)?.projectNumber || (projects?.find((p) => p.id === incident?.projectId)?.code) || "",
-    creatorId: incident?.creatorId || "",
-    // UI only supports Initié (open) and Fermé (closed); normalize legacy statuses to open.
-    status: ((incident?.status as FormStatus) === "closed" ? "closed" : "open") as FormStatus,
-    location: incident?.location || "",
+  }>(() => {
+    const project = projects?.find((p) => p.id === incident?.projectId)
+    return {
+      title: incident?.title || "",
+      projectId: incident?.projectId || (projects && Array.isArray(projects) && projects.length > 0 ? projects[0]?.id : ""),
+      projectNumber: (incident as any)?.projectNumber || project?.code || "",
+      creatorId: incident?.creatorId || "",
+      // UI only supports Initié (open) and Fermé (closed); normalize legacy statuses to open.
+      status: ((incident?.status as FormStatus) === "closed" ? "closed" : "open") as FormStatus,
+      // Auto-populate location from project if not already set
+      location: incident?.location || project?.location || "",
     eventDate: incident?.eventDate ? toDateOnlyString(incident.eventDate) : "",
     eventTime: incident?.eventTime || "",
     accidentType: incident?.accidentType || "",
@@ -103,7 +106,8 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
     isPrivate: (incident as any)?.isPrivate || false,
     date: incident?.date || "",
     attachments: incident?.attachments || [],
-  }))
+    }
+  })
 
   // Validation state
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -267,7 +271,14 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
                 value={formData.projectId}
                 onChange={(projectId) => {
                   const p = projects.find((pp) => pp.id === projectId)
-                  setFormData((prev) => ({ ...prev, projectId: projectId || "", projectNumber: p?.code || "" }))
+                  if (!p) return
+                  setFormData((prev) => ({ 
+                    ...prev, 
+                    projectId: projectId || "", 
+                    projectNumber: p.code || "",
+                    // Always update location when project changes
+                    location: p.location || ""
+                  }))
                 }}
                 placeholder={t("observation.projectNumber")}
               />
@@ -327,6 +338,7 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
 
           <FormField label={t("field.location")} error={errors.location} required>
             <LivrableCrudCombobox
+              key={formData.projectId}
               listKey="locations"
               value={formData.location}
               onChange={(value) => setFormData((prev) => ({ ...prev, location: value }))}
@@ -404,19 +416,13 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
             />
           </FormField>
 
-          {/* Attachments in Investigation Section – editable from this box when editing an incident */}
-          <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
-            <FormField
-              label={t("field.attachments")}
-              description={t("incident.attachmentsDesc")}
-            >
-              <AttachmentUpload
-                attachments={formData.attachments}
-                onAttachmentsChange={(attachments) => setFormData((prev) => ({ ...prev, attachments }))}
-                readOnly={false}
-              />
-            </FormField>
-          </div>
+          <FormField label={t("field.attachments")}>
+            <AttachmentUpload
+              attachments={formData.attachments}
+              onAttachmentsChange={(attachments) => setFormData((prev) => ({ ...prev, attachments }))}
+              readOnly={false}
+            />
+          </FormField>
         </FormSection>
 
         {/* Medical Treatment */}
