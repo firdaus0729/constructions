@@ -562,37 +562,6 @@ export default function NewLivrablePage() {
                 </Select>
               </FormField>
 
-              {/* Submit By */}
-              <FormField label={t("livrable.submitBy")}>
-                <Input
-                  type="date"
-                  value={formData.submitBy}
-                  onChange={(e) => handleFieldChange("submitBy", e.target.value)}
-                  className="h-12"
-                />
-              </FormField>
-
-              {/* Received Date */}
-              <FormField label={t("submittal.receivedDate")}>
-                <Input
-                  type="date"
-                  value={formData.receivedDate}
-                  onChange={(e) => handleFieldChange("receivedDate", e.target.value)}
-                  className="h-12"
-                />
-              </FormField>
-
-              {/* Issue Date */}
-              <FormField label={t("livrable.issueDate")}>
-                <Input
-                  type="date"
-                  value={formData.issueDate}
-                  onChange={(e) => handleFieldChange("issueDate", e.target.value)}
-                  className="h-12"
-                />
-              </FormField>
-
-
               {/* Location */}
               <FormField label={t("livrable.location")}>
                 <LivrableCrudCombobox
@@ -652,6 +621,45 @@ export default function NewLivrablePage() {
                 <Label className="cursor-pointer">{t("livrable.isPrivate")}</Label>
                 <span className="text-sm text-muted-foreground">{t("livrable.isPrivateDesc")}</span>
               </div>
+            </div>
+          </FormSection>
+
+          {/* Details Section */}
+          <FormSection
+            title={t("section.details")}
+            collapsible={true}
+            defaultOpen={true}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Submit By */}
+              <FormField label={t("livrable.submitBy")}>
+                <Input
+                  type="date"
+                  value={formData.submitBy}
+                  onChange={(e) => handleFieldChange("submitBy", e.target.value)}
+                  className="h-12"
+                />
+              </FormField>
+
+              {/* Issue Date */}
+              <FormField label={t("livrable.issueDate")}>
+                <Input
+                  type="date"
+                  value={formData.issueDate}
+                  onChange={(e) => handleFieldChange("issueDate", e.target.value)}
+                  className="h-12"
+                />
+              </FormField>
+
+              {/* Received Date */}
+              <FormField label={t("submittal.receivedDate")}>
+                <Input
+                  type="date"
+                  value={formData.receivedDate}
+                  onChange={(e) => handleFieldChange("receivedDate", e.target.value)}
+                  className="h-12"
+                />
+              </FormField>
             </div>
           </FormSection>
 

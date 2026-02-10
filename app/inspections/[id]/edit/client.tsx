@@ -293,9 +293,17 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
           syncStatus: "pending" as const,
         }
 
-        // Update inspection in store
+        // Update inspection in store - save first, then handle emails
         updateInspection(id, updatedInspection)
 
+        // Show success message immediately
+        toast.success(t("alert.saveSuccess.inspection"))
+
+        // Navigate to detail page immediately after saving
+        router.push(`/inspections/${id}`)
+
+        // Send email notifications in the background (non-blocking)
+        // Don't let email failures prevent form saving
         if (sendNotifications) {
           const recipientEmails = collectEmailAddresses(
             selectedUserIds,
@@ -307,7 +315,8 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
           if (recipientEmails.length > 0) {
             const project = projects?.find((p) => p.id === formData.projectId)
 
-            const emailResult = await sendFormNotificationEmails(
+            // Send emails asynchronously without blocking
+            sendFormNotificationEmails(
               {
                 formType: "inspection",
                 formNumber: updatedInspection.id,
@@ -324,22 +333,19 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
               },
               recipientEmails,
               sendNotifications
-            )
-
-            if (emailResult.success && emailResult.sent > 0) {
-              toast.success(t("toast.inspectionUpdatedWithEmails" as any, { count: emailResult.sent }))
-            } else if (emailResult.failed > 0) {
-              toast.warning(t("toast.inspectionUpdatedEmailsFailed" as any, { count: emailResult.failed }))
-            } else {
-              toast.success(t("alert.saveSuccess.inspection"))
-            }
-          } else {
-            toast.success(t("alert.saveSuccess.inspection"))
+            ).then((emailResult) => {
+              if (emailResult.success && emailResult.sent > 0) {
+                toast.success(t("toast.inspectionUpdatedWithEmails" as any, { count: emailResult.sent }))
+              } else if (emailResult.failed > 0) {
+                toast.warning(t("toast.inspectionUpdatedEmailsFailed" as any, { count: emailResult.failed }))
+              }
+            }).catch((error) => {
+              // Log error but don't show error toast - form was already saved successfully
+              console.error("Error sending email notifications:", error)
+              toast.warning(t("toast.inspectionUpdatedEmailsFailed" as any, { count: recipientEmails.length }))
+            })
           }
-        } else {
-          toast.success(t("alert.saveSuccess.inspection"))
         }
-        router.push(`/inspections/${id}`)
       } catch (error) {
         console.error("Error updating inspection:", error)
         const errorMessage = error instanceof Error ? error.message : String(error)

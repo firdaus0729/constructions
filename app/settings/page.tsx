@@ -44,7 +44,7 @@ export default function SettingsPage() {
   const { locale, setLocale, t } = useLocale()
   const { theme, setTheme } = useTheme()
   const { isOnline, isSyncing, syncNow } = useOffline()
-  const { observations, incidents, inspections, livrables, projects, addProject, updateProject, deleteProject, sessionDurationMinutes, setSessionDurationMinutes } = useAppStore()
+  const { observations, incidents, inspections, livrables, projects, addProject, updateProject, deleteProject, sessionDurationMinutes, setSessionDurationMinutes, setSessionExpiresAt, currentAuthUserId } = useAppStore()
   const [projectDialogOpen, setProjectDialogOpen] = React.useState(false)
   const [editingProjectId, setEditingProjectId] = React.useState<string | null>(null)
   const [projectForm, setProjectForm] = React.useState({ code: "", name: "", location: "" })
@@ -131,10 +131,21 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between gap-4">
                 <Label htmlFor="session-duration">{t("settings.session.logoutAfter")}</Label>
                 <Select
-                  value={sessionDurationMinutes !== undefined && sessionDurationMinutes !== null ? String(sessionDurationMinutes) : "60"}
+                  value={String(sessionDurationMinutes ?? 60)}
                   onValueChange={(v) => {
                     const minutes = Number(v)
-                    setSessionDurationMinutes(minutes)
+                    if (!isNaN(minutes)) {
+                      setSessionDurationMinutes(minutes)
+                      
+                      // Recalculate session expiration from NOW with the new duration
+                      // This resets the session timer when the duration is changed
+                      if (currentAuthUserId) {
+                        const durationMs = minutes <= 0 
+                          ? 10 * 365 * 24 * 60 * 60 * 1000 // Until browser close (very long time)
+                          : minutes * 60 * 1000 // Convert minutes to milliseconds
+                        setSessionExpiresAt(Date.now() + durationMs)
+                      }
+                    }
                   }}
                 >
                   <SelectTrigger id="session-duration" className="w-48">

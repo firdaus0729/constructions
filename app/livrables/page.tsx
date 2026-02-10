@@ -6,7 +6,7 @@ import { useAppStore } from "@/lib/store"
 
 export const dynamic = 'force-dynamic'
 import { useLocale } from "@/lib/locale-context"
-import { formatLocalized } from "@/lib/utils"
+import { formatDateOnlyLocalized } from "@/lib/utils"
 import { FileText, Plus, Edit2, Trash2, Search, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -150,8 +150,8 @@ export default function LivrablesPage() {
                 <Card key={livrable.id} className="hover:shadow-lg transition-shadow">
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4 mb-4">
-                      <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 shrink-0">
-                        <FileText className="h-6 w-6 text-primary" />
+                      <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-[#B5B5B5] shrink-0">
+                        <FileText className="h-6 w-6 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -174,7 +174,11 @@ export default function LivrablesPage() {
                       </div>
                       <div>
                         <span className="text-muted-foreground">{t("livrable.receivedDate")}</span>
-                        <p className="font-medium">{livrable.receivedDate ? formatLocalized(new Date(livrable.receivedDate), "MMM d", locale) : "-"}</p>
+                        <p className="font-medium">
+                          {livrable.receivedDate
+                            ? formatDateOnlyLocalized(livrable.receivedDate as any, "MMM d", locale)
+                            : "-"}
+                        </p>
                       </div>
                       <div>
                         <span className="text-muted-foreground">{t("form.project")}</span>

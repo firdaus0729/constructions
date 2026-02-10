@@ -11,7 +11,7 @@ import { AppShell } from "@/components/app-shell"
 import { useLocale } from "@/lib/locale-context"
 import { toast } from "sonner"
 import { useAppStore } from "@/lib/store"
-import { cn, distanceToNowLocalized, formatLocalized } from "@/lib/utils"
+import { cn, distanceToNowLocalized, formatDateOnlyLocalized } from "@/lib/utils"
 import { exportLivrableAsPdf } from "@/lib/pdf"
 
 const statusVariants = {
@@ -99,8 +99,8 @@ export default function LivrableDetailPage({ params }: { params: Promise<{ id: s
       <div id="form-detail" className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto space-y-6">
         {/* Header info */}
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10">
-            <FileText className="h-6 w-6 text-primary" />
+          <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-[#B5B5B5]">
+            <FileText className="h-6 w-6 text-white" />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -222,28 +222,6 @@ export default function LivrableDetailPage({ params }: { params: Promise<{ id: s
             <div>
               <p className="text-xs text-muted-foreground">{t("submittal.receivedDate")}</p>
               <p className="font-medium">{safeFormatDate(livrable.receivedDate, "MMMM d, yyyy")}</p>
-            </div>
-          </div>
-        </FormSection>
-
-        {/* Schedule */}
-        <FormSection title={t("submittal.scheduleInfo")}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-xs text-muted-foreground">{t("livrable.scheduleTask")}</p>
-              <p className="font-medium">{livrable.scheduleTask || "-"}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">{t("submittal.requiredOnSiteDate")}</p>
-              <p className="font-medium">{safeFormatDate(livrable.requiredOnSiteDate, "MMMM d, yyyy")}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">{t("livrable.leadTime")}</p>
-              <p className="font-medium">{typeof livrable.leadTime === "number" ? `${livrable.leadTime}` : "-"}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">{t("submittal.plannedReturnDate")}</p>
-              <p className="font-medium">{safeFormatDate(livrable.plannedReturnDate, "MMMM d, yyyy")}</p>
             </div>
           </div>
         </FormSection>

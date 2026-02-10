@@ -630,10 +630,31 @@ export async function exportObservationAsPdf(
   }
 
   // Helper function to format date/time as "DD/MM/YYYY à HH h MM EDT" or "FDT"
+  // This function preserves the actual time from Date objects (unlike parseLocalDate which is date-only)
   const formatDateTime = (date: Date | string | null | undefined, useFDT: boolean = false): string => {
     if (!date) return ""
-    const d = parseLocalDate(date)
+    
+    let d: Date | null = null
+    
+    // If it's already a Date object, use it directly to preserve time
+    if (date instanceof Date) {
+      d = date
+    } else if (typeof date === "string") {
+      // Try to parse as ISO string with time
+      const parsed = new Date(date)
+      if (!isNaN(parsed.getTime())) {
+        d = parsed
+      } else {
+        // Fallback to date-only parsing
+        d = parseLocalDate(date)
+      }
+    } else {
+      d = parseLocalDate(date)
+    }
+    
     if (!d) return ""
+    
+    // Extract date and time components from the actual Date object
     const day = String(d.getDate()).padStart(2, "0")
     const month = String(d.getMonth() + 1).padStart(2, "0")
     const year = d.getFullYear()
@@ -1823,43 +1844,50 @@ export async function exportInspectionAsPdf(
             const col = idx % 2
             const row = Math.floor(idx / 2)
             
-            // Check if we need a new page for this row
-            if (row > currentPageStartRow) {
-              const availableHeight = pageHeight - margin - 15 - currentImageY
-              const neededHeight = rowHeight
+            // Calculate where this row would be positioned on current page
+            const rowOnCurrentPage = row - currentPageStartRow
+            const potentialY = currentPageImageY + rowOnCurrentPage * rowHeight
+            // Full row height includes: cell height + spacing for filename below (imgH + 6 for filename + spacing)
+            const fullRowHeight = cellH + 6 // cellH + filename space (imgY + imgH + 6) - imgY = imgH + 6
+            
+            // Check if this row will fit on the current page BEFORE rendering
+            // Account for footer space (margin + 15mm for footer)
+            const availableHeight = pageHeight - margin - 15 - potentialY
+            
+            // If row doesn't fit (with some safety margin), move to next page
+            if (fullRowHeight > availableHeight - 2) {
+              // Need new page - check and add if needed
+              const currentPage = (doc as any).internal.getCurrentPageInfo().pageNumber
+              checkPageBreak(fullRowHeight + headerHeight + 10) // Include header height in check
+              const pageAfterCheck = (doc as any).internal.getCurrentPageInfo().pageNumber
               
-              if (neededHeight > availableHeight - 5) {
-                // Need new page
-                checkPageBreak(neededHeight + 10)
-                const pageAfterCheck = (doc as any).internal.getCurrentPageInfo().pageNumber
-                if (pageAfterCheck > pageBeforeImages) {
-                  itemStartY = y
-                  pageBeforeImages = pageAfterCheck
-                  // NO top border on continuation pages, start 15px from top
-                  // 15px ≈ 5.6mm (15 / 2.83465, since 1mm ≈ 2.83465px at 72dpi)
-                  const continuationOffset = 5.6
-                  y = margin + continuationOffset
-                  imageSectionStartY = y
-                  currentImageY = y + 3.5 + 1 // 3.5mm base + 3.5mm (10px) extra top margin
-                  // Redraw photo header on new page
-                  doc.setFont("helvetica", "bold")
-                  const nameTextCont = responderName + " (" + companyName + ")"
-                  const nameWidthCont = doc.getTextWidth(nameTextCont)
-                  doc.text(nameTextCont, margin + 2, currentImageY)
-                  doc.setFont("helvetica", "normal")
-                  // Add small gap between name and rest part to prevent overlap
-                  doc.text(` a ajouté ${photos.length} photo${photos.length > 1 ? "s" : ""} via mobile le ${photoDateStr} à ${photoTimeStr} EDT`, margin + 2 + nameWidthCont + 0.5, currentImageY)
-                  currentImageY += 4.5
-                }
+              if (pageAfterCheck > currentPage || pageAfterCheck > pageBeforeImages) {
+                itemStartY = y
+                pageBeforeImages = pageAfterCheck
+                // NO top border on continuation pages, start 15px from top
+                // 15px ≈ 5.6mm (15 / 2.83465, since 1mm ≈ 2.83465px at 72dpi)
+                const continuationOffset = 5.6
+                y = margin + continuationOffset
+                imageSectionStartY = y
+                currentImageY = y + 3.5 + 1 // 3.5mm base + 3.5mm (10px) extra top margin
+                // Redraw photo header on new page
+                doc.setFont("helvetica", "bold")
+                const nameTextCont = responderName + " (" + companyName + ")"
+                const nameWidthCont = doc.getTextWidth(nameTextCont)
+                doc.text(nameTextCont, margin + 2, currentImageY)
+                doc.setFont("helvetica", "normal")
+                // Add small gap between name and rest part to prevent overlap
+                doc.text(` a ajouté ${photos.length} photo${photos.length > 1 ? "s" : ""} via mobile le ${photoDateStr} à ${photoTimeStr} EDT`, margin + 2 + nameWidthCont + 0.5, currentImageY)
+                currentImageY += 4.5
                 currentPageImageY = currentImageY
                 currentPageStartRow = row
               }
             }
             
-            // Calculate position relative to current page's start
-            const rowOnCurrentPage = row - currentPageStartRow
+            // Calculate position relative to current page's start (recalculate after potential page break)
+            const actualRowOnCurrentPage = row - currentPageStartRow
             const x = startX + col * (cellW + gapX)
-            const yy = currentPageImageY + rowOnCurrentPage * rowHeight
+            const yy = currentPageImageY + actualRowOnCurrentPage * rowHeight
             
             doc.setDrawColor(BORDER_GRAY[0], BORDER_GRAY[1], BORDER_GRAY[2])
             doc.setLineWidth(0.2)

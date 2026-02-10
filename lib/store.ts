@@ -1024,6 +1024,7 @@ export const useAppStore = create<AppState>()(
       deleteAuthUser: (id) => set((state) => ({ authUsers: state.authUsers.filter((u) => u.id !== id) })),
       setCurrentAuthUserId: (id) => set({ currentAuthUserId: id }),
       setSessionExpiresAt: (v) => set({ sessionExpiresAt: v }),
+      setSessionDurationMinutes: (minutes) => set({ sessionDurationMinutes: minutes }),
       setHasHydrated: () => set({ _hasHydrated: true }),
       getCurrentAuthUser: () => {
         const state = get()
