@@ -26,6 +26,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# SSL certificates
+/certs/
+
 # documentation - exclude all .md files from git
 *.md
 *.txt
