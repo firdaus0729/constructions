@@ -133,10 +133,7 @@ export default function EditIncidentPage({ params }: { params: Promise<{ id: str
     async (e: React.FormEvent) => {
       e.preventDefault()
 
-      if (!validateForm()) {
-        toast.error(t("alert.fixErrors"))
-        return
-      }
+      // Allow saving regardless of form completion - no validation required
 
       setIsSubmitting(true)
       try {

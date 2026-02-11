@@ -1,6 +1,6 @@
 // Core data types for the construction forms application
 
-export type FormStatus = "draft" | "submitted" | "open" | "closed" | "in-progress"
+export type FormStatus = "draft" | "submitted" | "open" | "closed" | "in-progress" | "archived"
 export type Priority = "low" | "medium" | "high" | "critical"
 export type SyncStatus = "synced" | "pending" | "error"
 export type UserRole = "admin" | "supervisor" | "worker"

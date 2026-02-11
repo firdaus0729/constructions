@@ -52,7 +52,7 @@ export default function NewObservation() {
     projectNumber: string
     description: string
     priority: "low" | "medium" | "high"
-    status: "open" | "closed"
+    status: "open" | "closed" | "archived"
     creatorId: string
     concernedCompany: string
     referenceArticle: string
@@ -114,10 +114,7 @@ export default function NewObservation() {
     async (e: React.FormEvent) => {
       e.preventDefault()
 
-      if (!validateForm()) {
-        alert(t("alert.requiredFields"))
-        return
-      }
+      // Allow saving regardless of form completion - no validation required
 
       setIsSubmitting(true)
 
@@ -222,10 +219,7 @@ export default function NewObservation() {
   const selectedProject = projects?.find((p) => p.id === formData.projectId)
   
   const handleSaveDraft = useCallback(async () => {
-    if (!formData.title.trim()) {
-      alert(t("error.titleRequired"))
-      return
-    }
+    // Allow saving regardless of form completion - no validation required
     try {
       const observation: Observation = {
         id: `obs-${Date.now()}`,
@@ -349,6 +343,7 @@ export default function NewObservation() {
                 <SelectContent>
                   <SelectItem value="open">{t("status.initiated")}</SelectItem>
                   <SelectItem value="closed">{t("status.closed")}</SelectItem>
+                  <SelectItem value="archived">{t("status.archived")}</SelectItem>
                 </SelectContent>
               </Select>
             </FormField>

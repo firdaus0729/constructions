@@ -192,7 +192,11 @@ export default function NewInspection() {
               toast.success(t("toast.inspectionCreatedWithEmails" as any, { count: emailResult.sent }))
             } else if (emailResult.failed > 0) {
               toast.warning(t("toast.inspectionCreatedEmailsFailed" as any, { count: emailResult.failed }))
+            } else {
+              toast.success(t("alert.saveSuccess.inspection") || "Inspection créée avec succès")
             }
+          } else {
+            toast.success(t("alert.saveSuccess.inspection") || "Inspection créée avec succès")
           }
         } else {
           toast.success(t("alert.saveSuccess.inspection") || "Inspection créée avec succès")
@@ -527,6 +531,7 @@ export default function NewInspection() {
               >
                 <option value="open">{t("status.initiated")}</option>
                 <option value="closed">{t("status.closed")}</option>
+                <option value="archived">{t("status.archived")}</option>
               </select>
             </FormField>
           </div>

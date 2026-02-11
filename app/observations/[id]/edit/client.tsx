@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils"
 import { AlertTriangle, CheckCircle2, Mail, Save } from "lucide-react"
 import type { Observation, Attachment } from "@/lib/types"
 import { useLocale } from "@/lib/locale-context"
+import { toast } from "sonner"
 import { ObservationTypeCrudCombobox } from "@/components/observation-type-crud-combobox"
 import { ProjectNoCombobox } from "@/components/project-no-combobox"
 import { IncidentOptionCrudCombobox } from "@/components/incident-crud-combobox"
@@ -142,10 +143,7 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
     async (e: React.FormEvent) => {
       e.preventDefault()
 
-      if (!validateForm()) {
-        alert(t("alert.requiredFields"))
-        return
-      }
+      // Allow saving regardless of form completion - no validation required
 
       setIsSubmitting(true)
 
@@ -198,7 +196,7 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
           })
         }
 
-        alert(t("alert.saveSuccess.observation"))
+        toast.success(t("alert.saveSuccess.observation"))
         router.push(`/observations/${id}`)
       } catch (error) {
         console.error("Error updating observation:", error)

@@ -163,19 +163,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   )
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" suppressHydrationWarning>
       {/* Desktop sidebar */}
-      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-64 lg:flex-col bg-sidebar border-r border-sidebar-border">
-        <div className="flex h-16 items-center gap-2 px-6 border-b border-sidebar-border">
+      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-64 lg:flex-col bg-sidebar border-r border-sidebar-border" suppressHydrationWarning>
+        <div className="flex h-16 items-center gap-2 px-6 border-b border-sidebar-border" suppressHydrationWarning>
           <img src="/logo.png" alt="Logo" className="h-14 w-14 rounded-full" />
           <span className="text-lg font-semibold text-sidebar-foreground">{t("dashboard.title")}</span>
         </div>
-        <div className="flex-1 overflow-y-auto py-4 px-3">
+        <div className="flex-1 overflow-y-auto py-4 px-3" suppressHydrationWarning>
           <NavLinks />
         </div>
-        <div className="border-t border-sidebar-border p-4 space-y-3">
+        <div className="border-t border-sidebar-border p-4 space-y-3" suppressHydrationWarning>
           <OfflineIndicator variant="full" className="bg-sidebar-accent/30" />
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2" suppressHydrationWarning>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-8 flex-1 justify-start text-sidebar-foreground">
@@ -212,7 +212,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Mobile header */}
-      <header className="lg:hidden sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-card px-4">
+      <header className="lg:hidden sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-card px-4" suppressHydrationWarning>
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="h-12 w-12">
@@ -274,8 +274,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main content */}
-      <main className="lg:pl-64">
-        <div className="min-h-[calc(100vh-4rem)] lg:min-h-screen">{children}</div>
+      <main className="lg:pl-64" suppressHydrationWarning>
+        <div className="min-h-[calc(100vh-4rem)] lg:min-h-screen" suppressHydrationWarning>{children}</div>
       </main>
     </div>
   )

@@ -46,11 +46,26 @@ export function toDateOnlyString(date: Date | string | null | undefined): string
 /** Format a date-only value (event date, etc.) without timezone shift. Uses ISO date part to avoid UTC-midnight display bugs. */
 export function formatDateOnlyLocalized(value: Date | string | null | undefined, pattern: string, locale: 'en' | 'fr'): string {
   if (!value) return ""
-  const str = typeof value === "string" ? value : value instanceof Date ? value.toISOString() : ""
+  let str = ""
+  if (typeof value === "string") {
+    str = value
+  } else if (value instanceof Date) {
+    // Check if date is valid before calling toISOString
+    if (isNaN(value.getTime())) return ""
+    try {
+      str = value.toISOString()
+    } catch (e) {
+      return ""
+    }
+  } else {
+    return ""
+  }
   if (!str) return ""
   const datePart = str.slice(0, 10)
   if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return ""
   const localNoon = new Date(datePart + "T12:00:00")
+  // Check if the parsed date is valid
+  if (isNaN(localNoon.getTime())) return ""
   return dfFormat(localNoon, pattern, { locale: locale === "fr" ? frLocale : enUS })
 }
 

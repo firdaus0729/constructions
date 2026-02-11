@@ -801,14 +801,71 @@ export async function exportObservationAsPdf(
     ["Date de notification", (() => {
       const dateValue = observation.date || observation.notificationDate || observation.createdAt
       if (!dateValue) return ""
-      const parsedDate = parseLocalDate(dateValue)
-      return parsedDate ? formatDate(parsedDate) : ""
+      // Extract date components directly from ISO string to avoid timezone offset
+      let d: Date | null = null
+      let dateStr: string | null = null
+      
+      if (dateValue instanceof Date) {
+        // Convert Date to ISO string and extract date part
+        dateStr = dateValue.toISOString().slice(0, 10)
+      } else if (typeof dateValue === "string") {
+        // Extract date part from ISO string (handles both "2026-02-04" and "2026-02-04T00:00:00.000Z")
+        const isoMatch = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})/)
+        if (isoMatch) {
+          dateStr = isoMatch[0] // Get "YYYY-MM-DD" part
+        } else {
+          dateStr = dateValue
+        }
+      }
+      
+      if (dateStr) {
+        const dateMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/)
+        if (dateMatch) {
+          const year = parseInt(dateMatch[1], 10)
+          const month = parseInt(dateMatch[2], 10) - 1 // Month is 0-indexed
+          const day = parseInt(dateMatch[3], 10)
+          d = new Date(year, month, day) // Create date in local timezone
+          // Subtract one day to correct the offset (PDF shows one day later than entered)
+          d.setDate(d.getDate() + 1)
+        }
+      }
+      
+      return d ? formatDate(d) : ""
     })()],
     ["Lieu", observation.location || observation.projectLocation || (observation as any).lieu || ""],
     ["Date d'échéance", (() => {
       if (!observation.dueDate) return ""
-      const parsedDate = parseLocalDate(observation.dueDate)
-      return parsedDate ? formatDate(parsedDate) : ""
+      // Extract date components directly from ISO string to avoid timezone offset
+      const dateValue = observation.dueDate
+      let d: Date | null = null
+      let dateStr: string | null = null
+      
+      if (dateValue instanceof Date) {
+        // Convert Date to ISO string and extract date part
+        dateStr = dateValue.toISOString().slice(0, 10)
+      } else if (typeof dateValue === "string") {
+        // Extract date part from ISO string (handles both "2026-02-04" and "2026-02-04T00:00:00.000Z")
+        const isoMatch = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})/)
+        if (isoMatch) {
+          dateStr = isoMatch[0] // Get "YYYY-MM-DD" part
+        } else {
+          dateStr = dateValue
+        }
+      }
+      
+      if (dateStr) {
+        const dateMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/)
+        if (dateMatch) {
+          const year = parseInt(dateMatch[1], 10)
+          const month = parseInt(dateMatch[2], 10) - 1 // Month is 0-indexed
+          const day = parseInt(dateMatch[3], 10)
+          d = new Date(year, month, day) // Create date in local timezone
+          // Subtract one day to correct the offset (PDF shows one day later than entered)
+          d.setDate(d.getDate() + 1)
+        }
+      }
+      
+      return d ? formatDate(d) : ""
     })()],
     ["Condition contributive", getContributingConditionLabel(observation.safetyAnalysis?.contributingCondition || "")],
     ["Danger", getDangerLabel(observation.safetyAnalysis?.danger || "")],
@@ -821,8 +878,37 @@ export async function exportObservationAsPdf(
     ["Statut", statusText],
     ["Date de création", (() => {
       if (!observation.createdAt) return ""
-      const parsedDate = parseLocalDate(observation.createdAt)
-      return parsedDate ? formatDate(parsedDate) : ""
+      // Extract date components directly from ISO string to avoid timezone offset
+      const dateValue = observation.createdAt
+      let d: Date | null = null
+      let dateStr: string | null = null
+      
+      if (dateValue instanceof Date) {
+        // Convert Date to ISO string and extract date part
+        dateStr = dateValue.toISOString().slice(0, 10)
+      } else if (typeof dateValue === "string") {
+        // Extract date part from ISO string (handles both "2026-02-04" and "2026-02-04T00:00:00.000Z")
+        const isoMatch = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})/)
+        if (isoMatch) {
+          dateStr = isoMatch[0] // Get "YYYY-MM-DD" part
+        } else {
+          dateStr = dateValue
+        }
+      }
+      
+      if (dateStr) {
+        const dateMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/)
+        if (dateMatch) {
+          const year = parseInt(dateMatch[1], 10)
+          const month = parseInt(dateMatch[2], 10) - 1 // Month is 0-indexed
+          const day = parseInt(dateMatch[3], 10)
+          d = new Date(year, month, day) // Create date in local timezone
+          // Subtract one day to correct the offset (PDF shows one day later than entered)
+          d.setDate(d.getDate() + 1)
+        }
+      }
+      
+      return d ? formatDate(d) : ""
     })()],
     ["Distribution", formatDistribution()],
     ["Priorité", priorityText],
@@ -1515,27 +1601,52 @@ export async function exportInspectionAsPdf(
       doc.rect(margin, statsSectionY, itemWidth, topBlockHeight, "FD")
       doc.setDrawColor(0, 0, 0)
 
+      // Calculate available width for title (before checkboxes start)
+      // First checkbox box starts at: pageWidth - margin - 58
+      // Labels are centered below checkboxes, so "Conforme" (longest label) extends to the left
+      // We need to ensure title ends before the label area starts
+      const firstCheckboxX = pageWidth - margin - 58 // Where first checkbox box starts
+      const checkboxBoxSize = 3 // Size of checkbox box
+      const checkboxCenterX = firstCheckboxX + checkboxBoxSize / 2 // Center of first checkbox
+      const labelWidth = 12 // Approximate width of "Conforme" label (longest, font size 6)
+      const labelLeftEdge = checkboxCenterX - labelWidth / 2 - 5 // Left edge of centered label
+      const minSpacing = 10 // Minimum 10mm spacing between title and label area
+      const titleEndX = labelLeftEdge - minSpacing // Where title text must end
+      const titleStartX = margin + 2
+      const titleMaxWidth = Math.max(0, titleEndX - titleStartX) // Available width for title text (ensure non-negative)
+      
       // Center title and activity text vertically in the cell (like flexbox justify-content: center)
       // Calculate total height of both text elements
       doc.setFont("helvetica", "bold")
       doc.setFontSize(8)
-      const titleHeight = 3.5 // Approximate line height for title
+      const titleLineHeight = 3.5 // Approximate line height for title
       doc.setFont("helvetica", "bold")
       doc.setFontSize(7)
       const activityHeight = 3 // Approximate line height for activity
+      
+      // Wrap title text to prevent overlap with checkboxes
+      const titleText = `${item.number} ${item.label}`
+      const wrappedTitleLines = doc.splitTextToSize(titleText, titleMaxWidth)
+      const titleHeight = wrappedTitleLines.length * titleLineHeight
+      
       const totalTextHeight = titleHeight + activityHeight
       const gapBetween = 1 // Small gap between title and activity
       const totalContentHeight = totalTextHeight + gapBetween
       
       // Center the content block vertically in the cell
       const contentStartY = statsSectionY + (topBlockHeight - totalContentHeight) / 2
-      const titleY = contentStartY + titleHeight
+      let currentTitleY = contentStartY + titleLineHeight
       const activityY = contentStartY + titleHeight + gapBetween + activityHeight
 
-      // Title - vertically centered
+      // Title - vertically centered, wrapped to prevent overlap
       doc.setFont("helvetica", "bold")
       doc.setFontSize(8)
-      doc.text(`${item.number} ${item.label}`, margin + 2, titleY)
+      wrappedTitleLines.forEach((line: string, index: number) => {
+        doc.text(line, margin + 2, currentTitleY)
+        if (index < wrappedTitleLines.length - 1) {
+          currentTitleY += titleLineHeight
+        }
+      })
 
       // Activity text - vertically centered below title, ITALIC
       doc.setFont("helvetica", "italic") // Changed to italic

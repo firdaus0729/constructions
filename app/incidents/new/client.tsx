@@ -247,10 +247,7 @@ export default function NewIncidentPage() {
     async (e: React.FormEvent) => {
       e.preventDefault()
 
-      if (!validateForm()) {
-        toast.error(t("alert.fixErrors"))
-        return
-      }
+      // Allow saving regardless of form completion - no validation required
 
       setIsSubmitting(true)
       try {
@@ -294,7 +291,11 @@ export default function NewIncidentPage() {
               toast.success(t("toast.incidentCreatedWithEmails" as any, { count: emailResult.sent }))
             } else if (emailResult.failed > 0) {
               toast.warning(t("toast.incidentCreatedEmailsFailed" as any, { count: emailResult.failed }))
+            } else {
+              toast.success(t("alert.saveSuccess.incident"))
             }
+          } else {
+            toast.success(t("alert.saveSuccess.incident"))
           }
         } else {
           toast.success(t("alert.saveSuccess.incident"))
@@ -435,7 +436,7 @@ export default function NewIncidentPage() {
                 />
               </FormField>
 
-              {/* Statut (Status) - only Initié / Fermé */}
+              {/* Statut (Status) - only Initié / Fermé / Archivé */}
               <FormField label={t("form.status")} required>
                 <Select value={formData.status} onValueChange={(value: FormStatus) => handleFieldChange("status", value)}>
                   <SelectTrigger className="h-12">
@@ -444,6 +445,7 @@ export default function NewIncidentPage() {
                   <SelectContent>
                     <SelectItem value="open">{t("status.initiated" as any)}</SelectItem>
                     <SelectItem value="closed">{t("status.closed")}</SelectItem>
+                    <SelectItem value="archived">{t("status.archived")}</SelectItem>
                   </SelectContent>
                 </Select>
               </FormField>

@@ -255,9 +255,10 @@ export default function NewLivrablePage() {
     async (e: React.FormEvent) => {
       e.preventDefault()
 
-      // Validate but allow saving even if validation fails
-      const isValid = validateForm()
-      if (!isValid) {
+      // Skip validation if status is "archived" - allow archiving incomplete forms
+      // Otherwise validate but allow saving even if validation fails
+      const isValid = formData.status === "archived" || validateForm()
+      if (!isValid && formData.status !== "archived") {
         toast.warning(t("alert.fixErrors"))
         // Continue saving anyway - don't return
       }
@@ -304,7 +305,11 @@ export default function NewLivrablePage() {
               toast.success(t("toast.livrableCreatedWithEmails" as any, { count: emailResult.sent }))
             } else if (emailResult.failed > 0) {
               toast.warning(t("toast.livrableCreatedEmailsFailed" as any, { count: emailResult.failed }))
+            } else {
+              toast.success(t("alert.saveSuccess.livrable"))
             }
+          } else {
+            toast.success(t("alert.saveSuccess.livrable"))
           }
         } else {
           toast.success(t("alert.saveSuccess.livrable"))
@@ -509,13 +514,14 @@ export default function NewLivrablePage() {
 
               {/* Status */}
               <FormField label={`${t("submittal.status")} *`} required error={errors.status}>
-                <Select value={formData.status === "closed" ? "closed" : "open"} onValueChange={(value: any) => handleFieldChange("status", value)}>
+                <Select value={formData.status === "closed" ? "closed" : formData.status === "archived" ? "archived" : "open"} onValueChange={(value: any) => handleFieldChange("status", value)}>
                   <SelectTrigger className={`h-12 ${errors.status ? "border-destructive" : ""}`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="open">{t("status.initiated" as any)}</SelectItem>
                     <SelectItem value="closed">{t("status.closed")}</SelectItem>
+                    <SelectItem value="archived">{t("status.archived")}</SelectItem>
                   </SelectContent>
                 </Select>
               </FormField>
@@ -882,8 +888,6 @@ export default function NewLivrablePage() {
               {t("notifyUsers")}
             </Button>
           </div>
-
-          <p className="text-sm text-destructive">{t("form.requiredFields")}</p>
         </form>
       </div>
 
