@@ -205,10 +205,7 @@ export default function EditLivrablePage({ params }: { params: Promise<{ id: str
   const onSave = async (status: FormStatus) => {
     // Validate but allow saving even if validation fails
     const isValid = validate()
-    if (!isValid) {
-      toast.warning(t("alert.fixErrors"))
-      // Continue saving anyway - don't return
-    }
+    // Don't show validation warning - just save and show success message
     setIsSaving(true)
     try {
       const updated = {

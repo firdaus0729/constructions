@@ -39,6 +39,7 @@ export default function NewInspection() {
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([])
   const [sendNotifications, setSendNotifications] = useState(true)
+  const [newPlanLink, setNewPlanLink] = useState("")
 
   const [formData, setFormData] = useState({
     documentTitle: "",
@@ -262,6 +263,49 @@ export default function NewInspection() {
 
   const stats = getResponseStats()
 
+  // Handle Plans liés links (similar to Livrable linkedDrawings)
+  const planLinks = useMemo(() => {
+    const raw = String(formData.plansLies || "").trim()
+    if (!raw) return []
+    return raw
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean)
+  }, [formData.plansLies])
+
+  const addPlanLink = useCallback(() => {
+    const raw = newPlanLink.trim()
+    if (!raw) return
+    const url = raw.includes("://") ? raw : `https://${raw}`
+    try {
+      // Accept http(s) URLs only
+      const parsed = new URL(url)
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return
+    } catch {
+      return
+    }
+    setFormData((prev) => {
+      const existing = String(prev.plansLies || "")
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean)
+      if (existing.includes(url)) return prev
+      return { ...prev, plansLies: [...existing, url].join("\n") }
+    })
+    setNewPlanLink("")
+  }, [newPlanLink])
+
+  const removePlanLink = useCallback((url: string) => {
+    setFormData((prev) => {
+      const next = String(prev.plansLies || "")
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .filter((u) => u !== url)
+      return { ...prev, plansLies: next.join("\n") }
+    })
+  }, [])
+
   const handleSaveDraft = useCallback(async () => {
     if (!formData.documentTitle.trim()) {
       alert(t("error.titleRequired"))
@@ -370,18 +414,6 @@ export default function NewInspection() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
-              label={t("inspection.typeLabel")}
-              required
-              error={errors.type}
-            >
-              <InspectionTypeCrudCombobox
-                value={formData.type}
-                onChange={(value) => setFormData((prev) => ({ ...prev, type: value }))}
-                placeholder={t("inspection.selectType")}
-              />
-            </FormField>
-
-            <FormField
               label={t("observation.projectNumber")}
               required
               error={errors.projectId}
@@ -401,6 +433,18 @@ export default function NewInspection() {
                   }))
                 }}
                 placeholder={t("observation.projectNumber")}
+              />
+            </FormField>
+
+            <FormField
+              label={t("inspection.typeLabel")}
+              required
+              error={errors.type}
+            >
+              <InspectionTypeCrudCombobox
+                value={formData.type}
+                onChange={(value) => setFormData((prev) => ({ ...prev, type: value }))}
+                placeholder={t("inspection.selectType")}
               />
             </FormField>
           </div>
@@ -446,12 +490,47 @@ export default function NewInspection() {
               />
             </FormField>
             <FormField label="Plans liés">
-              <Input
-                value={formData.plansLies}
-                onChange={(e) => setFormData((prev) => ({ ...prev, plansLies: e.target.value }))}
-                placeholder="Plans liés"
-                className="h-10"
-              />
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <Input
+                    value={newPlanLink}
+                    onChange={(e) => setNewPlanLink(e.target.value)}
+                    placeholder="Coller un lien (https://...)"
+                    className="h-10"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault()
+                        addPlanLink()
+                      }
+                    }}
+                  />
+                  <Button type="button" variant="outline" className="h-10 shrink-0" onClick={addPlanLink}>
+                    Ajouter un lien
+                  </Button>
+                </div>
+
+                {planLinks.length > 0 ? (
+                  <div className="space-y-2">
+                    {planLinks.map((url) => (
+                      <div key={url} className="flex items-center gap-2 rounded-lg border p-3 bg-muted/30">
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-sm text-primary underline break-all flex-1"
+                        >
+                          {url}
+                        </a>
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removePlanLink(url)}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Ajoutez un ou plusieurs liens de plans. Attachez des fichiers en utilisant la section Pièces jointes.</p>
+                )}
+              </div>
             </FormField>
           </div>
 
@@ -524,15 +603,18 @@ export default function NewInspection() {
               label={t("form.status")}
               required
             >
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value as any }))}
-                className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm"
+              <Select
+                value={formData.status === "closed" ? "closed" : "open"}
+                onValueChange={(value: string) => setFormData((prev) => ({ ...prev, status: value }))}
               >
-                <option value="open">{t("status.initiated")}</option>
-                <option value="closed">{t("status.closed")}</option>
-                <option value="archived">{t("status.archived")}</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder={t("form.status")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="open">{t("status.initiated")}</SelectItem>
+                  <SelectItem value="closed">{t("status.closed")}</SelectItem>
+                </SelectContent>
+              </Select>
             </FormField>
           </div>
 

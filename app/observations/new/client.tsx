@@ -52,7 +52,7 @@ export default function NewObservation() {
     projectNumber: string
     description: string
     priority: "low" | "medium" | "high"
-    status: "open" | "closed" | "archived"
+    status: "open" | "closed"
     creatorId: string
     concernedCompany: string
     referenceArticle: string
@@ -336,14 +336,13 @@ export default function NewObservation() {
 
           <div className="grid grid-cols-2 gap-4">
             <FormField label={t("form.status")} required>
-              <Select value={formData.status} onValueChange={(value: any) => setFormData((prev) => ({ ...prev, status: value }))}>
+              <Select value={formData.status === "closed" ? "closed" : "open"} onValueChange={(value: any) => setFormData((prev) => ({ ...prev, status: value }))}>
                 <SelectTrigger>
                   <SelectValue placeholder={t("status.initiated")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="open">{t("status.initiated")}</SelectItem>
                   <SelectItem value="closed">{t("status.closed")}</SelectItem>
-                  <SelectItem value="archived">{t("status.archived")}</SelectItem>
                 </SelectContent>
               </Select>
             </FormField>

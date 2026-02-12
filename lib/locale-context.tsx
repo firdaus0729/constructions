@@ -1460,6 +1460,8 @@ const translations = {
     "alert.requiredFields": "Veuillez remplir tous les champs obligatoires",
     "alert.saveSuccess.incident": "Incident soumis avec succès et enregistré localement",
     "alert.saveError.incident": "Échec de la soumission de l'incident",
+    "alert.saveSuccess.livrable": "Livrable enregistré avec succès !",
+    "alert.saveError.livrable": "Erreur lors de l'enregistrement du livrable. Veuillez réessayer.",
     "alert.saveDraft.error": "Échec de l'enregistrement du brouillon",
     "alert.fixErrors": "Veuillez corriger les erreurs dans le formulaire",
     "alert.groupCreated": "Groupe créé avec succès",

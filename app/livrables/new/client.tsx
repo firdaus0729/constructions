@@ -255,13 +255,9 @@ export default function NewLivrablePage() {
     async (e: React.FormEvent) => {
       e.preventDefault()
 
-      // Skip validation if status is "archived" - allow archiving incomplete forms
-      // Otherwise validate but allow saving even if validation fails
-      const isValid = formData.status === "archived" || validateForm()
-      if (!isValid && formData.status !== "archived") {
-        toast.warning(t("alert.fixErrors"))
-        // Continue saving anyway - don't return
-      }
+      // Validate but allow saving even if validation fails
+      const isValid = validateForm()
+      // Don't show validation warning - just save and show success message
 
       setIsSubmitting(true)
       try {
@@ -514,14 +510,13 @@ export default function NewLivrablePage() {
 
               {/* Status */}
               <FormField label={`${t("submittal.status")} *`} required error={errors.status}>
-                <Select value={formData.status === "closed" ? "closed" : formData.status === "archived" ? "archived" : "open"} onValueChange={(value: any) => handleFieldChange("status", value)}>
+                <Select value={formData.status === "closed" ? "closed" : "open"} onValueChange={(value: any) => handleFieldChange("status", value)}>
                   <SelectTrigger className={`h-12 ${errors.status ? "border-destructive" : ""}`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="open">{t("status.initiated" as any)}</SelectItem>
                     <SelectItem value="closed">{t("status.closed")}</SelectItem>
-                    <SelectItem value="archived">{t("status.archived")}</SelectItem>
                   </SelectContent>
                 </Select>
               </FormField>

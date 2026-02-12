@@ -86,6 +86,7 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
     return groupIds
   })
   const [sendNotifications, setSendNotifications] = useState(true)
+  const [newPlanLink, setNewPlanLink] = useState("")
 
   // Form data
   const [formData, setFormData] = useState<{
@@ -413,6 +414,49 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
 
   const stats = getResponseStats()
 
+  // Handle Plans liés links (similar to Livrable linkedDrawings)
+  const planLinks = useMemo(() => {
+    const raw = String(formData.plansLies || "").trim()
+    if (!raw) return []
+    return raw
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean)
+  }, [formData.plansLies])
+
+  const addPlanLink = useCallback(() => {
+    const raw = newPlanLink.trim()
+    if (!raw) return
+    const url = raw.includes("://") ? raw : `https://${raw}`
+    try {
+      // Accept http(s) URLs only
+      const parsed = new URL(url)
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return
+    } catch {
+      return
+    }
+    setFormData((prev) => {
+      const existing = String(prev.plansLies || "")
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean)
+      if (existing.includes(url)) return prev
+      return { ...prev, plansLies: [...existing, url].join("\n") }
+    })
+    setNewPlanLink("")
+  }, [newPlanLink])
+
+  const removePlanLink = useCallback((url: string) => {
+    setFormData((prev) => {
+      const next = String(prev.plansLies || "")
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .filter((u) => u !== url)
+      return { ...prev, plansLies: next.join("\n") }
+    })
+  }, [])
+
   if (!inspection) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -479,18 +523,6 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
           </FormField>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              label={t("inspection.typeLabel")}
-              error={errors.type}
-              required
-            >
-              <InspectionTypeCrudCombobox
-                value={formData.type}
-                onChange={(value) => setFormData((prev) => ({ ...prev, type: value }))}
-                placeholder={t("inspection.selectType")}
-              />
-            </FormField>
-
             <FormField label={t("observation.projectNumber")} error={errors.projectId} required>
               <ProjectNoCombobox
                 projects={projects}
@@ -507,6 +539,18 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
                   }))
                 }}
                 placeholder={t("observation.projectNumber")}
+              />
+            </FormField>
+
+            <FormField
+              label={t("inspection.typeLabel")}
+              error={errors.type}
+              required
+            >
+              <InspectionTypeCrudCombobox
+                value={formData.type}
+                onChange={(value) => setFormData((prev) => ({ ...prev, type: value }))}
+                placeholder={t("inspection.selectType")}
               />
             </FormField>
           </div>
@@ -594,12 +638,47 @@ export default function EditInspectionPage({ params }: { params: Promise<{ id: s
               />
             </FormField>
             <FormField label="Plans liés">
-              <Input
-                value={formData.plansLies}
-                onChange={(e) => setFormData((prev) => ({ ...prev, plansLies: e.target.value }))}
-                placeholder="Plans liés"
-                className="h-12"
-              />
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <Input
+                    value={newPlanLink}
+                    onChange={(e) => setNewPlanLink(e.target.value)}
+                    placeholder="Coller un lien (https://...)"
+                    className="h-12"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault()
+                        addPlanLink()
+                      }
+                    }}
+                  />
+                  <Button type="button" variant="outline" className="h-12 shrink-0" onClick={addPlanLink}>
+                    Ajouter un lien
+                  </Button>
+                </div>
+
+                {planLinks.length > 0 ? (
+                  <div className="space-y-2">
+                    {planLinks.map((url) => (
+                      <div key={url} className="flex items-center gap-2 rounded-lg border p-3 bg-muted/30">
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-sm text-primary underline break-all flex-1"
+                        >
+                          {url}
+                        </a>
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removePlanLink(url)}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Ajoutez un ou plusieurs liens de plans. Attachez des fichiers en utilisant la section Pièces jointes.</p>
+                )}
+              </div>
             </FormField>
           </div>
 
