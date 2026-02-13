@@ -266,28 +266,6 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
           </FormField>
 
           <div className="grid grid-cols-2 gap-4">
-            <FormField label={t("field.type")} error={errors.type} required>
-              <ObservationTypeCrudCombobox
-                value={formData.type}
-                onChange={(value) => setFormData((prev) => ({ ...prev, type: value }))}
-                placeholder={t("inspection.selectType")}
-              />
-            </FormField>
-
-            <FormField label={t("form.status")}>
-              <Select value={formData.status === "closed" ? "closed" : "open"} onValueChange={(value) => setFormData((prev) => ({ ...prev, status: value }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="open">{t("status.initiated")}</SelectItem>
-                  <SelectItem value="closed">{t("status.closed")}</SelectItem>
-                </SelectContent>
-              </Select>
-            </FormField>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <FormField label={t("observation.projectNumber")} error={errors.projectId} required>
               <ProjectNoCombobox
                 projects={projects}
@@ -298,6 +276,28 @@ export default function EditObservation({ params }: { params: Promise<{ id: stri
                 }}
                 placeholder={t("observation.projectNumber")}
               />
+            </FormField>
+
+            <FormField label={t("field.type")} error={errors.type} required>
+              <ObservationTypeCrudCombobox
+                value={formData.type}
+                onChange={(value) => setFormData((prev) => ({ ...prev, type: value }))}
+                placeholder={t("inspection.selectType")}
+              />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label={t("form.status")}>
+              <Select value={formData.status === "closed" ? "closed" : "open"} onValueChange={(value) => setFormData((prev) => ({ ...prev, status: value }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="open">{t("status.initiated")}</SelectItem>
+                  <SelectItem value="closed">{t("status.closed")}</SelectItem>
+                </SelectContent>
+              </Select>
             </FormField>
 
             <FormField label={t("form.createdBy")}>

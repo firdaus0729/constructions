@@ -305,18 +305,6 @@ export default function NewObservation() {
 
           <div className="grid grid-cols-2 gap-4">
             <FormField
-              label={t("observation.type")}
-              error={errors.type}
-              required
-            >
-              <ObservationTypeCrudCombobox
-                value={formData.type}
-                onChange={(value) => setFormData((prev) => ({ ...prev, type: value }))}
-                placeholder={t("inspection.selectType")}
-              />
-            </FormField>
-
-            <FormField
               label={t("observation.projectNumber")}
               error={errors.projectId}
               required
@@ -330,6 +318,18 @@ export default function NewObservation() {
                   setFormData((prev) => ({ ...prev, projectId: projectId || "", projectNumber: p.code }))
                 }}
                 placeholder={t("observation.projectNumber")}
+              />
+            </FormField>
+
+            <FormField
+              label={t("observation.type")}
+              error={errors.type}
+              required
+            >
+              <ObservationTypeCrudCombobox
+                value={formData.type}
+                onChange={(value) => setFormData((prev) => ({ ...prev, type: value }))}
+                placeholder={t("inspection.selectType")}
               />
             </FormField>
           </div>

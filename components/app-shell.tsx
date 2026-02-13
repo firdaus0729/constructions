@@ -266,7 +266,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </SheetContent>
         </Sheet>
-        <div className="flex-1 flex items-center gap-2">
+        <div className="flex-1 flex items-center gap-2" suppressHydrationWarning>
           <img src="/logo.png" alt="Logo" className="h-10 w-10 rounded-full" />
           <span className="font-semibold">{t("dashboard.title")}</span>
         </div>

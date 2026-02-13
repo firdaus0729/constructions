@@ -40,6 +40,7 @@ export function QuickActionCard({
       )}
     >
       <div
+        suppressHydrationWarning
         className={cn(
           "flex items-center justify-center w-14 h-14 rounded-xl mb-3 transition-colors",
           variant === "primary" &&

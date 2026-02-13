@@ -22,15 +22,15 @@ export default function DashboardPage() {
 
   return (
     <AppShell>
-      <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
+      <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto" suppressHydrationWarning>
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8" suppressHydrationWarning>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">{t("dashboard.title")}</h1>
           <p className="text-muted-foreground">{t("dashboard.subtitle")}</p>
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8" suppressHydrationWarning>
           <QuickActionCard
             title={t("dashboard.newInspection")}
             href="/inspections/new"
@@ -60,7 +60,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Forms */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" suppressHydrationWarning>
           {/* Fermé (closed) */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">

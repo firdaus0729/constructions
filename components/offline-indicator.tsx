@@ -19,7 +19,7 @@ export function OfflineIndicator({ variant = "minimal", className }: OfflineIndi
 
   if (variant === "minimal") {
     return (
-      <div className={cn("flex items-center gap-2", className)}>
+      <div className={cn("flex items-center gap-2", className)} suppressHydrationWarning>
         {isOnline ? (
           isSyncing ? (
             <RefreshCw className="h-4 w-4 text-primary animate-spin" />
@@ -34,12 +34,13 @@ export function OfflineIndicator({ variant = "minimal", className }: OfflineIndi
   }
 
   return (
-    <div className={cn("flex items-center gap-3 p-4 rounded-lg border", className, !isOnline && "bg-destructive/5")}>
+    <div className={cn("flex items-center gap-3 p-4 rounded-lg border", className, !isOnline && "bg-destructive/5")} suppressHydrationWarning>
       <div
         className={cn(
           "flex items-center justify-center w-10 h-10 rounded-lg shrink-0",
           isOnline ? "bg-accent/10" : "bg-destructive/10",
         )}
+        suppressHydrationWarning
       >
         {isOnline ? (
           isSyncing ? (
@@ -51,7 +52,7 @@ export function OfflineIndicator({ variant = "minimal", className }: OfflineIndi
           <CloudOff className="h-5 w-5 text-destructive" />
         )}
       </div>
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0" suppressHydrationWarning>
         <p className="text-sm font-semibold">
           {isOnline ? (isSyncing ? t("status.syncing") : t("status.online")) : t("status.offline")}
         </p>
